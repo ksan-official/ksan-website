@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { HomeMotion } from "@/components/HomeMotion";
 import { comingSoonSections } from "@/lib/content";
 
 const placeholderSections = [
@@ -49,12 +50,14 @@ const placeholderFeed = [
 
 export default function HomePage() {
   return (
-    <main className="page" id="main">
+    <main className="page home-page" data-home-page id="main">
+      <HomeMotion />
       <section className="hero-panel">
-        <div>
+        <div aria-hidden className="hero-art" data-hero-art />
+        <div data-hero-copy>
           <p className="eyebrow">Korean students in the Netherlands</p>
-          <h1 className="page-title">네덜란드 한인 학생 커뮤니티의 연결점</h1>
-          <p className="lead">
+          <h1 className="page-title max-w-6xl">네덜란드 한인 학생 커뮤니티의 연결점</h1>
+          <p className="lead" data-scrub-copy>
             KSAN은 네덜란드에서 공부하고 살아가는 한국 학생들이 정보, 사람, 행사, 기업 기회를
             한곳에서 만날 수 있도록 돕는 커뮤니티 허브입니다.
           </p>
@@ -67,7 +70,7 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
-        <aside className="ops-board" aria-label="Homepage placeholders">
+        <aside className="ops-board" aria-label="Homepage placeholders" data-hero-board>
           {placeholderFeed.map((item) => (
             <div className="flow-step" key={item.title}>
               <span className="badge pending">{item.label}</span>
@@ -78,13 +81,13 @@ export default function HomePage() {
         </aside>
       </section>
 
-      <section className="section">
+      <section className="section" data-motion-section>
         <div className="section-header">
           <h2>주요 섹션</h2>
         </div>
         <div className="grid">
           {placeholderSections.map((item) => (
-            <Link className="card interactive" href={item.href} key={item.title}>
+            <Link className="card interactive" data-motion-card href={item.href} key={item.title}>
               <span className="label">{item.label}</span>
               <strong>{item.title}</strong>
               <span className="muted">{item.description}</span>
@@ -93,13 +96,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section">
+      <section className="section" data-motion-section>
         <div className="section-header">
           <h2>다음에 열릴 커뮤니티 기능</h2>
         </div>
         <div className="grid compact-grid">
           {comingSoonSections.map((section) => (
-            <section className="card" key={section.title}>
+            <section className="card" data-motion-card key={section.title}>
               <span className="badge pending">준비 중</span>
               <h3>{section.title}</h3>
               <p className="muted">{section.description}</p>

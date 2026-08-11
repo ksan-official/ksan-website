@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useRef } from "react";
+import { ArrowUpRight } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -54,14 +55,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
         {children}
         <footer className="site-footer">
-          <Link className="brand compact" href="/">
-            KSAN
-          </Link>
-          <div className="footer-links">
-            <Link href="/about">소개</Link>
-            <Link href="/events">행사</Link>
-            <Link href="/business">비즈니스 허브</Link>
-            <Link href="/auth">로그인</Link>
+          <div className="footer-main">
+            <div className="footer-brand-nav">
+              <Link className="brand compact" href="/">
+                <span>KSAN</span>
+                <small>네덜란드 한인 학생회</small>
+              </Link>
+              <nav aria-label="하단 주요 메뉴" className="footer-links">
+                <Link href="/about">소개</Link>
+                <Link href="/events">행사</Link>
+                <Link href="/business">비즈니스 허브</Link>
+                <Link href="/auth">로그인</Link>
+              </nav>
+            </div>
+            <Link className="footer-contact" href="/about#contact">
+              <span>문의하기</span>
+              <ArrowUpRight aria-hidden size={18} />
+            </Link>
+          </div>
+          <div className="footer-meta">
+            <span>학생과 정보를 연결하는 네덜란드 한인 학생회</span>
+            <span>KSAN · Korean Students Association in the Netherlands</span>
           </div>
         </footer>
       </div>

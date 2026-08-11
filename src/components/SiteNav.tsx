@@ -4,14 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-  ["홈", "/"],
   ["정착가이드", "/guides"],
   ["비즈니스 허브", "/business"],
   ["행사", "/events"],
-  ["소개", "/about"],
   ["Pass it On", "/pass-it-on"],
   ["Community", "/community"],
-  ["마이페이지", "/mypage"]
+  ["소개", "/about"],
+  ["로그인", "/auth"]
 ];
 
 function isActive(pathname: string, href: string) {
@@ -24,7 +23,13 @@ export function SiteNav() {
   return (
     <nav className="nav" aria-label="Primary navigation">
       {navItems.map(([label, href]) => (
-        <Link className={isActive(pathname, href) ? "active" : undefined} key={href} href={href}>
+        <Link
+          className={[isActive(pathname, href) ? "active" : "", href === "/auth" ? "login-cta" : ""]
+            .filter(Boolean)
+            .join(" ")}
+          key={href}
+          href={href}
+        >
           {label}
         </Link>
       ))}
