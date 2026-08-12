@@ -103,6 +103,41 @@ export function HomeMotion() {
           });
         }
       });
+
+      const mapSection = page.querySelector<HTMLElement>("[data-map-section]");
+      const mapStage = page.querySelector<HTMLElement>("[data-map-stage]");
+
+      if (mapSection && mapStage) {
+        gsap.fromTo(
+          mapStage,
+          { scale: 0.94 },
+          {
+            ease: "none",
+            scale: 1,
+            scrollTrigger: {
+              end: "center 52%",
+              scrub: 0.7,
+              start: "top 92%",
+              trigger: mapSection
+            }
+          }
+        );
+
+        gsap.fromTo(
+          "[data-map-copy]",
+          { opacity: 0.28 },
+          {
+            ease: "none",
+            opacity: 1,
+            scrollTrigger: {
+              end: "top 50%",
+              scrub: 0.55,
+              start: "top 82%",
+              trigger: mapSection
+            }
+          }
+        );
+      }
     }, page);
 
     return () => context.revert();

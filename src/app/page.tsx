@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { AmsterdamSpotMap } from "@/components/AmsterdamSpotMap";
 import { HomeMotion } from "@/components/HomeMotion";
 import { comingSoonSections } from "@/lib/content";
 
@@ -110,6 +111,8 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      <AmsterdamSpotMap />
     </main>
   );
 }
