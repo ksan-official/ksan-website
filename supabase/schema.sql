@@ -38,14 +38,29 @@ create table if not exists public.business_posts (
   company text not null,
   location text,
   employment_type text,
+  department text,
+  tags text[] not null default '{}',
   deadline date,
   apply_mode text not null default 'email' check (apply_mode in ('email', 'external_link', 'internal_form')),
   apply_target text not null,
   description text not null,
+  featured boolean not null default false,
+  featured_order integer not null default 0,
+  accent text not null default 'orange' check (accent in ('orange', 'blue', 'dark')),
   published boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Existing Supabase projects need additive columns because CREATE TABLE IF NOT EXISTS
+-- does not update a table that was created with an earlier schema version.
+alter table public.business_posts add column if not exists department text;
+alter table public.business_posts add column if not exists tags text[] not null default '{}';
+alter table public.business_posts add column if not exists featured boolean not null default false;
+alter table public.business_posts add column if not exists featured_order integer not null default 0;
+alter table public.business_posts add column if not exists accent text not null default 'orange';
+create index if not exists business_posts_public_order_idx
+  on public.business_posts (published, featured desc, featured_order asc, created_at desc);
 
 create table if not exists public.events (
   id uuid primary key default gen_random_uuid(),
@@ -90,6 +105,13 @@ create table if not exists public.saved_business_posts (
   primary key (user_id, business_post_id)
 );
 
+create table if not exists public.saved_business_items (
+  user_id uuid references auth.users(id) on delete cascade,
+  job_id text not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, job_id)
+);
+
 create table if not exists public.about_entries (
   id uuid primary key default gen_random_uuid(),
   entry_type text not null check (entry_type in ('executive', 'president', 'team_member', 'sponsor')),
@@ -97,6 +119,24 @@ create table if not exists public.about_entries (
   subtitle text,
   body text,
   image_url text,
+  sort_order integer not null default 0,
+  published boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.map_spots (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  name text not null,
+  category text not null check (category in ('cafe', 'food', 'study')),
+  description text,
+  address text,
+  neighborhood text,
+  latitude double precision not null check (latitude between -90 and 90),
+  longitude double precision not null check (longitude between -180 and 180),
+  google_maps_url text,
+  source_list_url text,
   sort_order integer not null default 0,
   published boolean not null default true,
   created_at timestamptz not null default now(),
@@ -150,7 +190,9 @@ alter table public.events enable row level security;
 alter table public.applications enable row level security;
 alter table public.saved_guides enable row level security;
 alter table public.saved_business_posts enable row level security;
+alter table public.saved_business_items enable row level security;
 alter table public.about_entries enable row level security;
+alter table public.map_spots enable row level security;
 
 create policy "Users can read their own profile" on public.profiles
   for select using (auth.uid() = id or public.is_admin());
@@ -191,8 +233,17 @@ create policy "Users manage saved guides" on public.saved_guides
 create policy "Users manage saved business posts" on public.saved_business_posts
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+create policy "Users manage saved business items" on public.saved_business_items
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
 create policy "Published about entries are public" on public.about_entries
   for select using (published = true or public.is_admin());
 
 create policy "Admins manage about entries" on public.about_entries
+  for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "Published map spots are public" on public.map_spots
+  for select using (published = true or public.is_admin());
+
+create policy "Admins manage map spots" on public.map_spots
   for all using (public.is_admin()) with check (public.is_admin());

@@ -106,6 +106,10 @@ export default function AdminPage() {
             <strong>행사 등록</strong>
             <span>행사 소개, 신청 방식, 외부 폼 링크 입력</span>
           </Link>
+          <Link href="/admin/map-spots/new">
+            <strong>지도 장소 등록</strong>
+            <span>카페, 맛집, 공부 스팟과 좌표를 입력해 랜딩 지도에 공개</span>
+          </Link>
           <Link href="/admin/about/new">
             <strong>소개 항목 수정</strong>
             <span>임원진, 회장단, 후원사 항목 입력</span>
