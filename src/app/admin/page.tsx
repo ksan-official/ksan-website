@@ -98,17 +98,17 @@ export default function AdminPage() {
             <strong>정착가이드 글 작성</strong>
             <span>본문 붙여넣기, 스캔, 공개 여부 선택</span>
           </Link>
-          <Link href="/admin/business/new">
-            <strong>비즈니스 공고 등록</strong>
-            <span>기업명, 마감일, 지원 이메일/링크 입력</span>
+          <Link href="/admin/business">
+            <strong>채용 공고 관리</strong>
+            <span>공고를 추가·수정하고 공개 여부와 하이라이트 배너 관리</span>
           </Link>
           <Link href="/admin/events/new">
             <strong>행사 등록</strong>
             <span>행사 소개, 신청 방식, 외부 폼 링크 입력</span>
           </Link>
-          <Link href="/admin/map-spots/new">
-            <strong>지도 장소 등록</strong>
-            <span>카페, 맛집, 공부 스팟과 좌표를 입력해 랜딩 지도에 공개</span>
+          <Link href="/admin/map-spots">
+            <strong>지도 장소 관리</strong>
+            <span>카페, 맛집, 공부 스팟을 추가·수정하고 공개 여부 관리</span>
           </Link>
           <Link href="/admin/about/new">
             <strong>소개 항목 수정</strong>

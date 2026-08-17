@@ -31,30 +31,11 @@ const placeholderSections = [
   }
 ];
 
-const placeholderFeed = [
-  {
-    label: "Coming soon",
-    title: "첫 오리엔테이션 행사",
-    description: "행사 일정과 신청 링크가 준비되면 여기에 표시됩니다."
-  },
-  {
-    label: "Coming soon",
-    title: "정착가이드 업데이트",
-    description: "새로 작성된 가이드가 준비되면 여기에 표시됩니다."
-  },
-  {
-    label: "Coming soon",
-    title: "기업 공고",
-    description: "등록된 공고가 생기면 여기에 표시됩니다."
-  }
-];
-
 export default function HomePage() {
   return (
     <main className="page home-page" data-home-page id="main">
       <HomeMotion />
       <section className="hero-panel">
-        <div aria-hidden className="hero-art" data-hero-art />
         <div data-hero-copy>
           <p className="eyebrow">Korean students in the Netherlands</p>
           <h1 className="page-title max-w-6xl">네덜란드 한인 학생 커뮤니티의 연결점</h1>
@@ -71,15 +52,6 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
-        <aside className="ops-board" aria-label="Homepage placeholders" data-hero-board>
-          {placeholderFeed.map((item) => (
-            <div className="flow-step" key={item.title}>
-              <span className="badge pending">{item.label}</span>
-              <strong>{item.title}</strong>
-              <span className="muted">{item.description}</span>
-            </div>
-          ))}
-        </aside>
       </section>
 
       <section className="section" data-motion-section>

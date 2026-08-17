@@ -105,22 +105,24 @@ export default function MyPage() {
             </div>
           ) : null}
         </div>
-        <aside className="ops-board">
+      </section>
+      {(status || email) ? (
+        <section className="section">
           {status ? <p className="status">{status}</p> : null}
           {email ? (
-            <section>
+            <div>
               <h2>{profile?.full_name ?? "KSAN 회원"}</h2>
               <p className="muted">{email}</p>
               <p className="muted">
                 {profile?.school ?? "학교 미입력"} · {profile?.major ?? "전공 미입력"} ·{" "}
                 {profile?.admission_year ?? "입학연도 미입력"}
               </p>
-            </section>
+            </div>
           ) : (
             <p className="muted">로그인하면 프로필과 활동 기록이 이곳에 표시됩니다.</p>
           )}
-        </aside>
-      </section>
+        </section>
+      ) : null}
       <section className="section">
         <div className="grid">
           {myPageItems.map(({ title, description, Icon, state }) => (

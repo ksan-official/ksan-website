@@ -49,17 +49,12 @@ export default function AuthPage() {
             학교 이메일 인증은 추후 적용될 수 있습니다.
           </p>
         </div>
-        <aside className="ops-board">
-          <span className={configured ? "badge live" : "badge pending"}>
-            {configured ? "계정 연결 가능" : "계정 기능 준비 중"}
-          </span>
-          <p className="muted">
-            첫 MVP에서는 프로필, 저장 항목, 신청 내역을 중심으로 계정 기능을 시작합니다.
-          </p>
-        </aside>
       </section>
 
       <section className="section">
+        <span className={configured ? "badge live" : "badge pending"}>
+          {configured ? "계정 연결 가능" : "계정 기능 준비 중"}
+        </span>
         <form className="form" onSubmit={submit}>
         {mode === "signup" ? (
           <>

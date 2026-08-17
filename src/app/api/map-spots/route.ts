@@ -5,6 +5,7 @@ import { createServerSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 type MapSpotRow = {
   address: string | null;
   category: SpotCategory;
+  city: string | null;
   description: string | null;
   google_maps_url: string | null;
   latitude: number;
@@ -19,7 +20,8 @@ function toMapSpot(row: MapSpotRow): MapSpot {
   return {
     address: row.address,
     category: row.category,
-    description: row.description ?? "KSAN 학생 큐레이션에 등록된 장소입니다.",
+    city: row.city,
+    description: row.description ?? "",
     googleMapsUrl: row.google_maps_url,
     id: row.slug,
     latitude: Number(row.latitude),
@@ -39,7 +41,7 @@ export async function GET() {
     const supabase = createServerSupabaseClient();
     const { data, error } = await supabase
       .from("map_spots")
-      .select("slug,name,category,description,address,neighborhood,latitude,longitude,google_maps_url,source_list_url")
+      .select("slug,name,category,city,description,address,neighborhood,latitude,longitude,google_maps_url,source_list_url")
       .eq("published", true)
       .order("sort_order", { ascending: true })
       .order("name", { ascending: true });

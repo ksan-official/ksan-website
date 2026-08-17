@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useRef } from "react";
 import { ArrowUpRight } from "lucide-react";
+import { PaletteTabs } from "@/components/PaletteTabs";
 import { SiteNav } from "@/components/SiteNav";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -52,6 +53,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <small>네덜란드 한인 학생회</small>
           </Link>
           <SiteNav />
+          <PaletteTabs />
         </header>
         {children}
         <footer className="site-footer">

@@ -50,7 +50,13 @@ export default function AdminBusinessPage() {
     }
   }, [request]);
 
-  useEffect(() => { void loadPosts(); }, [loadPosts]);
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      void loadPosts();
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [loadPosts]);
 
   async function updatePost(id: string, patch: Partial<Pick<AdminBusinessPost, "featured" | "published">>) {
     setStatus("변경사항을 저장하는 중입니다.");

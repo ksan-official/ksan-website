@@ -130,6 +130,7 @@ create table if not exists public.map_spots (
   slug text not null unique,
   name text not null,
   category text not null check (category in ('cafe', 'food', 'study')),
+  city text,
   description text,
   address text,
   neighborhood text,
@@ -142,6 +143,8 @@ create table if not exists public.map_spots (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.map_spots add column if not exists city text;
 
 create or replace function public.is_admin()
 returns boolean

@@ -30,20 +30,6 @@ export default async function GuidesPage({
             주제별로 찾아볼 수 있습니다.
           </p>
         </div>
-        <aside className="ops-board">
-          <div className="flow-step">
-            <strong>처음 도착했을 때</strong>
-            <span className="muted">행정, 계좌, 거주 등록</span>
-          </div>
-          <div className="flow-step">
-            <strong>생활이 시작될 때</strong>
-            <span className="muted">보험, 병원, 교통, 집</span>
-          </div>
-          <div className="flow-step">
-            <strong>학교에 적응할 때</strong>
-            <span className="muted">수업, 학생 카드, 커뮤니티</span>
-          </div>
-        </aside>
       </section>
 
       <section className="section">

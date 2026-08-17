@@ -10,7 +10,8 @@ export default function NewBusinessPostPage() {
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus("저장 중입니다.");
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
 
     try {
       const supabase = createBrowserSupabaseClient();
@@ -45,7 +46,7 @@ export default function NewBusinessPostPage() {
       });
       const result = await response.json();
       setStatus(response.ok ? "공고가 저장되었습니다. 공개 페이지에 반영됩니다." : `저장 실패: ${result.error}`);
-      if (response.ok) event.currentTarget.reset();
+      if (response.ok) form.reset();
     } catch (error) {
       setStatus(`저장 실패: ${error instanceof Error ? error.message : "Supabase 설정을 확인해주세요."}`);
     }

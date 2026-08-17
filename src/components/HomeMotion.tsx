@@ -23,44 +23,7 @@ export function HomeMotion() {
           duration: 0.85,
           stagger: 0.1,
           y: 30
-        })
-        .from(
-          "[data-hero-board]",
-          {
-            autoAlpha: 0,
-            duration: 1,
-            rotate: 1.5,
-            scale: 0.94,
-            x: 32
-          },
-          "-=0.62"
-        )
-        .from(
-          "[data-hero-board] .flow-step",
-          {
-            autoAlpha: 0,
-            duration: 0.65,
-            stagger: 0.09,
-            y: 22
-          },
-          "-=0.58"
-        );
-
-      gsap.fromTo(
-        "[data-hero-art]",
-        { autoAlpha: 0.05, scale: 0.82 },
-        {
-          autoAlpha: 0.18,
-          ease: "none",
-          scale: 1.08,
-          scrollTrigger: {
-            end: "bottom top",
-            scrub: 0.8,
-            start: "top top",
-            trigger: ".hero-panel"
-          }
-        }
-      );
+        });
 
       gsap.fromTo(
         "[data-scrub-copy]",

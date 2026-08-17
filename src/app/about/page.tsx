@@ -74,11 +74,6 @@ export default function AboutPage() {
             다음 기회를 함께 만들 수 있도록 연결하는 학생 커뮤니티입니다.
           </p>
         </div>
-        <div className="about-hero-visual" data-about-visual role="img" aria-label="함께 이야기하는 학생들">
-          <span>Information</span>
-          <span>Community</span>
-          <span>Opportunity</span>
-        </div>
       </section>
 
       <section className="about-story" data-about-section data-about-story>

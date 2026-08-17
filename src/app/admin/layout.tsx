@@ -5,9 +5,8 @@ const adminLinks = [
   { href: "/admin/guides", label: "정착가이드" },
   { href: "/admin/guides/new", label: "가이드 작성" },
   { href: "/admin/business", label: "채용 공고 관리" },
-  { href: "/admin/business/new", label: "공고 등록" },
   { href: "/admin/events/new", label: "행사 등록" },
-  { href: "/admin/map-spots/new", label: "지도 장소 등록" },
+  { href: "/admin/map-spots", label: "지도 장소 관리" },
   { href: "/admin/about/new", label: "소개 수정" }
 ];
 
