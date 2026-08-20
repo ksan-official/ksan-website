@@ -66,6 +66,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (authState === "guest" && !isLoginPage) router.replace("/admin/login");
   }, [authState, isLoginPage, router]);
 
+  async function signOut() {
+    if (!hasSupabaseConfig()) return;
+    const supabase = createBrowserSupabaseClient();
+    await supabase.auth.signOut();
+    setAuthState("guest");
+    router.replace("/admin/login");
+    router.refresh();
+  }
+
   if (authState === "checking") {
     return (
       <main className="admin-page admin-login-shell" id="main">
@@ -115,6 +124,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
         <div className="admin-sidebar-foot">
           <Link href="/">공개 사이트 보기</Link>
+          <button className="admin-sidebar-button" onClick={() => void signOut()} type="button">
+            로그아웃
+          </button>
         </div>
       </aside>
       <div className="admin-workspace">{children}</div>

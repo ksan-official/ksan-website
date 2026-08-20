@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createBrowserSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 
@@ -20,6 +20,7 @@ function isActive(pathname: string, href: string) {
 
 export function SiteNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
@@ -36,6 +37,15 @@ export function SiteNav() {
 
   const accountLink = signedIn ? "/mypage" : "/auth";
   const accountLabel = signedIn ? "마이페이지" : "로그인";
+
+  async function signOut() {
+    if (!hasSupabaseConfig()) return;
+    const supabase = createBrowserSupabaseClient();
+    await supabase.auth.signOut();
+    setSignedIn(false);
+    router.push("/auth");
+    router.refresh();
+  }
 
   return (
     <nav className="nav" aria-label="Primary navigation">
@@ -56,6 +66,11 @@ export function SiteNav() {
       >
         {accountLabel}
       </Link>
+      {signedIn ? (
+        <button className="nav-text-button" onClick={() => void signOut()} type="button">
+          로그아웃
+        </button>
+      ) : null}
     </nav>
   );
 }

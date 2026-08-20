@@ -718,16 +718,22 @@ a.card:hover,
 }
 
 .admin-nav a,
-.admin-sidebar-foot a {
+.admin-sidebar-foot a,
+.admin-sidebar-button {
+  background: transparent;
+  border: 0;
   border-radius: 4px;
   color: #4f4f55;
+  cursor: pointer;
   font-size: 14px;
   font-weight: 600;
   padding: 8px;
+  text-align: left;
 }
 
 .admin-nav a:hover,
-.admin-sidebar-foot a:hover {
+.admin-sidebar-foot a:hover,
+.admin-sidebar-button:hover {
   background: #ffffff;
   color: #111113;
 }
@@ -1527,12 +1533,18 @@ body::before {
   gap: 4px;
 }
 
-.nav a {
+.nav a,
+.nav-text-button {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
   padding: 9px 11px;
   position: relative;
 }
 
-.nav a::after {
+.nav a::after,
+.nav-text-button::after {
   background: currentColor;
   bottom: 4px;
   content: "";
@@ -1545,9 +1557,15 @@ body::before {
   transition: scale 350ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.nav a:hover::after {
+.nav a:hover::after,
+.nav-text-button:hover::after {
   scale: 1 1;
   transform-origin: left;
+}
+
+.nav-text-button:hover {
+  color: var(--text);
+  transform: translateY(-1px);
 }
 
 .nav a.active::after {
@@ -2810,7 +2828,8 @@ body::before {
     display: none;
   }
 
-  .nav a {
+  .nav a,
+  .nav-text-button {
     flex: 0 0 auto;
   }
 
