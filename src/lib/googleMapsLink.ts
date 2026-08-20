@@ -6,10 +6,12 @@ export type ParsedGoogleMapsLink = {
   url: string;
 };
 
-const coordinatePatterns = [
-  /@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/,
-  /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
-  /[?&](?:q|query|ll|destination)=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/
+const exactCoordinatePatterns = [
+  /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/
+];
+
+const viewportCoordinatePatterns = [
+  /@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/
 ];
 
 function toFiniteCoordinate(value: string) {
@@ -17,7 +19,34 @@ function toFiniteCoordinate(value: string) {
   return Number.isFinite(coordinate) ? coordinate : null;
 }
 
-function extractCoordinates(url: string) {
+function validCoordinates(latitude: number | null, longitude: number | null) {
+  return (
+    latitude !== null &&
+    longitude !== null &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    longitude >= -180 &&
+    longitude <= 180
+  );
+}
+
+function coordinatesFromPatterns(url: string, patterns: RegExp[]) {
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (!match) continue;
+
+    const latitude = toFiniteCoordinate(match[1]);
+    const longitude = toFiniteCoordinate(match[2]);
+
+    if (validCoordinates(latitude, longitude)) {
+      return { latitude: latitude!, longitude: longitude! };
+    }
+  }
+
+  return null;
+}
+
+export function extractGoogleMapsCoordinates(url: string) {
   try {
     const parsedUrl = new URL(url);
     const coordinateParam =
@@ -31,41 +60,15 @@ function extractCoordinates(url: string) {
       const latitude = toFiniteCoordinate(coordinateMatch[1]);
       const longitude = toFiniteCoordinate(coordinateMatch[2]);
 
-      if (
-        latitude !== null &&
-        longitude !== null &&
-        latitude >= -90 &&
-        latitude <= 90 &&
-        longitude >= -180 &&
-        longitude <= 180
-      ) {
-        return { latitude, longitude };
+      if (validCoordinates(latitude, longitude)) {
+        return { latitude: latitude!, longitude: longitude! };
       }
     }
   } catch {
     // Continue with string pattern parsing for non-standard Google Maps URLs.
   }
 
-  for (const pattern of coordinatePatterns) {
-    const match = url.match(pattern);
-    if (!match) continue;
-
-    const latitude = toFiniteCoordinate(match[1]);
-    const longitude = toFiniteCoordinate(match[2]);
-
-    if (
-      latitude !== null &&
-      longitude !== null &&
-      latitude >= -90 &&
-      latitude <= 90 &&
-      longitude >= -180 &&
-      longitude <= 180
-    ) {
-      return { latitude, longitude };
-    }
-  }
-
-  return null;
+  return coordinatesFromPatterns(url, exactCoordinatePatterns) ?? coordinatesFromPatterns(url, viewportCoordinatePatterns);
 }
 
 function cleanName(value: string) {
@@ -135,7 +138,7 @@ export async function parseGoogleMapsLink(rawUrl: string): Promise<ParsedGoogleM
   }
 
   const resolvedUrl = await resolveGoogleMapsUrl(initialUrl);
-  const coordinates = extractCoordinates(resolvedUrl) ?? extractCoordinates(initialUrl);
+  const coordinates = extractGoogleMapsCoordinates(resolvedUrl) ?? extractGoogleMapsCoordinates(initialUrl);
 
   if (!coordinates) {
     return null;

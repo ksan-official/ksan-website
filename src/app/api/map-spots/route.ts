@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { extractGoogleMapsCoordinates } from "@/lib/googleMapsLink";
 import { fallbackMapSpots, type MapSpot, type SpotCategory } from "@/lib/map-spots";
 import { createServerSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 
@@ -17,6 +18,8 @@ type MapSpotRow = {
 };
 
 function toMapSpot(row: MapSpotRow): MapSpot {
+  const exactCoordinates = row.google_maps_url ? extractGoogleMapsCoordinates(row.google_maps_url) : null;
+
   return {
     address: row.address,
     category: row.category,
@@ -24,8 +27,8 @@ function toMapSpot(row: MapSpotRow): MapSpot {
     description: row.description ?? "",
     googleMapsUrl: row.google_maps_url,
     id: row.slug,
-    latitude: Number(row.latitude),
-    longitude: Number(row.longitude),
+    latitude: exactCoordinates?.latitude ?? Number(row.latitude),
+    longitude: exactCoordinates?.longitude ?? Number(row.longitude),
     name: row.name,
     neighborhood: row.neighborhood,
     sourceListUrl: row.source_list_url

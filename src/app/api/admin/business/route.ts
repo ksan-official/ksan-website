@@ -11,6 +11,10 @@ function cleanTags(value: unknown) {
   return Array.from(new Set(value.map((tag) => String(tag).trim()).filter(Boolean))).slice(0, 8);
 }
 
+function missingAccentColumn(error: { message?: string } | null) {
+  return Boolean(error?.message?.toLowerCase().includes("accent"));
+}
+
 async function featuredSlotAvailable(
   serviceClient: SupabaseClient,
   excludedId?: string
@@ -25,12 +29,26 @@ export async function GET(request: Request) {
   const admin = await requireAdmin(accessToken(request));
   if (!admin.ok) return NextResponse.json({ error: admin.error }, { status: 401 });
 
-  const { data, error } = await admin.serviceClient
+  const baseSelect =
+    "id,title,company,location,employment_type,deadline,apply_mode,apply_target,description,department,tags,featured,featured_order,published,created_at";
+  const query = admin.serviceClient
     .from("business_posts")
-    .select("id,title,company,location,employment_type,deadline,apply_mode,apply_target,description,department,tags,featured,featured_order,accent,published,created_at")
+    .select(`${baseSelect},accent`)
     .order("featured", { ascending: false })
     .order("featured_order", { ascending: true })
     .order("created_at", { ascending: false });
+  let { data, error } = await query;
+
+  if (missingAccentColumn(error)) {
+    const fallback = await admin.serviceClient
+      .from("business_posts")
+      .select(baseSelect)
+      .order("featured", { ascending: false })
+      .order("featured_order", { ascending: true })
+      .order("created_at", { ascending: false });
+    data = fallback.data?.map((post) => ({ ...post, accent: "orange" })) ?? null;
+    error = fallback.error;
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ posts: data ?? [] });
@@ -45,10 +63,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "하이라이트 배너는 최대 3개까지 지정할 수 있습니다." }, { status: 400 });
   }
 
-  const { data, error } = await admin.serviceClient
-    .from("business_posts")
-    .insert({
-      accent: payload.accent ?? "orange",
+  const row = {
       apply_mode: payload.applyMode,
       apply_target: payload.applyTarget,
       company: payload.company,
@@ -62,11 +77,25 @@ export async function POST(request: Request) {
       published: Boolean(payload.published),
       tags: cleanTags(payload.tags),
       title: payload.title
-    } as never)
+    };
+  let { data, error } = await admin.serviceClient
+    .from("business_posts")
+    .insert({ ...row, accent: payload.accent ?? "orange" } as never)
     .select("id")
     .single();
 
+  if (missingAccentColumn(error)) {
+    const fallback = await admin.serviceClient
+      .from("business_posts")
+      .insert(row as never)
+      .select("id")
+      .single();
+    data = fallback.data;
+    error = fallback.error;
+  }
+
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!data) return NextResponse.json({ error: "공고 저장 결과를 확인하지 못했습니다." }, { status: 500 });
   return NextResponse.json({ id: data.id });
 }
 
@@ -95,7 +124,12 @@ export async function PATCH(request: Request) {
   if (payload.featuredOrder !== undefined) patch.featured_order = Number(payload.featuredOrder) || 0;
   if (payload.tags !== undefined) patch.tags = cleanTags(payload.tags);
 
-  const { error } = await admin.serviceClient.from("business_posts").update(patch as never).eq("id", payload.id);
+  let { error } = await admin.serviceClient.from("business_posts").update(patch as never).eq("id", payload.id);
+  if (missingAccentColumn(error) && "accent" in patch) {
+    delete patch.accent;
+    const fallback = await admin.serviceClient.from("business_posts").update(patch as never).eq("id", payload.id);
+    error = fallback.error;
+  }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

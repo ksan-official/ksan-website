@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { GuideSaveButton } from "@/components/GuideSaveButton";
 import { getGuideBySlug } from "@/lib/guides";
 
 function blockId(text: string) {
@@ -25,6 +26,7 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
         <p className="muted">
           업데이트: {guide.updatedAt} · {guide.author}
         </p>
+        <GuideSaveButton slug={guide.slug} />
         <div className="status">{guide.summary}</div>
         <div className="article-body">
           {guide.blocks.map((block) => {

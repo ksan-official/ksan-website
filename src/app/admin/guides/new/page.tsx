@@ -75,7 +75,7 @@ export default function NewGuidePage() {
       <header className="admin-page-header">
         <div>
           <p className="admin-kicker">정착가이드</p>
-          <h1>글 작성</h1>
+          <h1>새 가이드 추가</h1>
           <p>본문을 붙여넣고 스캔한 뒤 저장합니다. 공개 체크를 켜야 사이트에 보입니다.</p>
         </div>
         <Link className="admin-button secondary" href="/admin/guides">

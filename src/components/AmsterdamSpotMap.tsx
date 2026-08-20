@@ -6,7 +6,6 @@ import type { Map as MapLibreMap, Marker } from "maplibre-gl";
 import {
   BookOpen,
   Coffee,
-  ExternalLink,
   LocateFixed,
   Map as MapIcon,
   MapPin,
@@ -21,6 +20,7 @@ import {
 
 type CategoryFilter = "all" | SpotCategory;
 type CityFilter = "all" | string;
+type CoordinateBounds = [[number, number], [number, number]];
 
 const categories: Array<{
   id: CategoryFilter;
@@ -32,6 +32,11 @@ const categories: Array<{
   { id: "cafe", label: "카페", icon: Coffee, publicListUrl: mapCategoryListUrls.cafe },
   { id: "food", label: "맛집", icon: Utensils, publicListUrl: mapCategoryListUrls.food },
   { id: "study", label: "공부 스팟", icon: BookOpen, publicListUrl: mapCategoryListUrls.study }
+];
+
+const netherlandsBounds: CoordinateBounds = [
+  [2.8, 50.55],
+  [7.65, 53.75]
 ];
 
 const markerIcons: Record<SpotCategory, string> = {
@@ -59,12 +64,87 @@ function escapeHtml(value: string) {
 }
 
 function shortSpotName(name: string) {
-  return name
+  return displaySpotName(name)
     .replace(/\s+Amsterdam\b/i, "")
     .replace(/\s+-\s+/g, " ")
     .split(/\s+/)
     .slice(0, 2)
     .join(" ");
+}
+
+function displaySpotName(name: string) {
+  return name.split(",")[0]?.trim() || name;
+}
+
+function categoryLabel(category: SpotCategory) {
+  return categories.find((item) => item.id === category)?.label ?? "장소";
+}
+
+function spotPopupHtml(spot: MapSpot) {
+  const description = spot.description.trim();
+
+  return `
+    <div class="ksan-map-popup-card">
+      <span class="ksan-map-popup-kicker">${escapeHtml(categoryLabel(spot.category))}</span>
+      <strong>${escapeHtml(displaySpotName(spot.name))}</strong>
+      ${description ? `<p>${escapeHtml(description)}</p>` : ""}
+      <a href="${escapeHtml(mapsSearchUrl(spot))}" target="_blank" rel="noreferrer">Google Maps에서 열기</a>
+    </div>
+  `;
+}
+
+function spotsDataKey(spots: MapSpot[]) {
+  return spots
+    .map((spot) => `${spot.id}:${spot.category}:${spot.latitude.toFixed(6)}:${spot.longitude.toFixed(6)}`)
+    .join("|");
+}
+
+function spotCoordinateRanges(spots: MapSpot[]) {
+  const latitudes = spots.map((spot) => spot.latitude);
+  const longitudes = spots.map((spot) => spot.longitude);
+
+  return {
+    latitudes,
+    longitudes,
+    maxLatitude: Math.max(...latitudes),
+    maxLongitude: Math.max(...longitudes),
+    minLatitude: Math.min(...latitudes),
+    minLongitude: Math.min(...longitudes)
+  };
+}
+
+function boundsAroundSpots(spots: MapSpot[], minimumMargin = 0.045): CoordinateBounds {
+  const { maxLatitude, maxLongitude, minLatitude, minLongitude } = spotCoordinateRanges(spots);
+  const latitudeMargin = Math.max((maxLatitude - minLatitude) * 0.65, minimumMargin);
+  const longitudeMargin = Math.max((maxLongitude - minLongitude) * 0.65, minimumMargin);
+
+  return [
+    [minLongitude - longitudeMargin, minLatitude - latitudeMargin],
+    [maxLongitude + longitudeMargin, maxLatitude + latitudeMargin]
+  ];
+}
+
+function configureZoomBoundary(map: MapLibreMap, city: CityFilter, citySpots: MapSpot[]) {
+  if (city === "all" || !citySpots.length) {
+    map.setMinZoom(6.2);
+    map.setMaxBounds(netherlandsBounds);
+    return;
+  }
+
+  map.setMinZoom(10.85);
+  map.setMaxBounds(boundsAroundSpots(citySpots, 0.05));
+}
+
+function mapViewportPadding(map: MapLibreMap) {
+  const { width } = map.getContainer().getBoundingClientRect();
+  const edgePadding = width < 760 ? 42 : 72;
+
+  return {
+    bottom: edgePadding,
+    left: edgePadding,
+    right: edgePadding,
+    top: edgePadding
+  };
 }
 
 function fitSpots(map: MapLibreMap, spots: MapSpot[]) {
@@ -73,7 +153,26 @@ function fitSpots(map: MapLibreMap, spots: MapSpot[]) {
   }
 
   if (spots.length === 1) {
-    map.easeTo({ center: [spots[0].longitude, spots[0].latitude], duration: 900, zoom: 14.8 });
+    const bounds = boundsAroundSpots(spots, 0.012);
+    map.fitBounds(bounds, {
+      duration: 900,
+      maxZoom: 14.8,
+      padding: mapViewportPadding(map)
+    });
+    return;
+  }
+
+  const { maxLatitude, maxLongitude, minLatitude, minLongitude } =
+    spotCoordinateRanges(spots);
+  const latitudeRange = maxLatitude - minLatitude;
+  const longitudeRange = maxLongitude - minLongitude;
+
+  if (latitudeRange <= 0.12 && longitudeRange <= 0.16) {
+    map.fitBounds(boundsAroundSpots(spots, 0.02), {
+      duration: 900,
+      maxZoom: latitudeRange <= 0.05 && longitudeRange <= 0.08 ? 13.35 : 12.7,
+      padding: mapViewportPadding(map)
+    });
     return;
   }
 
@@ -87,19 +186,21 @@ function fitSpots(map: MapLibreMap, spots: MapSpot[]) {
 
   map.fitBounds(bounds, {
     duration: 1100,
-    maxZoom: 13.4,
-    padding: { bottom: 148, left: 62, right: 62, top: 72 }
+    maxZoom: 12.2,
+    padding: mapViewportPadding(map)
   });
 }
 
 export function AmsterdamSpotMap() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
+  const popupRef = useRef<maplibregl.Popup | null>(null);
   const markersRef = useRef<Map<string, Marker>>(new Map());
   const [spots, setSpots] = useState<MapSpot[]>(fallbackMapSpots);
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
   const [activeCity, setActiveCity] = useState<CityFilter>("Amsterdam");
   const [selectedSpotId, setSelectedSpotId] = useState<string | null>(null);
+  const [selectedSpotRequest, setSelectedSpotRequest] = useState(0);
   const [hoveredSpotId, setHoveredSpotId] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [dataSource, setDataSource] = useState<"fallback" | "supabase">("fallback");
@@ -120,10 +221,23 @@ export function AmsterdamSpotMap() {
     }),
     [activeCategory, activeCity, spots]
   );
-  const selectedSpot = spots.find((spot) => spot.id === selectedSpotId) ?? null;
-  const hoveredSpot = spots.find((spot) => spot.id === hoveredSpotId) ?? null;
-  const previewSpot = selectedSpot ?? hoveredSpot;
-  const activeCategoryInfo = categories.find((category) => category.id === activeCategory) ?? categories[0];
+  const cityScopedSpotKey = useMemo(() => spotsDataKey(cityScopedSpots), [cityScopedSpots]);
+  const filteredSpotKey = useMemo(() => spotsDataKey(filteredSpots), [filteredSpots]);
+  const spotsRef = useRef<MapSpot[]>(spots);
+  const cityScopedSpotsRef = useRef<MapSpot[]>(cityScopedSpots);
+  const filteredSpotsRef = useRef<MapSpot[]>(filteredSpots);
+
+  useEffect(() => {
+    spotsRef.current = spots;
+  }, [spots]);
+
+  useEffect(() => {
+    cityScopedSpotsRef.current = cityScopedSpots;
+  }, [cityScopedSpots]);
+
+  useEffect(() => {
+    filteredSpotsRef.current = filteredSpots;
+  }, [filteredSpots]);
 
   useEffect(() => {
     if (!cityFilters.length || activeCity === "all" || cityFilters.includes(activeCity)) {
@@ -163,7 +277,9 @@ export function AmsterdamSpotMap() {
       center: [5.2913, 52.1326],
       container: containerRef.current,
       dragRotate: false,
+      maxBounds: netherlandsBounds,
       maxPitch: 0,
+      minZoom: 6.2,
       pitchWithRotate: false,
       style: {
         layers: [
@@ -194,13 +310,26 @@ export function AmsterdamSpotMap() {
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
     map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-left");
-    map.once("style.load", () => setMapReady(true));
+
+    function markMapReady() {
+      map.resize();
+      setMapReady(true);
+    }
+
+    if (map.isStyleLoaded()) {
+      markMapReady();
+    } else {
+      map.once("load", markMapReady);
+    }
+
     mapRef.current = map;
     const markers = markersRef.current;
 
     return () => {
       markers.forEach((marker) => marker.remove());
       markers.clear();
+      popupRef.current?.remove();
+      popupRef.current = null;
       map.remove();
       mapRef.current = null;
     };
@@ -212,72 +341,87 @@ export function AmsterdamSpotMap() {
       return;
     }
 
+    map.resize();
+    const nextCityScopedSpots = cityScopedSpotsRef.current;
+    const nextFilteredSpots = filteredSpotsRef.current;
+
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current.clear();
-
-    filteredSpots.forEach((spot) => {
-      const spotName = escapeHtml(spot.name);
-      const spotLabel = escapeHtml(shortSpotName(spot.name));
-      const spotDescription = escapeHtml(spot.description);
-      const spotLocation = escapeHtml(`${spot.city ?? "Netherlands"}${spot.neighborhood ? ` · ${spot.neighborhood}` : ""}`);
-      const element = document.createElement("div");
+    nextFilteredSpots.forEach((spot) => {
+      const element = document.createElement("button");
       element.className = `ksan-map-marker ksan-map-marker--${spot.category}`;
-      element.setAttribute("aria-label", `${spot.name} Google Maps에서 열기`);
-      element.setAttribute("role", "button");
-      element.setAttribute("tabindex", "0");
-      element.dataset.spotId = spot.id;
+      element.type = "button";
+      element.setAttribute("aria-label", `${spot.name} 선택`);
       element.innerHTML = `
-        <span class="ksan-map-marker-core">
-          <span class="ksan-map-marker-bubble">${markerIcons[spot.category]}</span>
-          <span class="ksan-map-marker-label">${spotLabel}</span>
-        </span>
-        <span class="ksan-map-preview">
-          <span class="ksan-map-preview-body">
-            <strong>${spotName}</strong>
-            <span>${spotLocation}</span>
-            ${spot.description.trim() ? `<small>${spotDescription}</small>` : ""}
-            <span class="ksan-map-preview-button">Google Maps에서 열기</span>
-          </span>
+        <span class="ksan-map-marker-visual">
+          <span class="ksan-map-marker-icon">${markerIcons[spot.category]}</span>
+          <span class="ksan-map-marker-label">${escapeHtml(shortSpotName(spot.name))}</span>
         </span>
       `;
       element.addEventListener("mouseenter", () => setHoveredSpotId(spot.id));
       element.addEventListener("mouseleave", () => setHoveredSpotId((current) => current === spot.id ? null : current));
       element.addEventListener("focus", () => setHoveredSpotId(spot.id));
       element.addEventListener("blur", () => setHoveredSpotId((current) => current === spot.id ? null : current));
-      element.addEventListener("click", () => {
-        window.open(mapsSearchUrl(spot), "_blank", "noopener,noreferrer");
-      });
-      element.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          window.open(mapsSearchUrl(spot), "_blank", "noopener,noreferrer");
-        }
+      element.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setSelectedSpotId(spot.id);
+        setSelectedSpotRequest((request) => request + 1);
       });
 
-      const marker = new maplibregl.Marker({ anchor: "bottom", element })
+      const marker = new maplibregl.Marker({ anchor: "center", element })
         .setLngLat([spot.longitude, spot.latitude])
         .addTo(map);
       markersRef.current.set(spot.id, marker);
     });
 
-    fitSpots(map, filteredSpots);
-  }, [filteredSpots, mapReady]);
+    configureZoomBoundary(map, activeCity, nextCityScopedSpots);
+
+    fitSpots(map, nextFilteredSpots);
+  }, [activeCity, cityScopedSpotKey, filteredSpotKey, mapReady]);
 
   useEffect(() => {
     markersRef.current.forEach((marker, spotId) => {
-      marker.getElement().classList.toggle("is-selected", spotId === selectedSpotId || spotId === hoveredSpotId);
+      marker.getElement().classList.toggle("is-active", spotId === selectedSpotId || spotId === hoveredSpotId);
     });
+  }, [hoveredSpotId, selectedSpotId]);
 
+  useEffect(() => {
     const map = mapRef.current;
-    if (map && selectedSpot) {
+    const selectedSpot = spotsRef.current.find((spot) => spot.id === selectedSpotId) ?? null;
+    if (!map || !selectedSpot) {
+      popupRef.current?.remove();
+      popupRef.current = null;
+      return;
+    }
+
+      popupRef.current?.remove();
+      const popup = new maplibregl.Popup({
+        anchor: "left",
+        className: "ksan-map-popup",
+        closeButton: true,
+        closeOnClick: false,
+        maxWidth: "260px",
+        offset: 18
+      })
+        .setLngLat([selectedSpot.longitude, selectedSpot.latitude])
+        .setHTML(spotPopupHtml(selectedSpot))
+        .addTo(map);
+      popup.on("close", () => {
+        if (popupRef.current === popup) {
+          popupRef.current = null;
+          setSelectedSpotId((current) => current === selectedSpot.id ? null : current);
+        }
+      });
+      popupRef.current = popup;
+
       map.flyTo({
         center: [selectedSpot.longitude, selectedSpot.latitude],
         duration: 950,
         essential: true,
         zoom: 15.2
       });
-    }
-  }, [hoveredSpotId, selectedSpot, selectedSpotId]);
+  }, [selectedSpotId, selectedSpotRequest]);
 
   function selectCategory(category: CategoryFilter) {
     setActiveCategory(category);
@@ -291,6 +435,8 @@ export function AmsterdamSpotMap() {
 
   function resetMapView() {
     setSelectedSpotId(null);
+    popupRef.current?.remove();
+    popupRef.current = null;
     if (mapRef.current) {
       fitSpots(mapRef.current, filteredSpots);
     }
@@ -349,42 +495,6 @@ export function AmsterdamSpotMap() {
       </div>
 
       <div className="map-explorer" data-map-explorer>
-        <aside className="map-spot-panel" aria-label={`${activeCategoryInfo.label} 추천 장소`}>
-          <div className="map-panel-heading">
-            <div><span>{activeCategoryInfo.label}</span><strong>{filteredSpots.length}곳의 추천</strong></div>
-            {activeCategoryInfo.publicListUrl ? (
-              <a className="map-public-list-link" href={activeCategoryInfo.publicListUrl} rel="noreferrer" target="_blank">
-                공개 목록 <ExternalLink aria-hidden size={14} />
-              </a>
-            ) : <span className="map-live-dot" aria-label="KSAN 큐레이션 목록" />}
-          </div>
-
-          <div className="map-spot-list">
-            {filteredSpots.length ? filteredSpots.map((spot, index) => (
-              <button
-                aria-pressed={selectedSpot?.id === spot.id}
-                className="map-spot-card"
-                key={spot.id}
-                onClick={() => setSelectedSpotId(spot.id)}
-                type="button"
-              >
-                <span className="map-spot-number">{String(index + 1).padStart(2, "0")}</span>
-                <span className="map-spot-copy">
-                  <strong>{spot.name}</strong>
-                  <span>{spot.city ?? "Netherlands"}{spot.neighborhood ? ` · ${spot.neighborhood}` : ""} · {activeCategoryInfo.label === "전체" ? categories.find((item) => item.id === spot.category)?.label : activeCategoryInfo.label}</span>
-                  {spot.description ? <small>{spot.description}</small> : null}
-                </span>
-                <MapPin aria-hidden size={18} />
-              </button>
-            )) : (
-              <div className="map-empty-state">
-                <strong>아직 등록된 장소가 없습니다.</strong>
-                <span>다른 도시나 카테고리를 선택해보세요.</span>
-              </div>
-            )}
-          </div>
-        </aside>
-
         <div className="map-stage" data-map-stage>
           <div aria-label="KSAN 네덜란드 추천 지도" className="maplibre-canvas" ref={containerRef} />
           <div aria-hidden className="map-wash" />
@@ -392,27 +502,6 @@ export function AmsterdamSpotMap() {
           <div className="map-stage-topline">
             <span><MapPin aria-hidden size={15} /> Netherlands</span>
             <button onClick={resetMapView} type="button"><LocateFixed aria-hidden size={15} /> 전체 범위</button>
-          </div>
-
-          <div className={`map-place-callout ${previewSpot ? "is-detail" : "is-overview"}`} aria-live="polite">
-            {previewSpot ? (
-              <>
-                <div>
-                  <span>{previewSpot.city ?? "Netherlands"}{previewSpot.neighborhood ? ` · ${previewSpot.neighborhood}` : ""} · KSAN Pick</span>
-                  <strong>{previewSpot.name}</strong>
-                  {previewSpot.description ? <p>{previewSpot.description}</p> : null}
-                </div>
-                <a href={mapsSearchUrl(previewSpot)} rel="noreferrer" target="_blank">
-                  바로 열기 <ExternalLink aria-hidden size={17} />
-                </a>
-              </>
-            ) : (
-              <div>
-                <span>{activeCity === "all" ? "전체 도시" : activeCity} · Map overview</span>
-                <strong>{activeCategory === "all" ? "저장된 모든 스팟을 한눈에" : `${activeCategoryInfo.label} 스팟을 한눈에`}</strong>
-                <p>마커나 왼쪽 목록을 누르면 장소를 자세히 볼 수 있어요.</p>
-              </div>
-            )}
           </div>
         </div>
       </div>

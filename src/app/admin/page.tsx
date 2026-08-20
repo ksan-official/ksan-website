@@ -8,6 +8,9 @@ type AdminSystemStatus = {
   supabase: boolean;
   databaseReady: boolean;
   guideCount: number;
+  businessPostCount: number;
+  eventCount: number;
+  memberCount: number;
   error?: string;
 };
 
@@ -21,9 +24,7 @@ export default function AdminPage() {
   const [systemStatus, setSystemStatus] = useState<AdminSystemStatus | null>(null);
 
   useEffect(() => {
-    if (!configured) {
-      return;
-    }
+    if (!configured) return;
 
     fetch("/api/admin/status")
       .then((response) => response.json())
@@ -33,6 +34,9 @@ export default function AdminPage() {
           supabase: true,
           databaseReady: false,
           guideCount: 0,
+          businessPostCount: 0,
+          eventCount: 0,
+          memberCount: 0,
           error: "상태를 불러오지 못했습니다."
         })
       );
@@ -55,6 +59,13 @@ export default function AdminPage() {
     });
   }, [configured]);
 
+  const dashboardCards = [
+    { label: "채용 공고", value: systemStatus?.businessPostCount ?? 0, href: "/admin/business" },
+    { label: "정착가이드", value: systemStatus?.guideCount ?? 0, href: "/admin/guides" },
+    { label: "행사", value: systemStatus?.eventCount ?? 0, href: "/admin/events/new" },
+    { label: "회원", value: systemStatus?.memberCount ?? 0, href: "/admin/members" }
+  ];
+
   return (
     <main className="admin-page" id="main">
       <header className="admin-page-header">
@@ -63,8 +74,8 @@ export default function AdminPage() {
           <h1>관리자 페이지</h1>
           <p>공개 사이트와 분리된 내부 작업 공간입니다. 글 등록, 공개 상태, 연동 상태만 봅니다.</p>
         </div>
-        <Link className="admin-button" href="/admin/guides/new">
-          가이드 작성
+        <Link className="admin-button" href="/admin/guides">
+          정착가이드 관리
         </Link>
       </header>
 
@@ -73,8 +84,7 @@ export default function AdminPage() {
         <div className="admin-status-line">{status}</div>
         {systemStatus?.databaseReady ? (
           <div className="admin-note success">
-            DB 연결 완료. 현재 공개/비공개 포함 정착가이드 글 {systemStatus.guideCount}개가 저장되어
-            있습니다.
+            DB 연결 완료. 공개/비공개 포함 운영 데이터를 불러오고 있습니다.
           </div>
         ) : (
           <div className="admin-note">
@@ -83,20 +93,26 @@ export default function AdminPage() {
             {systemStatus?.error ? ` (${systemStatus.error})` : null}
           </div>
         )}
-        {status === "관리자 로그인이 필요합니다." ? (
-          <div className="admin-note">
-            왼쪽 메뉴의 <strong>로그인</strong>으로 들어가서 admin 계정으로 로그인한 뒤 다시 돌아오면
-            됩니다.
-          </div>
-        ) : null}
+      </section>
+
+      <section className="admin-section">
+        <h2>운영 현황</h2>
+        <div className="admin-dashboard-grid">
+          {dashboardCards.map((card) => (
+            <Link className="admin-dashboard-card" href={card.href} key={card.label}>
+              <span>{card.label}</span>
+              <strong>{card.value}</strong>
+            </Link>
+          ))}
+        </div>
       </section>
 
       <section className="admin-section">
         <h2>작업 바로가기</h2>
         <div className="admin-action-list">
-          <Link href="/admin/guides/new">
-            <strong>정착가이드 글 작성</strong>
-            <span>본문 붙여넣기, 스캔, 공개 여부 선택</span>
+          <Link href="/admin/guides">
+            <strong>정착가이드 관리</strong>
+            <span>가이드를 추가·수정하고 공개 여부를 관리</span>
           </Link>
           <Link href="/admin/business">
             <strong>채용 공고 관리</strong>
@@ -110,31 +126,15 @@ export default function AdminPage() {
             <strong>지도 장소 관리</strong>
             <span>카페, 맛집, 공부 스팟을 추가·수정하고 공개 여부 관리</span>
           </Link>
+          <Link href="/admin/members">
+            <strong>회원 관리</strong>
+            <span>가입 회원과 저장·신청 내역 확인</span>
+          </Link>
           <Link href="/admin/about/new">
             <strong>소개 항목 수정</strong>
             <span>임원진, 회장단, 후원사 항목 입력</span>
           </Link>
         </div>
-      </section>
-
-      <section className="admin-section">
-        <h2>아직 닫아둘 영역</h2>
-        <table className="admin-table">
-          <tbody>
-            <tr>
-              <th>Pass it On</th>
-              <td>첫 MVP에서는 공개 탭만 두고 기능은 추후 오픈 표시</td>
-            </tr>
-            <tr>
-              <th>Community</th>
-              <td>익명 글/댓글 관리 기능은 2차 개발로 분리</td>
-            </tr>
-            <tr>
-              <th>회원 관리</th>
-              <td>학교 이메일 인증, role 변경, 마이페이지 내역 확장은 추후 정교화</td>
-            </tr>
-          </tbody>
-        </table>
       </section>
     </main>
   );

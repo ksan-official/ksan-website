@@ -2,17 +2,31 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { PaletteTabs } from "@/components/PaletteTabs";
 import { SiteNav } from "@/components/SiteNav";
+import { createBrowserSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isAdmin = pathname?.startsWith("/admin");
+  const [signedIn, setSignedIn] = useState(false);
   const adminTapCount = useRef(0);
   const adminTapTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!hasSupabaseConfig() || isAdmin) return;
+
+    const supabase = createBrowserSupabaseClient();
+    supabase.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session)));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(Boolean(session));
+    });
+
+    return () => listener.subscription.unsubscribe();
+  }, [isAdmin]);
 
   function openHiddenAdmin() {
     adminTapCount.current += 1;
@@ -67,7 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link href="/about">소개</Link>
                 <Link href="/events">행사</Link>
                 <Link href="/business">비즈니스 허브</Link>
-                <Link href="/auth">로그인</Link>
+                <Link href={signedIn ? "/mypage" : "/auth"}>{signedIn ? "마이페이지" : "로그인"}</Link>
               </nav>
             </div>
             <Link className="footer-contact" href="/about#contact">

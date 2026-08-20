@@ -26,35 +26,51 @@ function textFromRichText(value: unknown): string {
   return list.map((item) => item.plain_text ?? "").join("").trim();
 }
 
-function propertyText(page: NotionPage, key: string): string {
-  return textFromRichText(page.properties[key]);
+function propertyValue(page: NotionPage, keys: string[]): unknown {
+  return keys.map((key) => page.properties[key]).find(Boolean);
 }
 
-function propertySelect(page: NotionPage, key: string): string {
-  const value = page.properties[key] as { select?: { name?: string } } | undefined;
+function propertyText(page: NotionPage, keys: string[]): string {
+  return textFromRichText(propertyValue(page, keys));
+}
+
+function propertySelect(page: NotionPage, keys: string[]): string {
+  const value = propertyValue(page, keys) as { select?: { name?: string } } | undefined;
   return value?.select?.name ?? "";
 }
 
-function propertyMultiSelect(page: NotionPage, key: string): string[] {
-  const value = page.properties[key] as { multi_select?: Array<{ name?: string }> } | undefined;
+function propertyMultiSelect(page: NotionPage, keys: string[]): string[] {
+  const value = propertyValue(page, keys) as { multi_select?: Array<{ name?: string }> } | undefined;
   return value?.multi_select?.map((item) => item.name ?? "").filter(Boolean) ?? [];
 }
 
-function propertyDate(page: NotionPage, key: string): string {
-  const value = page.properties[key] as { date?: { start?: string } } | undefined;
+function propertyDate(page: NotionPage, keys: string[]): string {
+  const value = propertyValue(page, keys) as { date?: { start?: string } } | undefined;
   return value?.date?.start ?? page.last_edited_time?.slice(0, 10) ?? "";
 }
 
+function slugify(value: string) {
+  return (
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9가-힣]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "guide"
+  );
+}
+
 function mapPage(page: NotionPage): GuideSummary {
+  const title = propertyText(page, ["Title", "Name", "이름", "제목"]) || "Untitled";
+
   return {
     id: page.id,
-    slug: propertyText(page, "Slug") || page.id,
-    title: propertyText(page, "Title") || "Untitled",
-    category: propertySelect(page, "Category") || "정착가이드",
-    summary: propertyText(page, "Summary"),
-    updatedAt: propertyDate(page, "Updated"),
-    author: propertyText(page, "Author") || "KSAN",
-    tags: propertyMultiSelect(page, "Tags")
+    slug: propertyText(page, ["Slug", "URL", "주소", "고유주소"]) || slugify(title) || page.id,
+    title,
+    category: propertySelect(page, ["Category", "카테고리", "분류"]) || "정착가이드",
+    summary: propertyText(page, ["Summary", "요약", "설명", "소개"]),
+    updatedAt: propertyDate(page, ["Updated", "수정일", "업데이트", "날짜"]),
+    author: propertyText(page, ["Author", "작성자", "담당자"]) || "KSAN",
+    tags: propertyMultiSelect(page, ["Tags", "태그", "키워드"])
   };
 }
 
@@ -76,10 +92,16 @@ async function notionFetch<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(`Notion request failed: ${response.status}`);
+    const body = await response.text();
+    throw new Error(`Notion request failed: ${response.status} ${body.slice(0, 300)}`);
   }
 
   return (await response.json()) as T;
+}
+
+function logNotionFallback(context: string, error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  console.warn(`[notion] ${context} failed. Falling back to local guide content. ${message}`);
 }
 
 export async function listGuides(): Promise<GuideSummary[]> {
@@ -88,14 +110,17 @@ export async function listGuides(): Promise<GuideSummary[]> {
     return fallbackGuides;
   }
 
-  const data = await notionFetch<{ results: NotionPage[] }>(`/databases/${databaseId}/query`, {
-    method: "POST",
-    body: JSON.stringify({
-      sorts: [{ property: "Updated", direction: "descending" }]
-    })
-  });
+  try {
+    const data = await notionFetch<{ results: NotionPage[] }>(`/databases/${databaseId}/query`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
 
-  return data.results.map(mapPage);
+    return data.results.map(mapPage);
+  } catch (error) {
+    logNotionFallback("Guide database query", error);
+    return fallbackGuides;
+  }
 }
 
 function mapBlock(block: NotionBlock): GuideBlock | null {
@@ -134,29 +159,26 @@ export async function getGuideBySlug(slug: string): Promise<GuideDetail | null> 
     return slug === fallbackGuideDetail.slug ? fallbackGuideDetail : null;
   }
 
-  const data = await notionFetch<{ results: NotionPage[] }>(`/databases/${databaseId}/query`, {
-    method: "POST",
-    body: JSON.stringify({
-      filter: {
-        property: "Slug",
-        rich_text: {
-          equals: slug
-        }
-      },
-      page_size: 1
-    })
-  });
+  try {
+    const data = await notionFetch<{ results: NotionPage[] }>(`/databases/${databaseId}/query`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
 
-  const page = data.results[0];
-  if (!page) {
-    return null;
+    const page = data.results.find((result) => mapPage(result).slug === slug);
+    if (!page) {
+      return null;
+    }
+
+    const summary = mapPage(page);
+    const guides = await listGuides();
+    return {
+      ...summary,
+      blocks: await getBlocks(page.id),
+      related: guides.filter((guide) => guide.slug !== slug).slice(0, 3)
+    };
+  } catch (error) {
+    logNotionFallback(`Guide detail query for "${slug}"`, error);
+    return slug === fallbackGuideDetail.slug ? fallbackGuideDetail : null;
   }
-
-  const summary = mapPage(page);
-  const guides = await listGuides();
-  return {
-    ...summary,
-    blocks: await getBlocks(page.id),
-    related: guides.filter((guide) => guide.slug !== slug).slice(0, 3)
-  };
 }

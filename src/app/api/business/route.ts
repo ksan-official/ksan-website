@@ -39,6 +39,10 @@ function toJob(row: BusinessPostRow): BusinessJob {
   };
 }
 
+function missingAccentColumn(error: { message?: string } | null) {
+  return Boolean(error?.message?.toLowerCase().includes("accent"));
+}
+
 export async function GET() {
   if (!hasSupabaseConfig()) {
     return NextResponse.json({ jobs: businessJobs, source: "fallback" });
@@ -46,13 +50,26 @@ export async function GET() {
 
   try {
     const supabase = createServerSupabaseClient();
-    const { data, error } = await supabase
+    const baseSelect = "id,title,company,location,employment_type,deadline,apply_mode,apply_target,description,department,tags,featured";
+    let { data, error } = await supabase
       .from("business_posts")
-      .select("id,title,company,location,employment_type,deadline,apply_mode,apply_target,description,department,tags,featured,accent")
+      .select(`${baseSelect},accent`)
       .eq("published", true)
       .order("featured", { ascending: false })
       .order("featured_order", { ascending: true })
       .order("created_at", { ascending: false });
+
+    if (missingAccentColumn(error)) {
+      const fallback = await supabase
+        .from("business_posts")
+        .select(baseSelect)
+        .eq("published", true)
+        .order("featured", { ascending: false })
+        .order("featured_order", { ascending: true })
+        .order("created_at", { ascending: false });
+      data = fallback.data?.map((post) => ({ ...post, accent: "orange" })) ?? null;
+      error = fallback.error;
+    }
 
     if (error || !data?.length) {
       return NextResponse.json({ jobs: businessJobs, source: "fallback" });
