@@ -5,28 +5,16 @@ import { useMemo, useState } from "react";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
 import { deriveSummary, parseGuideText, slugFromTitle } from "@/lib/guideParser";
 
-const sampleText = `# BSN 신청부터 수령까지 A to Z
-
-네덜란드에 막 도착해서 BSN을 받아야 하는 학생을 위한 가이드입니다.
-
-## BSN이 무엇인가요?
-BSN은 네덜란드 정부가 거주자에게 부여하는 고유 번호입니다.
-
-## 신청 절차
-- Gemeente 예약
-- 필요 서류 준비
-- 방문 등록
-- BSN 수령
-
-## 자주 묻는 질문
-예약이 늦어질 수 있으니 도착 전 가능한 날짜를 먼저 확인하세요.`;
-
 export default function NewGuidePage() {
   const [status, setStatus] = useState<string | null>(null);
-  const [rawText, setRawText] = useState(sampleText);
-  const [title, setTitle] = useState("BSN 신청부터 수령까지 A to Z");
-  const [slug, setSlug] = useState("bsn-a-to-z");
-  const [summary, setSummary] = useState(deriveSummary(sampleText));
+  const [notionUrl, setNotionUrl] = useState("");
+  const [rawText, setRawText] = useState("");
+  const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
+  const [category, setCategory] = useState("정착가이드");
+  const [summary, setSummary] = useState("");
+  const [author, setAuthor] = useState("KSAN");
+  const [tags, setTags] = useState("");
   const blocks = useMemo(() => parseGuideText(rawText), [rawText]);
   const headings = blocks.filter((block) => block.type.startsWith("heading"));
 
@@ -39,9 +27,41 @@ export default function NewGuidePage() {
     setStatus("본문을 스캔해서 제목, slug, 요약, 목차를 갱신했습니다.");
   }
 
+  async function importNotion() {
+    const supabase = createBrowserSupabaseClient();
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) {
+      setStatus("불러오기 실패: 관리자 계정으로 먼저 로그인해야 합니다.");
+      return;
+    }
+
+    setStatus("Notion 페이지를 불러오는 중입니다.");
+    const response = await fetch("/api/admin/guides/import-notion", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${data.session.access_token}`
+      },
+      body: JSON.stringify({ url: notionUrl })
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      setStatus(`불러오기 실패: ${result.error}`);
+      return;
+    }
+
+    setRawText(result.rawText ?? "");
+    setTitle(result.title ?? "");
+    setSlug(result.slug ?? "");
+    setCategory(result.category ?? "정착가이드");
+    setSummary(result.summary ?? "");
+    setAuthor(result.author ?? "KSAN");
+    setTags((result.tags ?? []).join(", "));
+    setStatus("Notion 페이지를 불러왔습니다. 확인 후 저장해주세요.");
+  }
+
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
     const supabase = createBrowserSupabaseClient();
     const { data } = await supabase.auth.getSession();
     if (!data.session) {
@@ -60,10 +80,10 @@ export default function NewGuidePage() {
         slug,
         summary,
         rawText,
-        category: formData.get("category"),
-        author: formData.get("author"),
-        tags: formData.get("tags"),
-        published: formData.get("published") === "on"
+        category,
+        author,
+        tags,
+        published: new FormData(event.currentTarget).get("published") === "on"
       })
     });
     const result = await response.json();
@@ -76,7 +96,7 @@ export default function NewGuidePage() {
         <div>
           <p className="admin-kicker">정착가이드</p>
           <h1>새 가이드 추가</h1>
-          <p>본문을 붙여넣고 스캔한 뒤 저장합니다. 공개 체크를 켜야 사이트에 보입니다.</p>
+          <p>Notion 링크로 불러오거나 본문을 직접 입력한 뒤 저장합니다.</p>
         </div>
         <Link className="admin-button secondary" href="/admin/guides">
           목록으로
@@ -85,6 +105,13 @@ export default function NewGuidePage() {
 
       <section className="admin-editor-layout">
         <form className="admin-form" onSubmit={submit}>
+          <label className="field">
+            <span>Notion 링크</span>
+            <input value={notionUrl} onChange={(event) => setNotionUrl(event.target.value)} placeholder="https://www.notion.so/..." />
+          </label>
+          <button className="admin-button secondary" type="button" onClick={importNotion}>
+            Notion에서 불러오기
+          </button>
           <label className="field">
             <span>본문 붙여넣기</span>
             <textarea value={rawText} onChange={(event) => setRawText(event.target.value)} rows={14} />
@@ -102,7 +129,7 @@ export default function NewGuidePage() {
           </label>
           <label className="field">
             <span>카테고리</span>
-            <input name="category" defaultValue="행정 · 비자" />
+            <input value={category} onChange={(event) => setCategory(event.target.value)} />
           </label>
           <label className="field">
             <span>요약</span>
@@ -110,11 +137,11 @@ export default function NewGuidePage() {
           </label>
           <label className="field">
             <span>작성자</span>
-            <input name="author" defaultValue="KSAN 기획총괄팀" />
+            <input value={author} onChange={(event) => setAuthor(event.target.value)} />
           </label>
           <label className="field">
             <span>태그</span>
-            <input name="tags" defaultValue="BSN, 행정, 정착" />
+            <input value={tags} onChange={(event) => setTags(event.target.value)} />
           </label>
           <label>
             <input name="published" type="checkbox" /> 공개
