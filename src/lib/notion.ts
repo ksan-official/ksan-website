@@ -1,5 +1,5 @@
-import { fallbackGuideDetail, fallbackGuides } from "@/lib/content";
 import { getOptionalEnv } from "@/lib/env";
+import { blocksToHtml } from "@/lib/notionHtml";
 import type { GuideBlock, GuideDetail, GuideSummary } from "@/lib/types";
 
 const NOTION_VERSION = "2022-06-28";
@@ -19,6 +19,14 @@ type NotionBlock = {
   type: string;
   has_children?: boolean;
 } & Record<string, unknown>;
+
+type NotionFileValue = {
+  caption?: NotionRichText[];
+  external?: { url?: string };
+  file?: { url?: string };
+  name?: string;
+  type?: "external" | "file" | "file_upload";
+};
 
 function textFromRichText(value: unknown): string {
   const richText = value as { rich_text?: NotionRichText[]; title?: NotionRichText[] };
@@ -60,7 +68,7 @@ function slugify(value: string) {
 }
 
 function mapPage(page: NotionPage): GuideSummary {
-  const title = propertyText(page, ["Title", "Name", "이름", "제목"]) || "Untitled";
+  const title = propertyText(page, ["Title", "Name", "이름", "제목", "주제"]) || "Untitled";
 
   return {
     id: page.id,
@@ -72,6 +80,20 @@ function mapPage(page: NotionPage): GuideSummary {
     author: propertyText(page, ["Author", "작성자", "담당자"]) || "KSAN",
     tags: propertyMultiSelect(page, ["Tags", "태그", "키워드"])
   };
+}
+
+function pageMatchesSlug(page: NotionPage, slug: string) {
+  const normalizedSlug = slugify(decodeURIComponent(slug));
+  const summary = mapPage(page);
+  const pageSlug = slugify(summary.slug);
+  const titleSlug = slugify(summary.title);
+
+  return (
+    pageSlug === normalizedSlug ||
+    titleSlug === normalizedSlug ||
+    titleSlug.startsWith(`${normalizedSlug}-`) ||
+    normalizedSlug.startsWith(`${titleSlug}-`)
+  );
 }
 
 async function notionFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -101,13 +123,13 @@ async function notionFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 function logNotionFallback(context: string, error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
-  console.warn(`[notion] ${context} failed. Falling back to local guide content. ${message}`);
+  console.warn(`[notion] ${context} failed. ${message}`);
 }
 
 export async function listGuides(): Promise<GuideSummary[]> {
   const databaseId = getOptionalEnv("NOTION_GUIDES_DATABASE_ID");
   if (!databaseId || !getOptionalEnv("NOTION_API_KEY")) {
-    return fallbackGuides;
+    return [];
   }
 
   try {
@@ -119,13 +141,26 @@ export async function listGuides(): Promise<GuideSummary[]> {
     return data.results.map(mapPage);
   } catch (error) {
     logNotionFallback("Guide database query", error);
-    return fallbackGuides;
+    return [];
   }
 }
 
 function mapBlock(block: NotionBlock): GuideBlock | null {
   const blockValue = block[block.type] as { rich_text?: NotionRichText[] } | undefined;
   const text = textFromRichText(blockValue);
+  if (block.type === "image") {
+    const image = block.image as NotionFileValue | undefined;
+    const url = image?.external?.url ?? image?.file?.url ?? "";
+    return url ? { id: block.id, type: "image", caption: textFromRichText({ rich_text: image?.caption ?? [] }), url } : null;
+  }
+
+  if (block.type === "file" || block.type === "pdf") {
+    const file = block[block.type] as NotionFileValue | undefined;
+    const url = file?.external?.url ?? file?.file?.url ?? "";
+    const name = file?.name || textFromRichText({ rich_text: file?.caption ?? [] }) || "첨부 파일";
+    return url ? { id: block.id, type: "file", caption: textFromRichText({ rich_text: file?.caption ?? [] }), name, url } : null;
+  }
+
   const supported = [
     "heading_1",
     "heading_2",
@@ -135,28 +170,77 @@ function mapBlock(block: NotionBlock): GuideBlock | null {
     "numbered_list_item",
     "quote",
     "callout"
-  ];
+  ] as const;
 
-  if (!supported.includes(block.type) || !text) {
+  if (!supported.includes(block.type as (typeof supported)[number]) || !text) {
     return null;
   }
 
   return {
     id: block.id,
-    type: block.type as GuideBlock["type"],
+    type: block.type as (typeof supported)[number],
     text
   };
 }
 
-async function getBlocks(pageId: string): Promise<GuideBlock[]> {
-  const data = await notionFetch<{ results: NotionBlock[] }>(`/blocks/${pageId}/children?page_size=100`);
-  return data.results.map(mapBlock).filter((block): block is GuideBlock => Boolean(block));
+async function listBlockChildren(blockId: string) {
+  const results: NotionBlock[] = [];
+  let cursor: string | null = null;
+
+  do {
+    const query = new URLSearchParams({ page_size: "100" });
+    if (cursor) query.set("start_cursor", cursor);
+    const data = await notionFetch<{ results: NotionBlock[]; has_more?: boolean; next_cursor?: string | null }>(
+      `/blocks/${blockId}/children?${query.toString()}`
+    );
+    results.push(...data.results);
+    cursor = data.has_more ? data.next_cursor ?? null : null;
+  } while (cursor);
+
+  return results;
+}
+
+function tableRowCells(block: NotionBlock) {
+  const value = block.table_row as { cells?: NotionRichText[][] } | undefined;
+  return value?.cells?.map((cell) => cell.map((item) => item.plain_text ?? "").join("").trim()) ?? [];
+}
+
+async function getBlocks(pageId: string, depth = 0): Promise<GuideBlock[]> {
+  const blocks = await listBlockChildren(pageId);
+  const results: GuideBlock[] = [];
+
+  for (const block of blocks) {
+    if (block.type === "table") {
+      const table = block.table as { has_column_header?: boolean; has_row_header?: boolean } | undefined;
+      const rows = (await listBlockChildren(block.id)).filter((child) => child.type === "table_row").map(tableRowCells);
+      if (rows.length) {
+        results.push({
+          id: block.id,
+          type: "table",
+          hasColumnHeader: table?.has_column_header,
+          hasRowHeader: table?.has_row_header,
+          rows
+        });
+      }
+      continue;
+    }
+
+    const mapped = mapBlock(block);
+    if (mapped) {
+      results.push(depth > 0 && (mapped.type === "bulleted_list_item" || mapped.type === "numbered_list_item") ? { ...mapped, text: `  ${mapped.text}` } : mapped);
+    }
+    if (block.has_children) {
+      results.push(...(await getBlocks(block.id, depth + 1)));
+    }
+  }
+
+  return results;
 }
 
 export async function getGuideBySlug(slug: string): Promise<GuideDetail | null> {
   const databaseId = getOptionalEnv("NOTION_GUIDES_DATABASE_ID");
   if (!databaseId || !getOptionalEnv("NOTION_API_KEY")) {
-    return slug === fallbackGuideDetail.slug ? fallbackGuideDetail : null;
+    return null;
   }
 
   try {
@@ -165,20 +249,22 @@ export async function getGuideBySlug(slug: string): Promise<GuideDetail | null> 
       body: JSON.stringify({})
     });
 
-    const page = data.results.find((result) => mapPage(result).slug === slug);
+    const page = data.results.find((result) => pageMatchesSlug(result, slug));
     if (!page) {
       return null;
     }
 
     const summary = mapPage(page);
     const guides = await listGuides();
+    const blocks = await listBlockChildren(page.id);
+    const html = await blocksToHtml(blocks, listBlockChildren);
     return {
       ...summary,
-      blocks: await getBlocks(page.id),
+      blocks: html.trim() ? [{ id: `${page.id}-notion-html`, type: "html", html }] : await getBlocks(page.id),
       related: guides.filter((guide) => guide.slug !== slug).slice(0, 3)
     };
   } catch (error) {
     logNotionFallback(`Guide detail query for "${slug}"`, error);
-    return slug === fallbackGuideDetail.slug ? fallbackGuideDetail : null;
+    return null;
   }
 }

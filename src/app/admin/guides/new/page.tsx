@@ -4,6 +4,13 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
 import { deriveSummary, parseGuideText, slugFromTitle } from "@/lib/guideParser";
+import type { GuideBlock } from "@/lib/types";
+
+type HeadingBlock = Extract<GuideBlock, { text: string; type: "heading_1" | "heading_2" | "heading_3" }>;
+
+function isHeadingBlock(block: GuideBlock): block is HeadingBlock {
+  return block.type === "heading_1" || block.type === "heading_2" || block.type === "heading_3";
+}
 
 export default function NewGuidePage() {
   const [status, setStatus] = useState<string | null>(null);
@@ -15,12 +22,15 @@ export default function NewGuidePage() {
   const [summary, setSummary] = useState("");
   const [author, setAuthor] = useState("KSAN");
   const [tags, setTags] = useState("");
+  const [importedBlocks, setImportedBlocks] = useState<GuideBlock[] | null>(null);
   const blocks = useMemo(() => parseGuideText(rawText), [rawText]);
-  const headings = blocks.filter((block) => block.type.startsWith("heading"));
+  const effectiveBlockCount = importedBlocks?.length ?? blocks.length;
+  const headings = blocks.filter(isHeadingBlock);
 
   function scanContent() {
-    const firstHeading = blocks.find((block) => block.type === "heading_1" || block.type === "heading_2");
+    const firstHeading = blocks.filter(isHeadingBlock).find((block) => block.type === "heading_1" || block.type === "heading_2");
     const nextTitle = firstHeading?.text ?? title;
+    setImportedBlocks(null);
     setTitle(nextTitle);
     setSlug(slugFromTitle(nextTitle));
     setSummary(deriveSummary(rawText));
@@ -57,11 +67,13 @@ export default function NewGuidePage() {
     setSummary(result.summary ?? "");
     setAuthor(result.author ?? "KSAN");
     setTags((result.tags ?? []).join(", "));
+    setImportedBlocks(Array.isArray(result.blocks) ? result.blocks : null);
     setStatus("Notion 페이지를 불러왔습니다. 확인 후 저장해주세요.");
   }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formData = new FormData(event.currentTarget);
     const supabase = createBrowserSupabaseClient();
     const { data } = await supabase.auth.getSession();
     if (!data.session) {
@@ -83,7 +95,8 @@ export default function NewGuidePage() {
         category,
         author,
         tags,
-        published: new FormData(event.currentTarget).get("published") === "on"
+        blocks: importedBlocks ?? undefined,
+        published: formData.get("published") === "on"
       })
     });
     const result = await response.json();
@@ -106,15 +119,26 @@ export default function NewGuidePage() {
       <section className="admin-editor-layout">
         <form className="admin-form" onSubmit={submit}>
           <label className="field">
-            <span>Notion 링크</span>
-            <input value={notionUrl} onChange={(event) => setNotionUrl(event.target.value)} placeholder="https://www.notion.so/..." />
+            <span>Notion 페이지 링크</span>
+            <input
+              value={notionUrl}
+              onChange={(event) => setNotionUrl(event.target.value)}
+              placeholder="표에서 가이드 제목을 클릭한 뒤 그 페이지 링크를 붙여넣기"
+            />
           </label>
           <button className="admin-button secondary" type="button" onClick={importNotion}>
             Notion에서 불러오기
           </button>
           <label className="field">
             <span>본문 붙여넣기</span>
-            <textarea value={rawText} onChange={(event) => setRawText(event.target.value)} rows={14} />
+            <textarea
+              value={rawText}
+              onChange={(event) => {
+                setRawText(event.target.value);
+                setImportedBlocks(null);
+              }}
+              rows={14}
+            />
           </label>
           <button className="admin-button secondary" type="button" onClick={scanContent}>
             본문 스캔
@@ -169,7 +193,7 @@ export default function NewGuidePage() {
             </div>
             <div className="admin-field-readonly">
               <strong>본문 블록</strong>
-              <span>{blocks.length}개 블록으로 변환됩니다.</span>
+              <span>{effectiveBlockCount}개 블록으로 저장됩니다.</span>
             </div>
             <div className="admin-field-readonly">
               <strong>공개 URL</strong>

@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
 import { deriveSummary, parseGuideText, slugFromTitle } from "@/lib/guideParser";
+import type { GuideBlock } from "@/lib/types";
 
 function accessToken(request: Request) {
   return request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? null;
+}
+
+function blocksFromPayload(value: unknown, rawText: string): GuideBlock[] {
+  return Array.isArray(value) ? (value as GuideBlock[]) : parseGuideText(rawText);
 }
 
 export async function GET(request: Request) {
@@ -15,7 +20,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await admin.serviceClient
     .from("guide_posts")
-    .select("id,slug,title,category,summary,author,tags,raw_text,published,created_at,updated_at")
+    .select("id,slug,title,category,summary,author,tags,raw_text,blocks,published,created_at,updated_at")
     .order("updated_at", { ascending: false });
 
   if (error) {
@@ -41,7 +46,7 @@ export async function POST(request: Request) {
   }
 
   const slug = String(payload.slug ?? "").trim() || slugFromTitle(title);
-  const blocks = parseGuideText(rawText);
+  const blocks = blocksFromPayload(payload.blocks, rawText);
   const tags = String(payload.tags ?? "")
     .split(",")
     .map((tag) => tag.trim())
@@ -101,7 +106,7 @@ export async function PATCH(request: Request) {
   if (payload.rawText !== undefined) {
     const rawText = String(payload.rawText).trim();
     patch.raw_text = rawText;
-    patch.blocks = parseGuideText(rawText);
+    patch.blocks = blocksFromPayload(payload.blocks, rawText);
     if (!patch.summary) patch.summary = deriveSummary(rawText);
   }
   if (typeof payload.published === "boolean") patch.published = payload.published;

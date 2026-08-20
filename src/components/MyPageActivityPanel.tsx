@@ -23,6 +23,8 @@ type SavedGuide = {
 
 type SavedBusinessItem = {
   jobId: string;
+  title: string;
+  company: string | null;
   savedAt: string;
 };
 
@@ -30,6 +32,8 @@ type ApplicationItem = {
   id: string;
   applicationType: "business_application" | "event_registration";
   targetId: string;
+  targetTitle: string;
+  targetMeta: string | null;
   submittedAt: string;
   syncStatus: string;
 };
@@ -48,6 +52,12 @@ type GuidePostRow = {
 type SavedBusinessItemRow = {
   job_id: string;
   created_at: string;
+};
+
+type BusinessPostRow = {
+  id: string;
+  title: string;
+  company: string | null;
 };
 
 type ApplicationRow = {
@@ -106,6 +116,20 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
         ? await supabase.from("guide_posts").select("slug, title, category").in("slug", guideSlugs)
         : { data: [] };
       const guideBySlug = new Map(((guides ?? []) as GuidePostRow[]).map((guide) => [guide.slug, guide]));
+      const savedBusinessRows = (savedBusinessItemsResult.data ?? []) as SavedBusinessItemRow[];
+      const applicationRows = (applicationsResult.data ?? []) as ApplicationRow[];
+      const businessIds = Array.from(
+        new Set([
+          ...savedBusinessRows.map((item) => item.job_id),
+          ...applicationRows
+            .filter((item) => item.application_type === "business_application")
+            .map((item) => item.target_id)
+        ].filter(Boolean))
+      );
+      const { data: businessPosts } = businessIds.length
+        ? await supabase.from("business_posts").select("id, title, company").in("id", businessIds)
+        : { data: [] };
+      const businessById = new Map(((businessPosts ?? []) as BusinessPostRow[]).map((post) => [post.id, post]));
 
       setSavedGuides(savedGuideRows.map((item) => ({
         slug: item.guide_slug,
@@ -113,17 +137,27 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
         category: guideBySlug.get(item.guide_slug)?.category ?? "정착가이드",
         savedAt: item.created_at
       })));
-      setSavedBusinessItems(((savedBusinessItemsResult.data ?? []) as SavedBusinessItemRow[]).map((item) => ({
-        jobId: item.job_id,
-        savedAt: item.created_at
-      })));
-      setApplications(((applicationsResult.data ?? []) as ApplicationRow[]).map((item) => ({
+      setSavedBusinessItems(savedBusinessRows.map((item) => {
+        const post = businessById.get(item.job_id);
+        return {
+          jobId: item.job_id,
+          title: post?.title ?? "삭제되었거나 찾을 수 없는 공고",
+          company: post?.company ?? null,
+          savedAt: item.created_at
+        };
+      }));
+      setApplications(applicationRows.map((item) => {
+        const businessPost = item.application_type === "business_application" ? businessById.get(item.target_id) : null;
+        return {
         id: item.id,
         applicationType: item.application_type,
         targetId: item.target_id,
+          targetTitle: businessPost?.title ?? item.target_id,
+          targetMeta: businessPost?.company ?? null,
         submittedAt: item.submitted_at,
         syncStatus: item.sheets_sync_status
-      })));
+        };
+      }));
       setStatus("");
     });
   }, [configured]);
@@ -157,8 +191,18 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
         <section className="section">
           <div className="section-header"><h2>채용 활동</h2><span className="badge live">{savedBusinessItems.length + businessApplications.length}개</span></div>
           <div className="flow">
-            {businessApplications.map((item) => <div className="flow-step" key={item.id}><strong>지원한 공고</strong><p className="muted">{item.targetId} · {new Date(item.submittedAt).toLocaleDateString("ko-KR")}</p></div>)}
-            {savedBusinessItems.map((item) => <div className="flow-step" key={`${item.jobId}-${item.savedAt}`}><strong>저장한 공고</strong><p className="muted">{item.jobId} · {new Date(item.savedAt).toLocaleDateString("ko-KR")}</p></div>)}
+            {businessApplications.map((item) => (
+              <Link className="flow-step" href="/business" key={item.id}>
+                <strong>지원한 공고</strong>
+                <p className="muted">{item.targetTitle}{item.targetMeta ? ` · ${item.targetMeta}` : ""} · {new Date(item.submittedAt).toLocaleDateString("ko-KR")}</p>
+              </Link>
+            ))}
+            {savedBusinessItems.map((item) => (
+              <Link className="flow-step" href="/business" key={`${item.jobId}-${item.savedAt}`}>
+                <strong>저장한 공고</strong>
+                <p className="muted">{item.title}{item.company ? ` · ${item.company}` : ""} · {new Date(item.savedAt).toLocaleDateString("ko-KR")}</p>
+              </Link>
+            ))}
             {!businessApplications.length && !savedBusinessItems.length ? <p className="muted">아직 저장하거나 지원한 공고가 없습니다.</p> : null}
           </div>
         </section>

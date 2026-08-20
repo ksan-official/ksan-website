@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, FileText, Search } from "lucide-react";
+import { BookOpen, Search } from "lucide-react";
 import { listGuides } from "@/lib/guides";
 
 export default async function GuidesPage({
@@ -51,12 +51,7 @@ export default async function GuidesPage({
               <p className="muted">{guide.summary}</p>
             </Link>
           ))}
-          <Link className="card" href="/guides">
-            <FileText size={22} aria-hidden />
-            <p className="muted">준비 중</p>
-            <h2>더 많은 가이드가 추가될 예정입니다</h2>
-            <p className="muted">비자, 집 구하기, 보험, 교통 등 학생들이 자주 묻는 주제를 계속 정리합니다.</p>
-          </Link>
+          {!filtered.length ? <p className="muted">등록된 가이드가 없습니다.</p> : null}
         </div>
       </section>
     </main>

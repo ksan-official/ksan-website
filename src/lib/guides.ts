@@ -1,5 +1,5 @@
-import { fallbackGuideDetail, fallbackGuides } from "@/lib/content";
 import { getGuideBySlug as getNotionGuideBySlug, listGuides as listNotionGuides } from "@/lib/notion";
+import { normalizeSlug, slugFromTitle } from "@/lib/guideParser";
 import { createServiceSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 import type { GuideBlock, GuideDetail, GuideSummary } from "@/lib/types";
 
@@ -30,6 +30,27 @@ function mapGuideRow(row: GuidePostRow): GuideSummary {
     updatedAt: row.updated_at.slice(0, 10),
     author: row.author ?? "KSAN",
     tags: row.tags ?? []
+  };
+}
+
+function rowMatchesSlug(row: GuidePostRow, slug: string) {
+  const normalizedSlug = normalizeSlug(decodeURIComponent(slug));
+  const storedSlug = normalizeSlug(row.slug);
+  const titleSlug = slugFromTitle(row.title);
+
+  return (
+    storedSlug === normalizedSlug ||
+    titleSlug === normalizedSlug ||
+    titleSlug.startsWith(`${normalizedSlug}-`) ||
+    normalizedSlug.startsWith(`${titleSlug}-`)
+  );
+}
+
+function mapGuideDetail(row: GuidePostRow, related: GuideSummary[]): GuideDetail {
+  return {
+    ...mapGuideRow(row),
+    blocks: (row.blocks ?? []) as GuideBlock[],
+    related
   };
 }
 
@@ -68,38 +89,56 @@ async function getSupabaseGuideBySlug(slug: string): Promise<GuideDetail | null>
       .select("id, slug, title, category, summary, author, tags, blocks, published, updated_at")
       .eq("slug", slug)
       .eq("published", true)
-      .single();
+      .maybeSingle();
 
-    if (error || !data) {
+    const guides = await listSupabaseGuides();
+    if (error) {
       return null;
     }
 
-    const summary = mapGuideRow(data as GuidePostRow);
-    const related = (await listSupabaseGuides()).filter((guide) => guide.slug !== slug).slice(0, 3);
+    if (data) {
+      const row = data as GuidePostRow;
+      return mapGuideDetail(row, guides.filter((guide) => guide.slug !== row.slug).slice(0, 3));
+    }
 
-    return {
-      ...summary,
-      blocks: ((data as GuidePostRow).blocks ?? []) as GuideBlock[],
-      related
-    };
+    const { data: rows, error: fallbackError } = await supabase
+      .from("guide_posts")
+      .select("id, slug, title, category, summary, author, tags, blocks, published, updated_at")
+      .eq("published", true);
+
+    if (fallbackError) {
+      return null;
+    }
+
+    const row = ((rows ?? []) as GuidePostRow[]).find((item) => rowMatchesSlug(item, slug));
+    return row ? mapGuideDetail(row, guides.filter((guide) => guide.slug !== row.slug).slice(0, 3)) : null;
   } catch {
     return null;
   }
 }
 
 export async function listGuides(): Promise<GuideSummary[]> {
+  const supabaseGuides = await listSupabaseGuides();
+  if (supabaseGuides.length > 0) {
+    return supabaseGuides;
+  }
+
   if (hasNotionConfig()) {
     return listNotionGuides();
   }
 
-  const supabaseGuides = await listSupabaseGuides();
-  return supabaseGuides.length > 0 ? supabaseGuides : fallbackGuides;
+  return [];
 }
 
 export async function getGuideBySlug(slug: string): Promise<GuideDetail | null> {
+  const supabaseGuide = await getSupabaseGuideBySlug(slug);
+  if (supabaseGuide) {
+    return supabaseGuide;
+  }
+
   if (hasNotionConfig()) {
     return getNotionGuideBySlug(slug);
   }
 
-  return (await getSupabaseGuideBySlug(slug)) ?? (slug === fallbackGuideDetail.slug ? fallbackGuideDetail : null);
+  return null;
 }

@@ -15,7 +15,11 @@ export type GuideBlock =
   | { id: string; type: "heading_1" | "heading_2" | "heading_3"; text: string }
   | { id: string; type: "paragraph"; text: string }
   | { id: string; type: "bulleted_list_item" | "numbered_list_item"; text: string }
-  | { id: string; type: "quote" | "callout"; text: string };
+  | { id: string; type: "quote" | "callout"; text: string }
+  | { id: string; type: "html"; html: string }
+  | { id: string; type: "image"; url: string; caption?: string }
+  | { id: string; type: "file"; url: string; name: string; caption?: string }
+  | { id: string; type: "table"; rows: string[][]; hasColumnHeader?: boolean; hasRowHeader?: boolean };
 
 export type GuideDetail = GuideSummary & {
   blocks: GuideBlock[];
