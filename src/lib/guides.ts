@@ -1,5 +1,9 @@
 import { fallbackGuideDetail, fallbackGuides } from "@/lib/content";
-import { getGuideBySlug as getNotionGuideBySlug, listGuides as listNotionGuides } from "@/lib/notion";
+import {
+  getGuideBySlug as getNotionGuideBySlug,
+  getNotionBlocksFromUrl,
+  listGuides as listNotionGuides
+} from "@/lib/notion";
 import { createServiceSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 import type { GuideBlock, GuideDetail, GuideSummary } from "@/lib/types";
 
@@ -14,6 +18,7 @@ type GuidePostRow = {
   blocks: GuideBlock[] | null;
   published: boolean;
   updated_at: string;
+  notion_url?: string | null;
 };
 
 function hasNotionConfig() {
@@ -42,7 +47,7 @@ async function listSupabaseGuides() {
     const supabase = createServiceSupabaseClient();
     const { data, error } = await supabase
       .from("guide_posts")
-      .select("id, slug, title, category, summary, author, tags, blocks, published, updated_at")
+      .select("*")
       .eq("published", true)
       .order("updated_at", { ascending: false });
 
@@ -65,7 +70,7 @@ async function getSupabaseGuideBySlug(slug: string): Promise<GuideDetail | null>
     const supabase = createServiceSupabaseClient();
     const { data, error } = await supabase
       .from("guide_posts")
-      .select("id, slug, title, category, summary, author, tags, blocks, published, updated_at")
+      .select("*")
       .eq("slug", slug)
       .eq("published", true)
       .single();
@@ -77,9 +82,19 @@ async function getSupabaseGuideBySlug(slug: string): Promise<GuideDetail | null>
     const summary = mapGuideRow(data as GuidePostRow);
     const related = (await listSupabaseGuides()).filter((guide) => guide.slug !== slug).slice(0, 3);
 
+    let blocks = ((data as GuidePostRow).blocks ?? []) as GuideBlock[];
+    const notionUrl = (data as GuidePostRow).notion_url;
+    if (notionUrl && process.env.NOTION_API_KEY) {
+      try {
+        blocks = await getNotionBlocksFromUrl(notionUrl);
+      } catch {
+        // Keep the stored blocks as a safe fallback if the page is not shared with the integration.
+      }
+    }
+
     return {
       ...summary,
-      blocks: ((data as GuidePostRow).blocks ?? []) as GuideBlock[],
+      blocks,
       related
     };
   } catch {
@@ -88,18 +103,23 @@ async function getSupabaseGuideBySlug(slug: string): Promise<GuideDetail | null>
 }
 
 export async function listGuides(): Promise<GuideSummary[]> {
+  const supabaseGuides = await listSupabaseGuides();
+  if (supabaseGuides.length > 0) {
+    return supabaseGuides;
+  }
   if (hasNotionConfig()) {
     return listNotionGuides();
   }
-
-  const supabaseGuides = await listSupabaseGuides();
-  return supabaseGuides.length > 0 ? supabaseGuides : fallbackGuides;
+  return fallbackGuides;
 }
 
 export async function getGuideBySlug(slug: string): Promise<GuideDetail | null> {
+  const supabaseGuide = await getSupabaseGuideBySlug(slug);
+  if (supabaseGuide) {
+    return supabaseGuide;
+  }
   if (hasNotionConfig()) {
     return getNotionGuideBySlug(slug);
   }
-
-  return (await getSupabaseGuideBySlug(slug)) ?? (slug === fallbackGuideDetail.slug ? fallbackGuideDetail : null);
+  return slug === fallbackGuideDetail.slug ? fallbackGuideDetail : null;
 }

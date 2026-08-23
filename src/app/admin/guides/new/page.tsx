@@ -63,6 +63,7 @@ export default function NewGuidePage() {
         category: formData.get("category"),
         author: formData.get("author"),
         tags: formData.get("tags"),
+        notionUrl: formData.get("notionUrl"),
         published: formData.get("published") === "on"
       })
     });
@@ -88,6 +89,10 @@ export default function NewGuidePage() {
           <label className="field">
             <span>본문 붙여넣기</span>
             <textarea value={rawText} onChange={(event) => setRawText(event.target.value)} rows={14} />
+          </label>
+          <label className="field">
+            <span>Notion 글 링크 (선택)</span>
+            <input name="notionUrl" placeholder="https://www.notion.so/..." type="url" />
           </label>
           <button className="admin-button secondary" type="button" onClick={scanContent}>
             본문 스캔

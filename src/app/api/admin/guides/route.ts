@@ -13,9 +13,10 @@ export async function POST(request: Request) {
   const payload = await request.json();
   const title = String(payload.title ?? "").trim();
   const rawText = String(payload.rawText ?? "").trim();
+  const notionUrl = String(payload.notionUrl ?? "").trim();
 
-  if (!title || !rawText) {
-    return NextResponse.json({ error: "Title and content are required." }, { status: 400 });
+  if (!title || (!rawText && !notionUrl)) {
+    return NextResponse.json({ error: "Title and either content or a Notion URL are required." }, { status: 400 });
   }
 
   const slug = String(payload.slug ?? "").trim() || slugFromTitle(title);
@@ -35,6 +36,7 @@ export async function POST(request: Request) {
         summary: String(payload.summary ?? "").trim() || deriveSummary(rawText),
         author: String(payload.author ?? "KSAN").trim() || "KSAN",
         tags,
+        notion_url: notionUrl || null,
         raw_text: rawText,
         blocks,
         published: Boolean(payload.published),

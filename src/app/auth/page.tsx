@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createBrowserSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 
 export default function AuthPage() {
+  const router = useRouter();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [status, setStatus] = useState<string | null>(null);
   const configured = hasSupabaseConfig();
@@ -35,7 +37,16 @@ export default function AuthPage() {
           })
         : await supabase.auth.signInWithPassword({ email, password });
 
-    setStatus(result.error ? result.error.message : "처리되었습니다. 이메일 확인이 필요할 수 있습니다.");
+    if (result.error) {
+      setStatus(result.error.message);
+      return;
+    }
+
+    setStatus("처리되었습니다. 이메일 확인이 필요할 수 있습니다.");
+    if (mode === "signin") {
+      const next = new URLSearchParams(window.location.search).get("next");
+      router.push(next?.startsWith("/") ? next : "/mypage");
+    }
   }
 
   return (

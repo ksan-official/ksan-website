@@ -124,8 +124,37 @@ function mapBlock(block: NotionBlock): GuideBlock | null {
 }
 
 async function getBlocks(pageId: string): Promise<GuideBlock[]> {
-  const data = await notionFetch<{ results: NotionBlock[] }>(`/blocks/${pageId}/children?page_size=100`);
-  return data.results.map(mapBlock).filter((block): block is GuideBlock => Boolean(block));
+  const blocks: GuideBlock[] = [];
+  let cursor: string | undefined;
+
+  do {
+    const query = new URLSearchParams({ page_size: "100" });
+    if (cursor) query.set("start_cursor", cursor);
+    const data = await notionFetch<{
+      results: NotionBlock[];
+      has_more?: boolean;
+      next_cursor?: string | null;
+    }>(`/blocks/${pageId}/children?${query.toString()}`);
+
+    for (const block of data.results) {
+      const mapped = mapBlock(block);
+      if (mapped) blocks.push(mapped);
+      if (block.has_children) blocks.push(...(await getBlocks(block.id)));
+    }
+
+    cursor = data.has_more && data.next_cursor ? data.next_cursor : undefined;
+  } while (cursor);
+
+  return blocks;
+}
+
+export async function getNotionBlocksFromUrl(url: string): Promise<GuideBlock[]> {
+  const normalized = decodeURIComponent(url).replace(/-/g, "");
+  const pageId = normalized.match(/([0-9a-f]{32})(?:\?|$)/i)?.[1];
+  if (!pageId) {
+    throw new Error("Notion page ID could not be found in the supplied URL.");
+  }
+  return getBlocks(pageId);
 }
 
 export async function getGuideBySlug(slug: string): Promise<GuideDetail | null> {

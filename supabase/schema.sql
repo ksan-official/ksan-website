@@ -24,8 +24,9 @@ create table if not exists public.guide_posts (
   category text not null default '정착가이드',
   summary text,
   author text,
+  notion_url text,
   tags text[] not null default '{}',
-  raw_text text not null,
+  raw_text text not null default '',
   blocks jsonb not null default '[]'::jsonb,
   published boolean not null default false,
   created_at timestamptz not null default now(),
@@ -59,6 +60,8 @@ alter table public.business_posts add column if not exists tags text[] not null 
 alter table public.business_posts add column if not exists featured boolean not null default false;
 alter table public.business_posts add column if not exists featured_order integer not null default 0;
 alter table public.business_posts add column if not exists accent text not null default 'orange';
+alter table public.guide_posts add column if not exists notion_url text;
+alter table public.guide_posts alter column raw_text set default '';
 create index if not exists business_posts_public_order_idx
   on public.business_posts (published, featured desc, featured_order asc, created_at desc);
 

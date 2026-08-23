@@ -9,7 +9,8 @@ const notionFields = [
   ["Summary", "리스트와 article 상단에 보이는 요약"],
   ["Author", "작성팀 또는 작성자"],
   ["Updated", "업데이트 날짜"],
-  ["Tags", "검색과 분류에 쓰는 태그"]
+  ["Tags", "검색과 분류에 쓰는 태그"],
+  ["Notion URL", "본문으로 불러올 Notion 공개 글 링크"]
 ];
 
 export default async function AdminGuidesPage() {
