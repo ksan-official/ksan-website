@@ -3,13 +3,21 @@ import { getOptionalEnv, getRequiredEnv } from "@/lib/env";
 
 let browserSupabaseClient: ReturnType<typeof createClient> | null = null;
 
+function getBrowserKey() {
+  return process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+}
+
+function getServerSecretKey() {
+  return getOptionalEnv("SUPABASE_SECRET_KEY") ?? getOptionalEnv("SUPABASE_SERVICE_ROLE_KEY");
+}
+
 export function createBrowserSupabaseClient() {
   if (browserSupabaseClient) {
     return browserSupabaseClient;
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const key = getBrowserKey();
   if (!url || !key) {
     throw new Error("Missing required Supabase browser environment variables");
   }
@@ -19,7 +27,10 @@ export function createBrowserSupabaseClient() {
 
 export function createServerSupabaseClient(accessToken?: string) {
   const url = getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL");
-  const key = getRequiredEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  const key = getBrowserKey();
+  if (!key) {
+    throw new Error("Missing Supabase publishable/anon key");
+  }
   return createClient(url, key, {
     global: accessToken
       ? {
@@ -33,7 +44,10 @@ export function createServerSupabaseClient(accessToken?: string) {
 
 export function createServiceSupabaseClient() {
   const url = getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL");
-  const key = getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const key = getServerSecretKey();
+  if (!key) {
+    throw new Error("Missing Supabase secret/service role key");
+  }
   return createClient(url, key, {
     auth: {
       persistSession: false
@@ -44,6 +58,6 @@ export function createServiceSupabaseClient() {
 export function hasSupabaseConfig() {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      getBrowserKey()
   );
 }

@@ -5,6 +5,7 @@ import {
   listGuides as listNotionGuides
 } from "@/lib/notion";
 import { createServiceSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
+import { resolveGuideCategory } from "@/lib/guide-structure";
 import type { GuideBlock, GuideDetail, GuideSummary } from "@/lib/types";
 
 type GuidePostRow = {
@@ -26,11 +27,13 @@ function hasNotionConfig() {
 }
 
 function mapGuideRow(row: GuidePostRow): GuideSummary {
+  const category = resolveGuideCategory(row.category);
   return {
     id: row.id,
     slug: row.slug,
     title: row.title,
-    category: row.category,
+    category: category.title,
+    categoryId: category.id,
     summary: row.summary ?? "",
     updatedAt: row.updated_at.slice(0, 10),
     author: row.author ?? "KSAN",

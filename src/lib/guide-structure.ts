@@ -191,6 +191,36 @@ export const guideCategories: GuideCategory[] = [
   }
 ];
 
+const guideCategoryAliases: Record<string, string> = {
+  "정착가이드": "start",
+  "처음정착하기": "start",
+  "주거": "housing",
+  "행정비자": "residency",
+  "행정체류": "residency",
+  "금융지원": "finance",
+  "의료안전": "health",
+  "교통": "transport",
+  "생활": "living",
+  "문화여가": "culture"
+};
+
+function normalizeGuideCategory(value: string) {
+  return value.toLowerCase().replace(/[\s·/&()\-]/g, "");
+}
+
+export function resolveGuideCategory(value: string | null | undefined) {
+  if (!value) return guideCategories[0];
+  const direct = guideCategories.find((category) => category.id === value);
+  if (direct) return direct;
+  const normalized = normalizeGuideCategory(value);
+  const aliasId = guideCategoryAliases[normalized];
+  return (
+    guideCategories.find((category) => category.id === aliasId) ??
+    guideCategories.find((category) => normalizeGuideCategory(category.title) === normalized) ??
+    guideCategories[0]
+  );
+}
+
 export const settlementStages = [
   {
     id: "before-arrival",

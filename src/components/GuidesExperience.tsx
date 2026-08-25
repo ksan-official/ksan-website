@@ -13,6 +13,7 @@ import {
 import {
   guideCategories,
   guidePriorityLabels,
+  resolveGuideCategory,
   settlementStages,
   type GuideCategory,
   type GuideTreeItem
@@ -73,6 +74,15 @@ export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperience
 
   const selectedCategory =
     visibleCategories.find((category) => category.id === activeCategory) ?? visibleCategories[0];
+  const selectedCategoryGuides = selectedCategory
+    ? guides.filter((guide) => resolveGuideCategory(guide.categoryId ?? guide.category).id === selectedCategory.id)
+    : [];
+  const matchedGuideIds = new Set(
+    selectedCategory?.items
+      .map((item) => findPublishedGuide(item, selectedCategoryGuides)?.id)
+      .filter(Boolean) ?? []
+  );
+  const additionalGuides = selectedCategoryGuides.filter((guide) => !matchedGuideIds.has(guide.id));
 
   return (
     <main className="guides-page guides-page--reference" id="main">
@@ -170,7 +180,7 @@ export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperience
           <section className="guides-reference-category" role="tabpanel">
             <div className="guides-reference-list">
               {selectedCategory.items.map((item, index) => {
-                const publishedGuide = findPublishedGuide(item, guides);
+                const publishedGuide = findPublishedGuide(item, selectedCategoryGuides);
                 const content = (
                   <>
                     <span className="guides-reference-number">{String(index + 1).padStart(2, "0")}</span>
@@ -199,6 +209,20 @@ export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperience
                   <div className="guides-reference-row is-pending" key={item.title}>{content}</div>
                 );
               })}
+              {additionalGuides.map((guide, index) => (
+                <Link className="guides-reference-row" href={`/guides/${guide.slug}`} key={guide.id}>
+                  <span className="guides-reference-number">
+                    {String(selectedCategory.items.length + index + 1).padStart(2, "0")}
+                  </span>
+                  <div className="guides-reference-copy">
+                    <span>새 가이드</span>
+                    <h3>{guide.title}</h3>
+                    <p>{guide.tags.length ? guide.tags.join(" · ") : guide.summary}</p>
+                    <small>{guide.updatedAt} · {guide.author}</small>
+                  </div>
+                  <span className="guides-reference-action">열기 <ArrowRight aria-hidden size={18} /></span>
+                </Link>
+              ))}
             </div>
           </section>
         ) : (

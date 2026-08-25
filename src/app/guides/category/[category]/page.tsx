@@ -5,6 +5,7 @@ import {
   getGuideCategory,
   guideCategories,
   guidePriorityLabels,
+  resolveGuideCategory,
   settlementStages,
   type GuideTreeItem
 } from "@/lib/guide-structure";
@@ -46,6 +47,13 @@ export default async function GuideCategoryPage({ params }: { params: Promise<{ 
   }
 
   const guides = await listGuides();
+  const categoryGuides = guides.filter(
+    (guide) => resolveGuideCategory(guide.categoryId ?? guide.category).id === category.id
+  );
+  const matchedGuideIds = new Set(
+    category.items.map((item) => findPublishedGuide(item, categoryGuides)?.id).filter(Boolean)
+  );
+  const additionalGuides = categoryGuides.filter((guide) => !matchedGuideIds.has(guide.id));
   const categoryIndex = guideCategories.findIndex((item) => item.id === category.id);
   const previousCategory = guideCategories[(categoryIndex - 1 + guideCategories.length) % guideCategories.length];
   const nextCategory = guideCategories[(categoryIndex + 1) % guideCategories.length];
@@ -102,7 +110,7 @@ export default async function GuideCategoryPage({ params }: { params: Promise<{ 
         </header>
         <div className="guide-category-topic-list">
           {category.items.map((item) => {
-            const publishedGuide = findPublishedGuide(item, guides);
+            const publishedGuide = findPublishedGuide(item, categoryGuides);
             const content = (
               <>
                 <div className="guide-category-topic-title">
@@ -127,6 +135,18 @@ export default async function GuideCategoryPage({ params }: { params: Promise<{ 
               <div className="guide-category-topic is-pending" key={item.title}>{content}</div>
             );
           })}
+          {additionalGuides.map((guide) => (
+            <Link className="guide-category-topic" href={`/guides/${guide.slug}`} key={guide.id}>
+              <div className="guide-category-topic-title">
+                <span>새 가이드</span>
+                <h3>{guide.title}</h3>
+              </div>
+              <div className="guide-category-topic-index">
+                {(guide.tags.length ? guide.tags : [guide.summary]).filter(Boolean).map((tag) => <span key={tag}>{tag}</span>)}
+              </div>
+              <div className="guide-category-topic-action">가이드 열기 <ArrowRight aria-hidden size={18} /></div>
+            </Link>
+          ))}
         </div>
       </section>
 

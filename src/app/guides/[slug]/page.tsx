@@ -2,12 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowUpRight } from "lucide-react";
 import { GuideArticleSidebar, type GuideHeading } from "@/components/GuideArticleSidebar";
+import { flattenGuideBlocks, GuideNotionContent, guideHeadingId } from "@/components/GuideNotionContent";
 import { getGuideBySlug } from "@/lib/guides";
 import type { GuideBlock } from "@/lib/types";
-
-function headingId(block: GuideBlock) {
-  return `section-${block.id.replace(/[^a-zA-Z0-9가-힣_-]/g, "-")}`;
-}
 
 function headingLevel(block: GuideBlock): 1 | 2 | 3 {
   if (block.type === "heading_1") return 1;
@@ -23,9 +20,9 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
     notFound();
   }
 
-  const headings: GuideHeading[] = guide.blocks
+  const headings: GuideHeading[] = flattenGuideBlocks(guide.blocks)
     .filter((block) => block.type.startsWith("heading"))
-    .map((block) => ({ id: headingId(block), level: headingLevel(block), text: block.text }));
+    .map((block) => ({ id: guideHeadingId(block), level: headingLevel(block), text: block.text }));
 
   return (
     <main className="page article-layout guide-article-page" id="main">
@@ -41,34 +38,7 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
           <p className="guide-article-meta">업데이트 {guide.updatedAt} · {guide.author}</p>
         </header>
 
-        <div className="article-body">
-          {guide.blocks.map((block) => {
-            if (block.type === "heading_1") {
-              return (
-                <h2 className="article-heading article-heading--1" id={headingId(block)} key={block.id}>
-                  {block.text}
-                </h2>
-              );
-            }
-            if (block.type === "heading_2") {
-              return (
-                <h3 className="article-heading article-heading--2" id={headingId(block)} key={block.id}>
-                  {block.text}
-                </h3>
-              );
-            }
-            if (block.type === "heading_3") {
-              return <h4 className="article-heading article-heading--3" id={headingId(block)} key={block.id}>{block.text}</h4>;
-            }
-            if (block.type === "bulleted_list_item") {
-              return <li key={block.id}>{block.text}</li>;
-            }
-            if (block.type === "numbered_list_item") {
-              return <li key={block.id}>{block.text}</li>;
-            }
-            return <p key={block.id}>{block.text}</p>;
-          })}
-        </div>
+        <div className="article-body"><GuideNotionContent blocks={guide.blocks} /></div>
 
         {guide.related.length ? (
           <section className="guide-related">

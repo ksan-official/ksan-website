@@ -1,11 +1,23 @@
 import { fallbackGuideDetail, fallbackGuides } from "@/lib/content";
 import { getOptionalEnv } from "@/lib/env";
-import type { GuideBlock, GuideDetail, GuideSummary } from "@/lib/types";
+import type { GuideBlock, GuideDetail, GuideRichText, GuideSummary } from "@/lib/types";
+import { deriveSummary } from "@/lib/guideParser";
+import { resolveGuideCategory } from "@/lib/guide-structure";
 
 const NOTION_VERSION = "2022-06-28";
 
 type NotionRichText = {
   plain_text?: string;
+  href?: string | null;
+  annotations?: {
+    bold?: boolean;
+    italic?: boolean;
+    strikethrough?: boolean;
+    underline?: boolean;
+    code?: boolean;
+    color?: string;
+  };
+  text?: { content?: string; link?: { url?: string } | null };
 };
 
 type NotionPage = {
@@ -20,10 +32,25 @@ type NotionBlock = {
   has_children?: boolean;
 } & Record<string, unknown>;
 
-function textFromRichText(value: unknown): string {
+function richTextFromValue(value: unknown): GuideRichText[] {
   const richText = value as { rich_text?: NotionRichText[]; title?: NotionRichText[] };
-  const list = richText.title ?? richText.rich_text ?? [];
-  return list.map((item) => item.plain_text ?? "").join("").trim();
+  const list = Array.isArray(value) ? (value as NotionRichText[]) : richText.title ?? richText.rich_text ?? [];
+  return list
+    .map((item) => ({
+      text: item.plain_text ?? item.text?.content ?? "",
+      href: item.href ?? item.text?.link?.url ?? null,
+      bold: item.annotations?.bold,
+      italic: item.annotations?.italic,
+      strikethrough: item.annotations?.strikethrough,
+      underline: item.annotations?.underline,
+      code: item.annotations?.code,
+      color: item.annotations?.color
+    }))
+    .filter((item) => item.text.length > 0);
+}
+
+function textFromRichText(value: unknown): string {
+  return richTextFromValue(value).map((item) => item.text).join("").trim();
 }
 
 function propertyText(page: NotionPage, key: string): string {
@@ -46,11 +73,13 @@ function propertyDate(page: NotionPage, key: string): string {
 }
 
 function mapPage(page: NotionPage): GuideSummary {
+  const category = resolveGuideCategory(propertySelect(page, "Category"));
   return {
     id: page.id,
     slug: propertyText(page, "Slug") || page.id,
     title: propertyText(page, "Title") || "Untitled",
-    category: propertySelect(page, "Category") || "정착가이드",
+    category: category.title,
+    categoryId: category.id,
     summary: propertyText(page, "Summary"),
     updatedAt: propertyDate(page, "Updated"),
     author: propertyText(page, "Author") || "KSAN",
@@ -98,9 +127,21 @@ export async function listGuides(): Promise<GuideSummary[]> {
   return data.results.map(mapPage);
 }
 
+function notionFileUrl(value: Record<string, unknown> | undefined) {
+  const external = value?.external as { url?: string } | undefined;
+  const file = value?.file as { url?: string } | undefined;
+  return external?.url ?? file?.url;
+}
+
+function notionIcon(value: unknown) {
+  const icon = value as { type?: string; emoji?: string } | undefined;
+  return icon?.type === "emoji" ? icon.emoji : undefined;
+}
+
 function mapBlock(block: NotionBlock): GuideBlock | null {
-  const blockValue = block[block.type] as { rich_text?: NotionRichText[] } | undefined;
-  const text = textFromRichText(blockValue);
+  const blockValue = block[block.type] as Record<string, unknown> | undefined;
+  const richText = richTextFromValue(blockValue);
+  const text = richText.map((item) => item.text).join("").trim();
   const supported = [
     "heading_1",
     "heading_2",
@@ -109,18 +150,61 @@ function mapBlock(block: NotionBlock): GuideBlock | null {
     "bulleted_list_item",
     "numbered_list_item",
     "quote",
-    "callout"
+    "callout",
+    "toggle",
+    "to_do",
+    "code"
   ];
 
-  if (!supported.includes(block.type) || !text) {
-    return null;
+  if (supported.includes(block.type) && text) {
+    const caption = richTextFromValue(blockValue?.caption);
+    return {
+      id: block.id,
+      type: block.type as GuideBlock["type"],
+      text,
+      richText,
+      checked: block.type === "to_do" ? Boolean(blockValue?.checked) : undefined,
+      icon: block.type === "callout" ? notionIcon(blockValue?.icon) : undefined,
+      color: typeof blockValue?.color === "string" ? blockValue.color : undefined,
+      caption: caption.length ? caption : undefined,
+      language: block.type === "code" && typeof blockValue?.language === "string" ? blockValue.language : undefined
+    };
   }
 
-  return {
-    id: block.id,
-    type: block.type as GuideBlock["type"],
-    text
-  };
+  if (block.type === "divider") {
+    return { id: block.id, type: "divider", text: "" };
+  }
+
+  if (block.type === "image") {
+    const url = notionFileUrl(blockValue);
+    if (!url) return null;
+    const caption = richTextFromValue(blockValue?.caption);
+    return { id: block.id, type: "image", text: textFromRichText(blockValue?.caption), url, caption };
+  }
+
+  if (block.type === "bookmark" || block.type === "link_preview") {
+    const url = typeof blockValue?.url === "string" ? blockValue.url : undefined;
+    if (!url) return null;
+    const caption = richTextFromValue(blockValue?.caption);
+    return { id: block.id, type: "bookmark", text: textFromRichText(blockValue?.caption) || url, url, caption };
+  }
+
+  if (["file", "pdf", "video", "audio", "embed"].includes(block.type)) {
+    const url = block.type === "embed" && typeof blockValue?.url === "string"
+      ? blockValue.url
+      : notionFileUrl(blockValue);
+    if (!url) return null;
+    const caption = richTextFromValue(blockValue?.caption);
+    return {
+      id: block.id,
+      type: "file",
+      text: textFromRichText(blockValue?.caption) || "첨부 자료 열기",
+      url,
+      caption
+    };
+  }
+
+  return null;
 }
 
 async function getBlocks(pageId: string): Promise<GuideBlock[]> {
@@ -138,8 +222,12 @@ async function getBlocks(pageId: string): Promise<GuideBlock[]> {
 
     for (const block of data.results) {
       const mapped = mapBlock(block);
-      if (mapped) blocks.push(mapped);
-      if (block.has_children) blocks.push(...(await getBlocks(block.id)));
+      const children = block.has_children ? await getBlocks(block.id) : [];
+      if (mapped) {
+        blocks.push(children.length ? { ...mapped, children } : mapped);
+      } else if (children.length) {
+        blocks.push(...children);
+      }
     }
 
     cursor = data.has_more && data.next_cursor ? data.next_cursor : undefined;
@@ -148,13 +236,47 @@ async function getBlocks(pageId: string): Promise<GuideBlock[]> {
   return blocks;
 }
 
-export async function getNotionBlocksFromUrl(url: string): Promise<GuideBlock[]> {
+function pageIdFromNotionUrl(url: string) {
   const normalized = decodeURIComponent(url).replace(/-/g, "");
   const pageId = normalized.match(/([0-9a-f]{32})(?:\?|$)/i)?.[1];
   if (!pageId) {
     throw new Error("Notion page ID could not be found in the supplied URL.");
   }
-  return getBlocks(pageId);
+  return pageId;
+}
+
+function notionPageTitle(page: NotionPage) {
+  for (const value of Object.values(page.properties)) {
+    const property = value as { type?: string; title?: NotionRichText[] };
+    if (property.type === "title" || property.title) {
+      const title = textFromRichText(property);
+      if (title) return title;
+    }
+  }
+  return "제목 없는 가이드";
+}
+
+export async function getNotionPageFromUrl(url: string) {
+  const pageId = pageIdFromNotionUrl(url);
+  const [page, blocks] = await Promise.all([
+    notionFetch<NotionPage>(`/pages/${pageId}`),
+    getBlocks(pageId)
+  ]);
+  const title = notionPageTitle(page);
+  const plainText = blocks
+    .filter((block) => block.type === "paragraph")
+    .map((block) => block.text)
+    .join("\n\n");
+  return {
+    pageId,
+    title,
+    summary: deriveSummary(plainText),
+    blocks
+  };
+}
+
+export async function getNotionBlocksFromUrl(url: string): Promise<GuideBlock[]> {
+  return (await getNotionPageFromUrl(url)).blocks;
 }
 
 export async function getGuideBySlug(slug: string): Promise<GuideDetail | null> {
