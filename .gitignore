@@ -9,3 +9,5 @@ coverage
 tsconfig.tsbuildinfo
 .agents
 .vercel
+.env.local
+.env*.local

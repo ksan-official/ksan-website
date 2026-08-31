@@ -38,6 +38,10 @@ const netherlandsBounds: CoordinateBounds = [
   [2.8, 50.55],
   [7.65, 53.75]
 ];
+const cartoBasemapKey = process.env.NEXT_PUBLIC_CARTO_BASEMAP_KEY;
+const cartoVoyagerTileUrl = `https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png${
+  cartoBasemapKey ? `?key=${encodeURIComponent(cartoBasemapKey)}` : ""
+}`;
 
 const markerIcons: Record<SpotCategory, string> = {
   cafe: `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 7h10v5a5 5 0 0 1-5 5 5 5 0 0 1-5-5V7Z"/><path d="M15 9h2.2a2.3 2.3 0 0 1 0 4.6H15"/><path d="M4 20h13"/><path d="M8 4v1"/><path d="M12 4v1"/></svg>`,
@@ -291,15 +295,15 @@ export function AmsterdamSpotMap() {
               "raster-contrast": 0.04,
               "raster-saturation": 0.08
             },
-            source: "carto-positron",
+            source: "carto-voyager",
             type: "raster"
           }
         ],
         sources: {
-          "carto-positron": {
+          "carto-voyager": {
             attribution: "© OpenStreetMap contributors © CARTO",
             tileSize: 256,
-            tiles: ["https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"],
+            tiles: [cartoVoyagerTileUrl],
             type: "raster"
           }
         },

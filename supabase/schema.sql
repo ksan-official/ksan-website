@@ -4,6 +4,7 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
   full_name text,
+  avatar_url text,
   school text,
   major text,
   admission_year integer,
@@ -45,6 +46,9 @@ create table if not exists public.business_posts (
   apply_mode text not null default 'email' check (apply_mode in ('email', 'external_link', 'internal_form')),
   apply_target text not null,
   description text not null,
+  company_intro text,
+  responsibilities text,
+  requirements text,
   featured boolean not null default false,
   featured_order integer not null default 0,
   accent text not null default 'orange' check (accent in ('orange', 'blue', 'dark')),
@@ -55,11 +59,15 @@ create table if not exists public.business_posts (
 
 -- Existing Supabase projects need additive columns because CREATE TABLE IF NOT EXISTS
 -- does not update a table that was created with an earlier schema version.
+alter table public.profiles add column if not exists avatar_url text;
 alter table public.business_posts add column if not exists department text;
 alter table public.business_posts add column if not exists tags text[] not null default '{}';
 alter table public.business_posts add column if not exists featured boolean not null default false;
 alter table public.business_posts add column if not exists featured_order integer not null default 0;
 alter table public.business_posts add column if not exists accent text not null default 'orange';
+alter table public.business_posts add column if not exists company_intro text;
+alter table public.business_posts add column if not exists responsibilities text;
+alter table public.business_posts add column if not exists requirements text;
 alter table public.guide_posts add column if not exists notion_url text;
 alter table public.guide_posts alter column raw_text set default '';
 create index if not exists business_posts_public_order_idx
@@ -149,6 +157,10 @@ create table if not exists public.map_spots (
 
 alter table public.map_spots add column if not exists city text;
 
+insert into storage.buckets (id, name, public)
+values ('profile-photos', 'profile-photos', true)
+on conflict (id) do update set public = excluded.public;
+
 create or replace function public.is_admin()
 returns boolean
 language sql
@@ -208,6 +220,34 @@ create policy "Users can update their own profile" on public.profiles
 
 create policy "Admins can manage profiles" on public.profiles
   for all using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "Users can view profile photos" on storage.objects;
+create policy "Users can view profile photos" on storage.objects
+  for select using (bucket_id = 'profile-photos');
+
+drop policy if exists "Users can upload their own profile photos" on storage.objects;
+create policy "Users can upload their own profile photos" on storage.objects
+  for insert with check (
+    bucket_id = 'profile-photos'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "Users can update their own profile photos" on storage.objects;
+create policy "Users can update their own profile photos" on storage.objects
+  for update using (
+    bucket_id = 'profile-photos'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  ) with check (
+    bucket_id = 'profile-photos'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "Users can delete their own profile photos" on storage.objects;
+create policy "Users can delete their own profile photos" on storage.objects
+  for delete using (
+    bucket_id = 'profile-photos'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
 
 create policy "Published guide posts are public" on public.guide_posts
   for select using (published = true or public.is_admin());

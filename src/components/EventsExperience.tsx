@@ -227,6 +227,9 @@ export function EventsExperience() {
                 <Link className="events-hero-link" href={`/events/${event.id}`} tabIndex={index === activeSlide ? 0 : -1}>
                   행사 자세히 보기 <ArrowRight aria-hidden size={19} />
                 </Link>
+                <a className="events-archive-jump" href="#event-archive" tabIndex={index === activeSlide ? 0 : -1}>
+                  지난 행사 아카이브
+                </a>
               </div>
             </article>
           ))}
@@ -315,19 +318,20 @@ export function EventsExperience() {
         ) : null}
 
         {filteredPast.length > 0 ? (
-          <section className="events-post-section events-recap-section">
+          <section className="events-post-section events-recap-section" id="event-archive">
             <div className="events-post-section-heading">
               <div>
-                <h3>지난 행사 기록</h3>
-                <p>한 장의 포스터 대신, 그날의 분위기가 남아 있는 현장 사진으로 기록합니다.</p>
+                <p className="events-album-kicker">Archive</p>
+                <h3>지난 행사 아카이브</h3>
+                <p>끝난 행사는 사진첩처럼 모아두고, 클릭하면 그날의 사진을 넘겨볼 수 있게 만들었습니다.</p>
               </div>
               <span>{filteredPast.length}</span>
             </div>
-            <div className="events-post-grid">
+            <div className="events-album-grid">
               {filteredPast.map((event) => (
                 <button
                   aria-label={`${event.title} 현장 사진 보기`}
-                  className="event-post recap-event-post"
+                  className="event-album-card recap-event-post"
                   data-event-post
                   key={event.id}
                   onClick={(clickEvent) => openRecap(event, clickEvent.currentTarget)}
@@ -339,7 +343,7 @@ export function EventsExperience() {
                     ))}
                     <span className="event-photo-count"><Images aria-hidden size={16} />{event.photoCount} Photos</span>
                   </div>
-                  <div className="event-post-copy">
+                  <div className="event-album-copy">
                     <p>Event Recap · {event.keywords.join(" · ")}</p>
                     <h4>{event.title}</h4>
                     <div>

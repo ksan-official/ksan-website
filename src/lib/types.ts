@@ -76,6 +76,9 @@ export type BusinessPost = {
   applyMode: "email" | "external_link" | "internal_form";
   applyTarget: string;
   description: string;
+  companyIntro?: string | null;
+  responsibilities?: string | null;
+  requirements?: string | null;
 };
 
 export type EventPost = {

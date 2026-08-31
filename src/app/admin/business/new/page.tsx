@@ -32,6 +32,7 @@ export default function NewBusinessPostPage() {
           applyMode: formData.get("applyMode"),
           applyTarget: formData.get("applyTarget"),
           company: formData.get("company"),
+          companyIntro: formData.get("companyIntro"),
           deadline: formData.get("deadline"),
           department: formData.get("department"),
           description: formData.get("description"),
@@ -40,6 +41,8 @@ export default function NewBusinessPostPage() {
           featuredOrder: formData.get("featuredOrder"),
           location: formData.get("location"),
           published: formData.get("published") === "on",
+          requirements: formData.get("requirements"),
+          responsibilities: formData.get("responsibilities"),
           tags: String(formData.get("tags") ?? "").split(","),
           title: formData.get("title")
         })
@@ -72,8 +75,18 @@ export default function NewBusinessPostPage() {
           </label>
           <label className="field"><span>마감일</span><input name="deadline" type="date" /></label>
         </div>
+        <label className="field"><span>공고 요약</span><textarea name="description" placeholder="목록 카드와 상단 소개에 짧게 보일 설명을 적어주세요." rows={3} required /></label>
         <label className="field"><span>검색 태그</span><input name="tags" placeholder="영어 가능, 학생 우대, 브랜딩" /></label>
         <p className="admin-note">쉼표로 구분해 최대 8개까지 등록할 수 있습니다. 검색과 공고 카드의 태그에 사용됩니다.</p>
+        <section className="admin-form-section">
+          <div>
+            <p className="admin-kicker">Detail Sections</p>
+            <h2>상세 페이지 구성</h2>
+          </div>
+          <label className="field"><span>회사 소개</span><textarea name="companyIntro" placeholder="회사가 어떤 곳인지, 어떤 팀에서 일하게 되는지 적어주세요." rows={4} /></label>
+          <label className="field"><span>주요 업무</span><textarea name="responsibilities" placeholder={"한 줄에 하나씩 적어주세요.\n예: 브랜드 캠페인 리서치\n예: SNS 콘텐츠 캘린더 운영"} rows={6} /></label>
+          <label className="field"><span>자격 요건</span><textarea name="requirements" placeholder={"한 줄에 하나씩 적어주세요.\n예: 영어 커뮤니케이션 가능\n예: 관련 전공 또는 프로젝트 경험 우대"} rows={6} /></label>
+        </section>
         <div className="admin-two-column">
           <label className="field">
             <span>지원 방식</span>
@@ -83,7 +96,6 @@ export default function NewBusinessPostPage() {
           </label>
           <label className="field"><span>지원 이메일 또는 링크</span><input name="applyTarget" required /></label>
         </div>
-        <label className="field"><span>상세 설명</span><textarea name="description" rows={6} required /></label>
         <div className="admin-two-column">
           <label className="field">
             <span>배너 컬러</span>

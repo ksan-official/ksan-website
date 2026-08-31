@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -62,9 +63,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </a>
       <div className="shell">
         <header className="site-header">
-          <Link className="brand" href="/">
-            <span>KSAN</span>
-            <small>네덜란드 한인 학생회</small>
+          <Link aria-label="KSAN 홈" className="brand brand-logo" href="/">
+            <Image
+              alt="KSAN 네덜란드 한인 학생회"
+              height={584}
+              priority
+              src="/images/ksan-logo-black.png"
+              width={1809}
+            />
           </Link>
           <SiteNav />
           <PaletteTabs />
@@ -73,9 +79,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <footer className="site-footer">
           <div className="footer-main">
             <div className="footer-brand-nav">
-              <Link className="brand compact" href="/">
-                <span>KSAN</span>
-                <small>네덜란드 한인 학생회</small>
+              <Link aria-label="KSAN 홈" className="brand brand-logo compact" href="/">
+                <Image
+                  alt="KSAN 네덜란드 한인 학생회"
+                  height={584}
+                  src="/images/ksan-logo-black.png"
+                  width={1809}
+                />
               </Link>
               <nav aria-label="하단 주요 메뉴" className="footer-links">
                 <Link href="/about">소개</Link>

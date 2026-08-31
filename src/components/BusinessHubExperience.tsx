@@ -62,7 +62,7 @@ function JobCard({
           </button>
         </div>
       </div>
-      <a aria-label={`${job.company} ${job.title} 공고 확인 및 지원`} className="business-job-main-link" href={job.applyTarget}>
+      <a aria-label={`${job.company} ${job.title} 공고 자세히 보기`} className="business-job-main-link" href={`/business/${job.id}`} rel="noreferrer" target="_blank">
         <div className="business-job-heading">
           <p>{job.company}</p>
           <h3>{job.title}</h3>
@@ -213,7 +213,7 @@ export function BusinessHubExperience() {
                 <h2>{job.title}</h2>
                 <div><span><MapPin aria-hidden size={15} />{job.location}</span><span><CalendarClock aria-hidden size={15} />{deadlineLabel(job.deadline)}</span></div>
               </div>
-              <a href={job.applyTarget}>공고 보기 <ArrowUpRight aria-hidden size={18} /></a>
+              <a href={`/business/${job.id}`} rel="noreferrer" target="_blank">공고 보기 <ArrowUpRight aria-hidden size={18} /></a>
             </article>
           ))}
         </div>
