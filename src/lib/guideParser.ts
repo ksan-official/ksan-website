@@ -1,5 +1,9 @@
 import type { GuideBlock } from "@/lib/types";
 
+function plainRichText(text: string) {
+  return text ? [{ text }] : undefined;
+}
+
 export function normalizeSlug(value: string) {
   return value
     .trim()
@@ -30,12 +34,19 @@ export function parseGuideText(rawText: string): GuideBlock[] {
     const file = line.match(/^\[파일:\s*(.*?)]\((.*?)\)$/);
 
     if (image) {
-      blocks.push({ id, type: "image", caption: image[1], url: image[2] });
+      blocks.push({ id, type: "image", caption: plainRichText(image[1]), text: image[1], url: image[2] });
       continue;
     }
 
     if (file) {
-      blocks.push({ id, type: "file", caption: file[1], name: file[1] || "첨부 파일", url: file[2] });
+      blocks.push({
+        id,
+        type: "file",
+        caption: plainRichText(file[1]),
+        name: file[1] || "첨부 파일",
+        text: file[1] || "첨부 파일",
+        url: file[2]
+      });
       continue;
     }
 
@@ -55,7 +66,7 @@ export function parseGuideText(rawText: string): GuideBlock[] {
             .map((cell) => cell.trim())
         );
       if (rows.length) {
-        blocks.push({ id, type: "table", hasColumnHeader: tableLines.length > rows.length, rows });
+        blocks.push({ id, type: "table", hasColumnHeader: tableLines.length > rows.length, rows, text: "" });
       }
       continue;
     }

@@ -1,6 +1,11 @@
-import { getGuideBySlug as getNotionGuideBySlug, listGuides as listNotionGuides } from "@/lib/notion";
-import { normalizeSlug, slugFromTitle } from "@/lib/guideParser";
+import { fallbackGuideDetail, fallbackGuides } from "@/lib/content";
+import {
+  getGuideBySlug as getNotionGuideBySlug,
+  getNotionBlocksFromUrl,
+  listGuides as listNotionGuides
+} from "@/lib/notion";
 import { createServiceSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
+import { resolveGuideCategory } from "@/lib/guide-structure";
 import type { GuideBlock, GuideDetail, GuideSummary } from "@/lib/types";
 
 type GuidePostRow = {
@@ -14,6 +19,7 @@ type GuidePostRow = {
   blocks: GuideBlock[] | null;
   published: boolean;
   updated_at: string;
+  notion_url?: string | null;
 };
 
 function hasNotionConfig() {
@@ -21,36 +27,17 @@ function hasNotionConfig() {
 }
 
 function mapGuideRow(row: GuidePostRow): GuideSummary {
+  const category = resolveGuideCategory(row.category);
   return {
     id: row.id,
     slug: row.slug,
     title: row.title,
-    category: row.category,
+    category: category.title,
+    categoryId: category.id,
     summary: row.summary ?? "",
     updatedAt: row.updated_at.slice(0, 10),
     author: row.author ?? "KSAN",
     tags: row.tags ?? []
-  };
-}
-
-function rowMatchesSlug(row: GuidePostRow, slug: string) {
-  const normalizedSlug = normalizeSlug(decodeURIComponent(slug));
-  const storedSlug = normalizeSlug(row.slug);
-  const titleSlug = slugFromTitle(row.title);
-
-  return (
-    storedSlug === normalizedSlug ||
-    titleSlug === normalizedSlug ||
-    titleSlug.startsWith(`${normalizedSlug}-`) ||
-    normalizedSlug.startsWith(`${titleSlug}-`)
-  );
-}
-
-function mapGuideDetail(row: GuidePostRow, related: GuideSummary[]): GuideDetail {
-  return {
-    ...mapGuideRow(row),
-    blocks: (row.blocks ?? []) as GuideBlock[],
-    related
   };
 }
 
@@ -63,7 +50,7 @@ async function listSupabaseGuides() {
     const supabase = createServiceSupabaseClient();
     const { data, error } = await supabase
       .from("guide_posts")
-      .select("id, slug, title, category, summary, author, tags, blocks, published, updated_at")
+      .select("*")
       .eq("published", true)
       .order("updated_at", { ascending: false });
 
@@ -86,32 +73,33 @@ async function getSupabaseGuideBySlug(slug: string): Promise<GuideDetail | null>
     const supabase = createServiceSupabaseClient();
     const { data, error } = await supabase
       .from("guide_posts")
-      .select("id, slug, title, category, summary, author, tags, blocks, published, updated_at")
+      .select("*")
       .eq("slug", slug)
       .eq("published", true)
-      .maybeSingle();
+      .single();
 
-    const guides = await listSupabaseGuides();
-    if (error) {
+    if (error || !data) {
       return null;
     }
 
-    if (data) {
-      const row = data as GuidePostRow;
-      return mapGuideDetail(row, guides.filter((guide) => guide.slug !== row.slug).slice(0, 3));
+    const summary = mapGuideRow(data as GuidePostRow);
+    const related = (await listSupabaseGuides()).filter((guide) => guide.slug !== slug).slice(0, 3);
+
+    let blocks = ((data as GuidePostRow).blocks ?? []) as GuideBlock[];
+    const notionUrl = (data as GuidePostRow).notion_url;
+    if (notionUrl && process.env.NOTION_API_KEY) {
+      try {
+        blocks = await getNotionBlocksFromUrl(notionUrl);
+      } catch {
+        // Keep the stored blocks as a safe fallback if the page is not shared with the integration.
+      }
     }
 
-    const { data: rows, error: fallbackError } = await supabase
-      .from("guide_posts")
-      .select("id, slug, title, category, summary, author, tags, blocks, published, updated_at")
-      .eq("published", true);
-
-    if (fallbackError) {
-      return null;
-    }
-
-    const row = ((rows ?? []) as GuidePostRow[]).find((item) => rowMatchesSlug(item, slug));
-    return row ? mapGuideDetail(row, guides.filter((guide) => guide.slug !== row.slug).slice(0, 3)) : null;
+    return {
+      ...summary,
+      blocks,
+      related
+    };
   } catch {
     return null;
   }
@@ -122,12 +110,14 @@ export async function listGuides(): Promise<GuideSummary[]> {
   if (supabaseGuides.length > 0) {
     return supabaseGuides;
   }
-
   if (hasNotionConfig()) {
-    return listNotionGuides();
+    try {
+      return await listNotionGuides();
+    } catch {
+      return fallbackGuides;
+    }
   }
-
-  return [];
+  return fallbackGuides;
 }
 
 export async function getGuideBySlug(slug: string): Promise<GuideDetail | null> {
@@ -135,10 +125,12 @@ export async function getGuideBySlug(slug: string): Promise<GuideDetail | null> 
   if (supabaseGuide) {
     return supabaseGuide;
   }
-
   if (hasNotionConfig()) {
-    return getNotionGuideBySlug(slug);
+    try {
+      return await getNotionGuideBySlug(slug);
+    } catch {
+      return slug === fallbackGuideDetail.slug ? fallbackGuideDetail : null;
+    }
   }
-
-  return null;
+  return slug === fallbackGuideDetail.slug ? fallbackGuideDetail : null;
 }

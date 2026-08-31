@@ -16,7 +16,8 @@ export const fallbackGuides: GuideSummary[] = [
     id: "fallback-bsn",
     slug: "bsn-a-to-z",
     title: "BSN 신청부터 수령까지 A to Z",
-    category: "행정 · 비자",
+    category: "행정·체류",
+    categoryId: "residency",
     summary: "네덜란드 도착 후 BSN을 받아야 하는 학생을 위한 절차형 가이드입니다.",
     updatedAt: "2026-03-15",
     author: "KSAN 기획총괄팀",
@@ -27,6 +28,7 @@ export const fallbackGuides: GuideSummary[] = [
     slug: "bank-account",
     title: "은행 계좌 개설",
     category: "생활",
+    categoryId: "living",
     summary: "네덜란드 주요 은행 계좌 개설 전 확인할 정보를 정리합니다.",
     updatedAt: "2026-03-15",
     author: "KSAN 기획총괄팀",
@@ -37,16 +39,24 @@ export const fallbackGuides: GuideSummary[] = [
 export const fallbackGuideDetail: GuideDetail = {
   ...fallbackGuides[0],
   blocks: [
-    { id: "h1", type: "heading_2", text: "BSN이 무엇인가요?" },
+    { id: "h1", type: "heading_1", text: "BSN이 무엇인가요?" },
     {
       id: "p1",
       type: "paragraph",
       text: "BSN은 네덜란드 정부가 거주자에게 부여하는 고유 번호입니다."
     },
-    { id: "h2", type: "heading_2", text: "BSN이 필요한 경우" },
-    { id: "l1", type: "bulleted_list_item", text: "은행 계좌 개설" },
-    { id: "l2", type: "bulleted_list_item", text: "의료보험 가입" },
-    { id: "l3", type: "bulleted_list_item", text: "대학 등록 및 학생 카드 발급" }
+    { id: "h2", type: "heading_2", text: "신청 절차" },
+    { id: "h3-1", type: "heading_3", text: "Gemeente 예약" },
+    { id: "p2", type: "paragraph", text: "거주할 도시의 시청에서 가능한 방문 일정을 먼저 확인합니다." },
+    { id: "h3-2", type: "heading_3", text: "필요 서류" },
+    { id: "l1", type: "bulleted_list_item", text: "여권과 거주지 증명 서류" },
+    { id: "l2", type: "bulleted_list_item", text: "학교 등록 확인서 또는 입학 증빙" },
+    { id: "h3-3", type: "heading_3", text: "방문 등록" },
+    { id: "p3", type: "paragraph", text: "예약 시간에 맞춰 방문하고 담당자의 안내에 따라 등록을 완료합니다." },
+    { id: "h3-4", type: "heading_3", text: "수령" },
+    { id: "p4", type: "paragraph", text: "등록 후 안내받은 방식으로 BSN을 확인하고 안전하게 보관합니다." },
+    { id: "h4", type: "heading_1", text: "자주 묻는 질문" },
+    { id: "p5", type: "paragraph", text: "예약이 늦어질 수 있으니 도착 전 가능한 날짜를 먼저 확인하세요." }
   ],
   related: [fallbackGuides[1]]
 };

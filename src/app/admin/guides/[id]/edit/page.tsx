@@ -20,7 +20,7 @@ type EditableGuide = {
   published: boolean;
 };
 
-type HeadingBlock = Extract<GuideBlock, { text: string; type: "heading_1" | "heading_2" | "heading_3" }>;
+type HeadingBlock = GuideBlock & { type: "heading_1" | "heading_2" | "heading_3"; text: string };
 
 function isHeadingBlock(block: GuideBlock): block is HeadingBlock {
   return block.type === "heading_1" || block.type === "heading_2" || block.type === "heading_3";

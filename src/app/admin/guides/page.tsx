@@ -1,100 +1,65 @@
-"use client";
-
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import { createBrowserSupabaseClient } from "@/lib/supabase";
+import { listGuides } from "@/lib/guides";
+import { getIntegrationStatus } from "@/lib/integrations";
 
-type AdminGuide = {
-  id: string;
-  slug: string;
-  title: string;
-  category: string;
-  summary: string | null;
-  author: string | null;
-  tags: string[] | null;
-  published: boolean;
-  created_at: string;
-  updated_at: string;
-};
+const notionFields = [
+  ["Title", "글 제목"],
+  ["Slug", "웹사이트 주소용 식별자"],
+  ["Category", "행정, 생활, 학교, 비자 등"],
+  ["Summary", "리스트와 article 상단에 보이는 요약"],
+  ["Author", "작성팀 또는 작성자"],
+  ["Updated", "업데이트 날짜"],
+  ["Tags", "검색과 분류에 쓰는 태그"],
+  ["Notion URL", "본문으로 불러올 Notion 공개 글 링크"]
+];
 
-export default function AdminGuidesPage() {
-  const [guides, setGuides] = useState<AdminGuide[]>([]);
-  const [status, setStatus] = useState("가이드를 불러오는 중입니다.");
-
-  const request = useCallback(async (path = "", options: RequestInit = {}) => {
-    const supabase = createBrowserSupabaseClient();
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) throw new Error("관리자 계정으로 먼저 로그인해주세요.");
-    return fetch(`/api/admin/guides${path}`, {
-      ...options,
-      headers: { ...options.headers, Authorization: `Bearer ${data.session.access_token}` }
-    });
-  }, []);
-
-  const loadGuides = useCallback(async () => {
-    try {
-      const response = await request();
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
-      setGuides(result.guides ?? []);
-      setStatus((result.guides ?? []).length ? "" : "등록된 가이드가 없습니다.");
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "가이드를 불러오지 못했습니다.");
-    }
-  }, [request]);
-
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      void loadGuides();
-    }, 0);
-
-    return () => window.clearTimeout(timeout);
-  }, [loadGuides]);
-
-  async function updateGuide(id: string, patch: Partial<Pick<AdminGuide, "published">>) {
-    setStatus("변경사항을 저장하는 중입니다.");
-    const response = await request("", {
-      body: JSON.stringify({ id, ...patch }),
-      headers: { "Content-Type": "application/json" },
-      method: "PATCH"
-    });
-    const result = await response.json();
-    if (!response.ok) {
-      setStatus(result.error);
-      return;
-    }
-    await loadGuides();
-  }
-
-  async function removeGuide(guide: AdminGuide) {
-    if (!window.confirm(`‘${guide.title}’ 가이드를 삭제할까요? 삭제 후에는 복구할 수 없습니다.`)) return;
-    setStatus("가이드를 삭제하는 중입니다.");
-    const response = await request(`?id=${guide.id}`, { method: "DELETE" });
-    const result = await response.json();
-    if (!response.ok) {
-      setStatus(result.error);
-      return;
-    }
-    await loadGuides();
-  }
+export default async function AdminGuidesPage() {
+  const guides = await listGuides();
+  const status = getIntegrationStatus();
 
   return (
     <main className="admin-page" id="main">
       <header className="admin-page-header">
         <div>
           <p className="admin-kicker">정착가이드</p>
-          <h1>정착가이드 관리</h1>
-          <p>가이드를 추가·수정하고 공개 상태를 관리합니다.</p>
+          <h1>가이드 관리</h1>
+          <p>관리자에서 작성한 글과 나중에 연결할 Notion 글을 같은 공개 페이지로 보냅니다.</p>
         </div>
         <Link className="admin-button" href="/admin/guides/new">
-          새 가이드 추가
+          새 가이드 작성
         </Link>
       </header>
 
       <section className="admin-section">
-        <div className="admin-business-list-header">
-          <strong>{guides.length}개 가이드</strong>
-          <span>공개 {guides.filter((guide) => guide.published).length}개</span>
+        <h2>연동 상태</h2>
+        <div className="admin-two-column">
+          <div className="admin-field-readonly">
+            <span>Notion</span>
+            <strong>{status.notion ? "연결됨" : "미연결"}</strong>
+          </div>
+          <div className="admin-field-readonly">
+            <span>현재 읽힌 가이드</span>
+            <strong>{guides.length}개</strong>
+          </div>
+        </div>
+      </section>
+
+      <section className="admin-section">
+        <h2>필수 필드</h2>
+        <div className="admin-field-grid">
+          {notionFields.map(([field, description]) => (
+            <div className="admin-field-readonly" key={field}>
+              <span>{field}</span>
+              <strong>{description}</strong>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="admin-section">
+        <div className="admin-section-title-row">
+          <h2>현재 가이드</h2>
+          <Link href="/guides">공개 화면 보기</Link>
         </div>
         <table className="admin-table">
           <thead>
@@ -103,45 +68,21 @@ export default function AdminGuidesPage() {
               <th>카테고리</th>
               <th>작성자</th>
               <th>수정일</th>
-              <th>관리</th>
             </tr>
           </thead>
           <tbody>
-            {guides.map((guide) => (
-              <tr key={guide.id}>
-                <th>
-                  <Link href={`/guides/${guide.slug}`}>{guide.title}</Link>
-                  <p className="admin-note">{guide.summary ?? ""}</p>
-                </th>
-                <td>{guide.category}</td>
-                <td>{guide.author ?? "KSAN"}</td>
-                <td>{new Date(guide.updated_at).toLocaleDateString("ko-KR")}</td>
-                <td>
-                  <div className="admin-inline-actions">
-                    <Link href={`/admin/guides/${guide.id}/edit`}>수정</Link>
-                    <label>
-                      <input
-                        checked={guide.published}
-                        onChange={(event) => void updateGuide(guide.id, { published: event.target.checked })}
-                        type="checkbox"
-                      />{" "}
-                      공개
-                    </label>
-                    <button className="admin-text-button danger" onClick={() => void removeGuide(guide)} type="button">
-                      삭제
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {!guides.length ? (
-              <tr>
-                <td colSpan={5}>등록된 가이드가 없습니다.</td>
-              </tr>
-            ) : null}
+          {guides.map((guide) => (
+            <tr key={guide.id}>
+              <th>
+                <Link href={`/guides/${guide.slug}`}>{guide.title}</Link>
+              </th>
+              <td>{guide.category}</td>
+              <td>{guide.author}</td>
+              <td>{guide.updatedAt}</td>
+            </tr>
+          ))}
           </tbody>
         </table>
-        {status ? <p className="admin-note">{status}</p> : null}
       </section>
     </main>
   );

@@ -1,11 +1,23 @@
+import { fallbackGuideDetail, fallbackGuides } from "@/lib/content";
 import { getOptionalEnv } from "@/lib/env";
-import { blocksToHtml } from "@/lib/notionHtml";
-import type { GuideBlock, GuideDetail, GuideSummary } from "@/lib/types";
+import type { GuideBlock, GuideDetail, GuideRichText, GuideSummary } from "@/lib/types";
+import { deriveSummary } from "@/lib/guideParser";
+import { resolveGuideCategory } from "@/lib/guide-structure";
 
 const NOTION_VERSION = "2022-06-28";
 
 type NotionRichText = {
   plain_text?: string;
+  href?: string | null;
+  annotations?: {
+    bold?: boolean;
+    italic?: boolean;
+    strikethrough?: boolean;
+    underline?: boolean;
+    code?: boolean;
+    color?: string;
+  };
+  text?: { content?: string; link?: { url?: string } | null };
 };
 
 type NotionPage = {
@@ -20,80 +32,59 @@ type NotionBlock = {
   has_children?: boolean;
 } & Record<string, unknown>;
 
-type NotionFileValue = {
-  caption?: NotionRichText[];
-  external?: { url?: string };
-  file?: { url?: string };
-  name?: string;
-  type?: "external" | "file" | "file_upload";
-};
+function richTextFromValue(value: unknown): GuideRichText[] {
+  const richText = value as { rich_text?: NotionRichText[]; title?: NotionRichText[] };
+  const list = Array.isArray(value) ? (value as NotionRichText[]) : richText.title ?? richText.rich_text ?? [];
+  return list
+    .map((item) => ({
+      text: item.plain_text ?? item.text?.content ?? "",
+      href: item.href ?? item.text?.link?.url ?? null,
+      bold: item.annotations?.bold,
+      italic: item.annotations?.italic,
+      strikethrough: item.annotations?.strikethrough,
+      underline: item.annotations?.underline,
+      code: item.annotations?.code,
+      color: item.annotations?.color
+    }))
+    .filter((item) => item.text.length > 0);
+}
 
 function textFromRichText(value: unknown): string {
-  const richText = value as { rich_text?: NotionRichText[]; title?: NotionRichText[] };
-  const list = richText.title ?? richText.rich_text ?? [];
-  return list.map((item) => item.plain_text ?? "").join("").trim();
+  return richTextFromValue(value).map((item) => item.text).join("").trim();
 }
 
-function propertyValue(page: NotionPage, keys: string[]): unknown {
-  return keys.map((key) => page.properties[key]).find(Boolean);
+function propertyText(page: NotionPage, key: string): string {
+  return textFromRichText(page.properties[key]);
 }
 
-function propertyText(page: NotionPage, keys: string[]): string {
-  return textFromRichText(propertyValue(page, keys));
-}
-
-function propertySelect(page: NotionPage, keys: string[]): string {
-  const value = propertyValue(page, keys) as { select?: { name?: string } } | undefined;
+function propertySelect(page: NotionPage, key: string): string {
+  const value = page.properties[key] as { select?: { name?: string } } | undefined;
   return value?.select?.name ?? "";
 }
 
-function propertyMultiSelect(page: NotionPage, keys: string[]): string[] {
-  const value = propertyValue(page, keys) as { multi_select?: Array<{ name?: string }> } | undefined;
+function propertyMultiSelect(page: NotionPage, key: string): string[] {
+  const value = page.properties[key] as { multi_select?: Array<{ name?: string }> } | undefined;
   return value?.multi_select?.map((item) => item.name ?? "").filter(Boolean) ?? [];
 }
 
-function propertyDate(page: NotionPage, keys: string[]): string {
-  const value = propertyValue(page, keys) as { date?: { start?: string } } | undefined;
+function propertyDate(page: NotionPage, key: string): string {
+  const value = page.properties[key] as { date?: { start?: string } } | undefined;
   return value?.date?.start ?? page.last_edited_time?.slice(0, 10) ?? "";
 }
 
-function slugify(value: string) {
-  return (
-    value
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9가-힣]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "guide"
-  );
-}
-
 function mapPage(page: NotionPage): GuideSummary {
-  const title = propertyText(page, ["Title", "Name", "이름", "제목", "주제"]) || "Untitled";
-
+  const category = resolveGuideCategory(propertySelect(page, "Category"));
   return {
     id: page.id,
-    slug: propertyText(page, ["Slug", "URL", "주소", "고유주소"]) || slugify(title) || page.id,
-    title,
-    category: propertySelect(page, ["Category", "카테고리", "분류"]) || "정착가이드",
-    summary: propertyText(page, ["Summary", "요약", "설명", "소개"]),
-    updatedAt: propertyDate(page, ["Updated", "수정일", "업데이트", "날짜"]),
-    author: propertyText(page, ["Author", "작성자", "담당자"]) || "KSAN",
-    tags: propertyMultiSelect(page, ["Tags", "태그", "키워드"])
+    slug: propertyText(page, "Slug") || page.id,
+    title: propertyText(page, "Title") || "Untitled",
+    category: category.title,
+    categoryId: category.id,
+    summary: propertyText(page, "Summary"),
+    updatedAt: propertyDate(page, "Updated"),
+    author: propertyText(page, "Author") || "KSAN",
+    tags: propertyMultiSelect(page, "Tags")
   };
-}
-
-function pageMatchesSlug(page: NotionPage, slug: string) {
-  const normalizedSlug = slugify(decodeURIComponent(slug));
-  const summary = mapPage(page);
-  const pageSlug = slugify(summary.slug);
-  const titleSlug = slugify(summary.title);
-
-  return (
-    pageSlug === normalizedSlug ||
-    titleSlug === normalizedSlug ||
-    titleSlug.startsWith(`${normalizedSlug}-`) ||
-    normalizedSlug.startsWith(`${titleSlug}-`)
-  );
 }
 
 async function notionFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -114,53 +105,43 @@ async function notionFetch<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Notion request failed: ${response.status} ${body.slice(0, 300)}`);
+    throw new Error(`Notion request failed: ${response.status}`);
   }
 
   return (await response.json()) as T;
 }
 
-function logNotionFallback(context: string, error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
-  console.warn(`[notion] ${context} failed. ${message}`);
-}
-
 export async function listGuides(): Promise<GuideSummary[]> {
   const databaseId = getOptionalEnv("NOTION_GUIDES_DATABASE_ID");
   if (!databaseId || !getOptionalEnv("NOTION_API_KEY")) {
-    return [];
+    return fallbackGuides;
   }
 
-  try {
-    const data = await notionFetch<{ results: NotionPage[] }>(`/databases/${databaseId}/query`, {
-      method: "POST",
-      body: JSON.stringify({})
-    });
+  const data = await notionFetch<{ results: NotionPage[] }>(`/databases/${databaseId}/query`, {
+    method: "POST",
+    body: JSON.stringify({
+      sorts: [{ property: "Updated", direction: "descending" }]
+    })
+  });
 
-    return data.results.map(mapPage);
-  } catch (error) {
-    logNotionFallback("Guide database query", error);
-    return [];
-  }
+  return data.results.map(mapPage);
+}
+
+function notionFileUrl(value: Record<string, unknown> | undefined) {
+  const external = value?.external as { url?: string } | undefined;
+  const file = value?.file as { url?: string } | undefined;
+  return external?.url ?? file?.url;
+}
+
+function notionIcon(value: unknown) {
+  const icon = value as { type?: string; emoji?: string } | undefined;
+  return icon?.type === "emoji" ? icon.emoji : undefined;
 }
 
 function mapBlock(block: NotionBlock): GuideBlock | null {
-  const blockValue = block[block.type] as { rich_text?: NotionRichText[] } | undefined;
-  const text = textFromRichText(blockValue);
-  if (block.type === "image") {
-    const image = block.image as NotionFileValue | undefined;
-    const url = image?.external?.url ?? image?.file?.url ?? "";
-    return url ? { id: block.id, type: "image", caption: textFromRichText({ rich_text: image?.caption ?? [] }), url } : null;
-  }
-
-  if (block.type === "file" || block.type === "pdf") {
-    const file = block[block.type] as NotionFileValue | undefined;
-    const url = file?.external?.url ?? file?.file?.url ?? "";
-    const name = file?.name || textFromRichText({ rich_text: file?.caption ?? [] }) || "첨부 파일";
-    return url ? { id: block.id, type: "file", caption: textFromRichText({ rich_text: file?.caption ?? [] }), name, url } : null;
-  }
-
+  const blockValue = block[block.type] as Record<string, unknown> | undefined;
+  const richText = richTextFromValue(blockValue);
+  const text = richText.map((item) => item.text).join("").trim();
   const supported = [
     "heading_1",
     "heading_2",
@@ -169,102 +150,164 @@ function mapBlock(block: NotionBlock): GuideBlock | null {
     "bulleted_list_item",
     "numbered_list_item",
     "quote",
-    "callout"
-  ] as const;
+    "callout",
+    "toggle",
+    "to_do",
+    "code"
+  ];
 
-  if (!supported.includes(block.type as (typeof supported)[number]) || !text) {
-    return null;
+  if (supported.includes(block.type) && text) {
+    const caption = richTextFromValue(blockValue?.caption);
+    return {
+      id: block.id,
+      type: block.type as GuideBlock["type"],
+      text,
+      richText,
+      checked: block.type === "to_do" ? Boolean(blockValue?.checked) : undefined,
+      icon: block.type === "callout" ? notionIcon(blockValue?.icon) : undefined,
+      color: typeof blockValue?.color === "string" ? blockValue.color : undefined,
+      caption: caption.length ? caption : undefined,
+      language: block.type === "code" && typeof blockValue?.language === "string" ? blockValue.language : undefined
+    };
   }
 
-  return {
-    id: block.id,
-    type: block.type as (typeof supported)[number],
-    text
-  };
+  if (block.type === "divider") {
+    return { id: block.id, type: "divider", text: "" };
+  }
+
+  if (block.type === "image") {
+    const url = notionFileUrl(blockValue);
+    if (!url) return null;
+    const caption = richTextFromValue(blockValue?.caption);
+    return { id: block.id, type: "image", text: textFromRichText(blockValue?.caption), url, caption };
+  }
+
+  if (block.type === "bookmark" || block.type === "link_preview") {
+    const url = typeof blockValue?.url === "string" ? blockValue.url : undefined;
+    if (!url) return null;
+    const caption = richTextFromValue(blockValue?.caption);
+    return { id: block.id, type: "bookmark", text: textFromRichText(blockValue?.caption) || url, url, caption };
+  }
+
+  if (["file", "pdf", "video", "audio", "embed"].includes(block.type)) {
+    const url = block.type === "embed" && typeof blockValue?.url === "string"
+      ? blockValue.url
+      : notionFileUrl(blockValue);
+    if (!url) return null;
+    const caption = richTextFromValue(blockValue?.caption);
+    return {
+      id: block.id,
+      type: "file",
+      text: textFromRichText(blockValue?.caption) || "첨부 자료 열기",
+      url,
+      caption
+    };
+  }
+
+  return null;
 }
 
-async function listBlockChildren(blockId: string) {
-  const results: NotionBlock[] = [];
-  let cursor: string | null = null;
+async function getBlocks(pageId: string): Promise<GuideBlock[]> {
+  const blocks: GuideBlock[] = [];
+  let cursor: string | undefined;
 
   do {
     const query = new URLSearchParams({ page_size: "100" });
     if (cursor) query.set("start_cursor", cursor);
-    const data = await notionFetch<{ results: NotionBlock[]; has_more?: boolean; next_cursor?: string | null }>(
-      `/blocks/${blockId}/children?${query.toString()}`
-    );
-    results.push(...data.results);
-    cursor = data.has_more ? data.next_cursor ?? null : null;
+    const data = await notionFetch<{
+      results: NotionBlock[];
+      has_more?: boolean;
+      next_cursor?: string | null;
+    }>(`/blocks/${pageId}/children?${query.toString()}`);
+
+    for (const block of data.results) {
+      const mapped = mapBlock(block);
+      const children = block.has_children ? await getBlocks(block.id) : [];
+      if (mapped) {
+        blocks.push(children.length ? { ...mapped, children } : mapped);
+      } else if (children.length) {
+        blocks.push(...children);
+      }
+    }
+
+    cursor = data.has_more && data.next_cursor ? data.next_cursor : undefined;
   } while (cursor);
 
-  return results;
+  return blocks;
 }
 
-function tableRowCells(block: NotionBlock) {
-  const value = block.table_row as { cells?: NotionRichText[][] } | undefined;
-  return value?.cells?.map((cell) => cell.map((item) => item.plain_text ?? "").join("").trim()) ?? [];
+function pageIdFromNotionUrl(url: string) {
+  const normalized = decodeURIComponent(url).replace(/-/g, "");
+  const pageId = normalized.match(/([0-9a-f]{32})(?:\?|$)/i)?.[1];
+  if (!pageId) {
+    throw new Error("Notion page ID could not be found in the supplied URL.");
+  }
+  return pageId;
 }
 
-async function getBlocks(pageId: string, depth = 0): Promise<GuideBlock[]> {
-  const blocks = await listBlockChildren(pageId);
-  const results: GuideBlock[] = [];
-
-  for (const block of blocks) {
-    if (block.type === "table") {
-      const table = block.table as { has_column_header?: boolean; has_row_header?: boolean } | undefined;
-      const rows = (await listBlockChildren(block.id)).filter((child) => child.type === "table_row").map(tableRowCells);
-      if (rows.length) {
-        results.push({
-          id: block.id,
-          type: "table",
-          hasColumnHeader: table?.has_column_header,
-          hasRowHeader: table?.has_row_header,
-          rows
-        });
-      }
-      continue;
-    }
-
-    const mapped = mapBlock(block);
-    if (mapped) {
-      results.push(depth > 0 && (mapped.type === "bulleted_list_item" || mapped.type === "numbered_list_item") ? { ...mapped, text: `  ${mapped.text}` } : mapped);
-    }
-    if (block.has_children) {
-      results.push(...(await getBlocks(block.id, depth + 1)));
+function notionPageTitle(page: NotionPage) {
+  for (const value of Object.values(page.properties)) {
+    const property = value as { type?: string; title?: NotionRichText[] };
+    if (property.type === "title" || property.title) {
+      const title = textFromRichText(property);
+      if (title) return title;
     }
   }
+  return "제목 없는 가이드";
+}
 
-  return results;
+export async function getNotionPageFromUrl(url: string) {
+  const pageId = pageIdFromNotionUrl(url);
+  const [page, blocks] = await Promise.all([
+    notionFetch<NotionPage>(`/pages/${pageId}`),
+    getBlocks(pageId)
+  ]);
+  const title = notionPageTitle(page);
+  const plainText = blocks
+    .filter((block) => block.type === "paragraph")
+    .map((block) => block.text)
+    .join("\n\n");
+  return {
+    pageId,
+    title,
+    summary: deriveSummary(plainText),
+    blocks
+  };
+}
+
+export async function getNotionBlocksFromUrl(url: string): Promise<GuideBlock[]> {
+  return (await getNotionPageFromUrl(url)).blocks;
 }
 
 export async function getGuideBySlug(slug: string): Promise<GuideDetail | null> {
   const databaseId = getOptionalEnv("NOTION_GUIDES_DATABASE_ID");
   if (!databaseId || !getOptionalEnv("NOTION_API_KEY")) {
+    return slug === fallbackGuideDetail.slug ? fallbackGuideDetail : null;
+  }
+
+  const data = await notionFetch<{ results: NotionPage[] }>(`/databases/${databaseId}/query`, {
+    method: "POST",
+    body: JSON.stringify({
+      filter: {
+        property: "Slug",
+        rich_text: {
+          equals: slug
+        }
+      },
+      page_size: 1
+    })
+  });
+
+  const page = data.results[0];
+  if (!page) {
     return null;
   }
 
-  try {
-    const data = await notionFetch<{ results: NotionPage[] }>(`/databases/${databaseId}/query`, {
-      method: "POST",
-      body: JSON.stringify({})
-    });
-
-    const page = data.results.find((result) => pageMatchesSlug(result, slug));
-    if (!page) {
-      return null;
-    }
-
-    const summary = mapPage(page);
-    const guides = await listGuides();
-    const blocks = await listBlockChildren(page.id);
-    const html = await blocksToHtml(blocks, listBlockChildren);
-    return {
-      ...summary,
-      blocks: html.trim() ? [{ id: `${page.id}-notion-html`, type: "html", html }] : await getBlocks(page.id),
-      related: guides.filter((guide) => guide.slug !== slug).slice(0, 3)
-    };
-  } catch (error) {
-    logNotionFallback(`Guide detail query for "${slug}"`, error);
-    return null;
-  }
+  const summary = mapPage(page);
+  const guides = await listGuides();
+  return {
+    ...summary,
+    blocks: await getBlocks(page.id),
+    related: guides.filter((guide) => guide.slug !== slug).slice(0, 3)
+  };
 }

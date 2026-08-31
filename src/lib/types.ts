@@ -5,21 +5,61 @@ export type GuideSummary = {
   slug: string;
   title: string;
   category: string;
+  categoryId?: string;
   summary: string;
   updatedAt: string;
   author: string;
   tags: string[];
 };
 
-export type GuideBlock =
-  | { id: string; type: "heading_1" | "heading_2" | "heading_3"; text: string }
-  | { id: string; type: "paragraph"; text: string }
-  | { id: string; type: "bulleted_list_item" | "numbered_list_item"; text: string }
-  | { id: string; type: "quote" | "callout"; text: string }
-  | { id: string; type: "html"; html: string }
-  | { id: string; type: "image"; url: string; caption?: string }
-  | { id: string; type: "file"; url: string; name: string; caption?: string }
-  | { id: string; type: "table"; rows: string[][]; hasColumnHeader?: boolean; hasRowHeader?: boolean };
+export type GuideRichText = {
+  text: string;
+  href?: string | null;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  strikethrough?: boolean;
+  code?: boolean;
+  color?: string;
+};
+
+export type GuideBlockType =
+  | "heading_1"
+  | "heading_2"
+  | "heading_3"
+  | "paragraph"
+  | "bulleted_list_item"
+  | "numbered_list_item"
+  | "quote"
+  | "callout"
+  | "toggle"
+  | "to_do"
+  | "code"
+  | "divider"
+  | "image"
+  | "bookmark"
+  | "file"
+  | "html"
+  | "table";
+
+export type GuideBlock = {
+  id: string;
+  type: GuideBlockType;
+  text: string;
+  richText?: GuideRichText[];
+  children?: GuideBlock[];
+  checked?: boolean;
+  icon?: string;
+  color?: string;
+  url?: string;
+  name?: string;
+  caption?: GuideRichText[];
+  language?: string;
+  html?: string;
+  rows?: string[][];
+  hasColumnHeader?: boolean;
+  hasRowHeader?: boolean;
+};
 
 export type GuideDetail = GuideSummary & {
   blocks: GuideBlock[];
