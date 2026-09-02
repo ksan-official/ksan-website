@@ -102,6 +102,18 @@ create table if not exists public.applications (
   sheets_sync_error text
 );
 
+create table if not exists public.contact_inquiries (
+  id uuid primary key default gen_random_uuid(),
+  inquiry_type text not null check (inquiry_type in ('partnership', 'program', 'career', 'media', 'other')),
+  name text not null,
+  email text not null,
+  organization text,
+  message text not null,
+  status text not null default 'new' check (status in ('new', 'in_progress', 'closed')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.saved_guides (
   user_id uuid references auth.users(id) on delete cascade,
   guide_slug text not null,
@@ -206,6 +218,7 @@ alter table public.guide_posts enable row level security;
 alter table public.business_posts enable row level security;
 alter table public.events enable row level security;
 alter table public.applications enable row level security;
+alter table public.contact_inquiries enable row level security;
 alter table public.saved_guides enable row level security;
 alter table public.saved_business_posts enable row level security;
 alter table public.saved_business_items enable row level security;
@@ -271,6 +284,9 @@ create policy "Users read own applications" on public.applications
   for select using (auth.uid() = user_id or public.is_admin());
 
 create policy "Admins manage applications" on public.applications
+  for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "Admins manage contact inquiries" on public.contact_inquiries
   for all using (public.is_admin()) with check (public.is_admin());
 
 create policy "Users manage saved guides" on public.saved_guides

@@ -1,5 +1,5 @@
-import { ArrowRight, Handshake, Mail } from "lucide-react";
 import { AboutActivityGrid } from "@/components/AboutActivityGrid";
+import { AboutContactForm } from "@/components/AboutContactForm";
 import { AboutContactFab } from "@/components/AboutContactFab";
 import { AboutMotion } from "@/components/AboutMotion";
 
@@ -159,25 +159,13 @@ export default function AboutPage() {
             학생을 위한 후원, 브랜드 협업, 커리어 프로그램, 문화 프로젝트를 언제든 환영합니다.
             서로의 강점을 연결해 학생과 파트너 모두에게 의미 있는 경험을 제안해 주세요.
           </p>
-          <div className="about-contact-actions">
-            <a className="button" href="#contact-details">
-              협업 방식 확인하기 <ArrowRight size={18} aria-hidden />
-            </a>
+          <div className="about-contact-topics" aria-label="주요 협업 분야">
+            <span>후원·파트너십</span>
+            <span>행사 공동 기획</span>
+            <span>채용·커리어</span>
           </div>
         </div>
-        <div className="about-contact-panel" id="contact-details">
-          <div>
-            <Handshake size={22} aria-hidden />
-            <span>후원 및 파트너십</span>
-            <strong>프로그램 공동 기획 · 학생 대상 캠페인 · 행사 후원</strong>
-          </div>
-          <div>
-            <Mail size={22} aria-hidden />
-            <span>공식 문의 채널</span>
-            <strong>hello@ksan.nl</strong>
-            <small>공식 이메일 주소 확정 후 연결 예정</small>
-          </div>
-        </div>
+        <AboutContactForm />
       </section>
 
       <AboutContactFab />

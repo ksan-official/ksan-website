@@ -205,7 +205,6 @@ export function BusinessHubExperience() {
           {featuredJobs.map((job) => (
             <article className="business-featured-slide" key={job.id}>
               <div className="business-featured-company">
-                <span>Highlighted opportunity</span>
                 <strong>{job.company}</strong>
               </div>
               <div className="business-featured-role">
@@ -213,7 +212,7 @@ export function BusinessHubExperience() {
                 <h2>{job.title}</h2>
                 <div><span><MapPin aria-hidden size={15} />{job.location}</span><span><CalendarClock aria-hidden size={15} />{deadlineLabel(job.deadline)}</span></div>
               </div>
-              <a href={`/business/${job.id}`} rel="noreferrer" target="_blank">공고 보기 <ArrowUpRight aria-hidden size={18} /></a>
+              <a className="business-featured-hitarea" href={`/business/${job.id}`} aria-label={`${job.company} ${job.title} 공고 자세히 보기`} />
             </article>
           ))}
         </div>
@@ -223,7 +222,6 @@ export function BusinessHubExperience() {
               <button aria-label={`${job.company} 공고 보기`} aria-pressed={activeFeatured === index} key={job.id} onClick={() => setActiveFeatured(index)} type="button" />
             ))}
           </div>
-          <span>{String(activeFeatured + 1).padStart(2, "0")} / {String(featuredJobs.length).padStart(2, "0")}</span>
           <button aria-label="이전 공고" onClick={() => setActiveFeatured((activeFeatured - 1 + featuredJobs.length) % featuredJobs.length)} type="button"><ChevronLeft aria-hidden size={18} /></button>
           <button aria-label="다음 공고" onClick={() => setActiveFeatured((activeFeatured + 1) % featuredJobs.length)} type="button"><ChevronRight aria-hidden size={18} /></button>
         </div>

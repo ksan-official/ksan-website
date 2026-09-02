@@ -77,8 +77,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
         {children}
         <footer className="site-footer">
-          <div className="footer-main">
-            <div className="footer-brand-nav">
+          <div className="footer-grid">
+            <div className="footer-identity">
               <Link aria-label="KSAN 홈" className="brand brand-logo compact" href="/">
                 <Image
                   alt="KSAN 네덜란드 한인 학생회"
@@ -87,12 +87,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   width={1809}
                 />
               </Link>
-              <nav aria-label="하단 주요 메뉴" className="footer-links">
-                <Link href="/about">소개</Link>
-                <Link href="/events">행사</Link>
-                <Link href="/business">비즈니스 허브</Link>
-                <Link href={signedIn ? "/mypage" : "/auth"}>{signedIn ? "마이페이지" : "로그인"}</Link>
-              </nav>
+              <p>네덜란드의 한국 학생들이 필요한 정보를 찾고, 서로 연결되도록 돕습니다.</p>
+            </div>
+            <nav aria-label="하단 주요 메뉴" className="footer-sitemap">
+              <span className="footer-label">Navigation</span>
+              <Link href="/guides">정착가이드</Link>
+              <Link href="/business">비즈니스 허브</Link>
+              <Link href="/events">행사</Link>
+              <Link href="/pass-it-on">Pass it On</Link>
+              <Link href="/community">Community</Link>
+              <Link href="/about">소개</Link>
+            </nav>
+            <div className="footer-account">
+              <span className="footer-label">My KSAN</span>
+              <Link href={signedIn ? "/mypage" : "/auth"}>{signedIn ? "마이페이지" : "로그인"}</Link>
+              <p>저장한 가이드와 관심 공고를 한곳에서 확인하세요.</p>
+            </div>
+          </div>
+          <div className="footer-contact-strip">
+            <div>
+              <span className="footer-label">Contact KSAN</span>
+              <strong>궁금한 점이 있거나 함께하고 싶다면</strong>
             </div>
             <Link className="footer-contact" href="/about#contact">
               <span>문의하기</span>
@@ -100,7 +115,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
           <div className="footer-meta">
-            <span>학생과 정보를 연결하는 네덜란드 한인 학생회</span>
+            <span>© 2026 KSAN</span>
             <span>KSAN · Korean Students Association in the Netherlands</span>
           </div>
         </footer>
