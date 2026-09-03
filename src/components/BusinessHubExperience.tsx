@@ -22,6 +22,30 @@ import { createBrowserSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 
 const jobTypes: Array<"전체" | JobType> = ["전체", "풀타임", "워킹 스튜던트", "파트타임", "인턴", "계약직"];
 
+const companyGuideSections = [
+  {
+    body: "KSAN Business Hub는 네덜란드 한인 유학생에게 채용, 인턴십, 기업 행사, 파트너십 정보를 전달하는 기업 안내 채널입니다.",
+    href: "#company-contact",
+    id: "service",
+    items: ["서비스 특징", "이용 혜택"],
+    title: "서비스 소개"
+  },
+  {
+    body: "공고를 보내주시면 KSAN 운영진이 회사 소개, 주요 업무, 자격 요건, 지원 방법을 확인한 뒤 학생들이 읽기 좋은 상세 페이지로 정리합니다.",
+    href: "/about#contact",
+    id: "posting",
+    items: ["등록 절차", "신청 양식", "공고 검수"],
+    title: "채용공고 등록"
+  },
+  {
+    body: "후원, 제휴, 채용 홍보, 커리어 프로그램 제안은 문의하기를 통해 남겨주세요. 담당자가 확인 후 이메일로 답변드립니다.",
+    href: "/about#contact",
+    id: "inquiry",
+    items: ["문의하기"],
+    title: "문의하기"
+  }
+];
+
 function daysUntil(deadline: string | null) {
   if (!deadline) return null;
   const today = new Date();
@@ -81,14 +105,15 @@ function JobCard({
 export function BusinessHubExperience() {
   const router = useRouter();
   const [jobs, setJobs] = useState<BusinessJob[]>(businessJobs);
-  const [dataSource, setDataSource] = useState<"fallback" | "supabase">("fallback");
   const [activeFeatured, setActiveFeatured] = useState(0);
   const [query, setQuery] = useState("");
   const [jobType, setJobType] = useState<(typeof jobTypes)[number]>("전체");
   const [location, setLocation] = useState("전체 지역");
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
+  const [activeCompanyGuide, setActiveCompanyGuide] = useState("service");
   const [userId, setUserId] = useState<string | null>(null);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const [loadNotice, setLoadNotice] = useState<string | null>(null);
 
   const locations = useMemo(() => ["전체 지역", ...Array.from(new Set(jobs.map((job) => job.location)))], [jobs]);
   const featuredJobs = useMemo(() => {
@@ -99,14 +124,26 @@ export function BusinessHubExperience() {
   useEffect(() => {
     let active = true;
     fetch("/api/business")
-      .then((response) => response.json())
-      .then((result: { jobs?: BusinessJob[]; source?: "fallback" | "supabase" }) => {
-        if (!active || !result.jobs?.length) return;
-        setJobs(result.jobs);
-        setDataSource(result.source ?? "fallback");
+      .then(async (response) => {
+        const result = (await response.json()) as { error?: string; jobs?: BusinessJob[]; source?: "fallback" | "supabase" };
+        return { ok: response.ok, result };
+      })
+      .then(({ ok, result }) => {
+        if (!active) return;
+        if (!ok) {
+          setJobs([]);
+          setLoadNotice(result.error ?? "채용 공고를 불러오지 못했습니다.");
+          return;
+        }
+        setJobs(result.jobs ?? []);
+        setLoadNotice(null);
         setActiveFeatured(0);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!active) return;
+        setJobs([]);
+        setLoadNotice("채용 공고를 불러오지 못했습니다.");
+      });
     return () => { active = false; };
   }, []);
 
@@ -265,10 +302,50 @@ export function BusinessHubExperience() {
             ))}
           </div>
         ) : (
-          <div className="business-empty-state"><Search aria-hidden size={24} /><strong>조건에 맞는 공고가 아직 없어요.</strong><p>검색어나 필터를 바꿔 다시 살펴보세요.</p></div>
+          <div className="business-empty-state">
+            <Search aria-hidden size={24} />
+            <strong>{loadNotice ? "채용 공고를 불러오지 못했어요." : "조건에 맞는 공고가 아직 없어요."}</strong>
+            <p>{loadNotice ?? "검색어나 필터를 바꿔 다시 살펴보세요."}</p>
+          </div>
         )}
-        <p className="business-demo-note">{dataSource === "supabase" ? "KSAN 관리자가 등록한 최신 공고입니다." : "현재는 레이아웃 확인용 샘플이며, Supabase에 공개 공고를 등록하면 자동으로 교체됩니다."}</p>
         {saveNotice ? <div className="business-save-notice" role="status">{saveNotice}</div> : null}
+      </section>
+
+      <section className="business-career" id="company-guide">
+        <header>
+          <p>Company guide</p>
+          <h2>기업 안내</h2>
+          <span>
+            채용공고 등록부터 검수, 학생 대상 노출과 제휴 문의까지 Business Hub에서 필요한 흐름을 한눈에 확인할 수 있습니다.
+          </span>
+        </header>
+        <div className="business-career-accordion">
+          {companyGuideSections.map((section, index) => {
+            const isOpen = activeCompanyGuide === section.id;
+            return (
+              <article className={isOpen ? "is-open" : ""} key={section.id}>
+                <button onClick={() => setActiveCompanyGuide(section.id)} type="button">
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <strong>{section.title}</strong>
+                  <ChevronRight aria-hidden size={20} />
+                </button>
+                <div>
+                  <div>
+                    <p>{section.body}</p>
+                    <ul className="business-company-guide-list">
+                      {section.items.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                    <a href={section.href}>
+                      자세히 보기 <ArrowUpRight aria-hidden size={15} />
+                    </a>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       </section>
 
       <section className="business-company-cta" id="company-contact">

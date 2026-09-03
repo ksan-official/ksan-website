@@ -7,7 +7,7 @@ function getBrowserKey() {
   return process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 }
 
-function getServerSecretKey() {
+export function getSupabaseServerSecretKey() {
   return getOptionalEnv("SUPABASE_SECRET_KEY") ?? getOptionalEnv("SUPABASE_SERVICE_ROLE_KEY");
 }
 
@@ -21,8 +21,29 @@ export function createBrowserSupabaseClient() {
   if (!url || !key) {
     throw new Error("Missing required Supabase browser environment variables");
   }
-  browserSupabaseClient = createClient(url, key);
+  browserSupabaseClient = createClient(url, key, {
+    auth: {
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      persistSession: true
+    }
+  });
   return browserSupabaseClient;
+}
+
+export async function getBrowserSupabaseSession(retries = 5) {
+  const supabase = createBrowserSupabaseClient();
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const result = await supabase.auth.getSession();
+    if (result.data.session || result.error || attempt === retries) {
+      return result;
+    }
+
+    await new Promise((resolve) => window.setTimeout(resolve, 120));
+  }
+
+  return supabase.auth.getSession();
 }
 
 export function createServerSupabaseClient(accessToken?: string) {
@@ -44,7 +65,7 @@ export function createServerSupabaseClient(accessToken?: string) {
 
 export function createServiceSupabaseClient() {
   const url = getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL");
-  const key = getServerSecretKey();
+  const key = getSupabaseServerSecretKey();
   if (!key) {
     throw new Error("Missing Supabase secret/service role key");
   }

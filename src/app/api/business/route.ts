@@ -51,15 +51,6 @@ function toJob(row: BusinessPostRow): BusinessJob {
   };
 }
 
-function missingAccentColumn(error: { message?: string } | null) {
-  return Boolean(error?.message?.toLowerCase().includes("accent"));
-}
-
-function missingDetailColumns(error: { message?: string } | null) {
-  const message = error?.message?.toLowerCase() ?? "";
-  return ["company_intro", "responsibilities", "requirements"].some((column) => message.includes(column));
-}
-
 export async function GET() {
   if (!hasSupabaseConfig()) {
     return NextResponse.json({ jobs: businessJobs, source: "fallback" });
@@ -67,40 +58,23 @@ export async function GET() {
 
   try {
     const supabase = createServerSupabaseClient();
-    const baseSelect = "id,title,company,location,employment_type,deadline,apply_mode,apply_target,description,department,tags,featured";
-    const detailSelect = `${baseSelect},company_intro,responsibilities,requirements`;
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from("business_posts")
-      .select(`${detailSelect},accent`)
+      .select("id,title,company,location,employment_type,deadline,apply_mode,apply_target,description,department,tags,featured,company_intro,responsibilities,requirements,accent")
       .eq("published", true)
       .order("featured", { ascending: false })
       .order("featured_order", { ascending: true })
       .order("created_at", { ascending: false });
 
-    if (missingAccentColumn(error) || missingDetailColumns(error)) {
-      const fallback = await supabase
-        .from("business_posts")
-        .select(baseSelect)
-        .eq("published", true)
-        .order("featured", { ascending: false })
-        .order("featured_order", { ascending: true })
-        .order("created_at", { ascending: false });
-      data = fallback.data?.map((post) => ({
-        ...post,
-        accent: "orange",
-        company_intro: null,
-        requirements: null,
-        responsibilities: null
-      })) ?? null;
-      error = fallback.error;
+    if (error) {
+      return NextResponse.json({ error: error.message, jobs: [], source: "supabase" }, { status: 500 });
     }
 
-    if (error || !data?.length) {
-      return NextResponse.json({ jobs: businessJobs, source: "fallback" });
-    }
-
-    return NextResponse.json({ jobs: (data as BusinessPostRow[]).map(toJob), source: "supabase" });
-  } catch {
-    return NextResponse.json({ jobs: businessJobs, source: "fallback" });
+    return NextResponse.json({ jobs: ((data ?? []) as BusinessPostRow[]).map(toJob), source: "supabase" });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Supabase business posts request failed.", jobs: [], source: "supabase" },
+      { status: 500 }
+    );
   }
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { createBrowserSupabaseClient } from "@/lib/supabase";
+import { createBrowserSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 
 type AdminSystemStatus = {
   supabase: boolean;
@@ -15,9 +15,7 @@ type AdminSystemStatus = {
 };
 
 export default function AdminPage() {
-  const configured = Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
+  const configured = hasSupabaseConfig();
   const [status, setStatus] = useState(
     configured ? "Supabase 설정을 확인하는 중입니다." : "Supabase 환경 변수가 설정되면 관리자 권한을 확인합니다."
   );
@@ -131,8 +129,12 @@ export default function AdminPage() {
             <span>가입 회원과 저장·신청 내역 확인</span>
           </Link>
           <Link href="/admin/about/new">
-            <strong>소개 항목 수정</strong>
-            <span>임원진, 회장단, 후원사 항목 입력</span>
+            <strong>소개 항목 관리</strong>
+            <span>운영진 사진, 이름, 기수, 후원사 항목 추가·수정·삭제</span>
+          </Link>
+          <Link href="/admin/about/new?type=sponsor">
+            <strong>후원사 관리</strong>
+            <span>후원사 로고, 소개, 제휴 혜택을 추가·수정·삭제</span>
           </Link>
         </div>
       </section>

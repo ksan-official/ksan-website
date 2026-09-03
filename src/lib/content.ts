@@ -71,7 +71,7 @@ export const fallbackBusinessPosts: BusinessPost[] = [
     deadline: null,
     applyMode: "email",
     applyTarget: "careers@example.com",
-    description: "관리자 페이지 연결 전까지 노출되는 샘플 공고입니다."
+    description: "네덜란드 현지 커리어 기회를 준비 중입니다."
   }
 ];
 
@@ -81,7 +81,7 @@ export const fallbackEvents: EventPost[] = [
     title: "KSAN 오리엔테이션",
     startsAt: "2026-09-01T18:00:00+02:00",
     location: "Amsterdam",
-    description: "행사 관리 기능 연결 전까지 노출되는 샘플 행사입니다.",
+    description: "KSAN과 함께하는 네덜란드 유학생 행사를 준비 중입니다.",
     registrationMode: "google_form",
     registrationTarget: "https://forms.google.com/"
   }

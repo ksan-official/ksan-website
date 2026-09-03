@@ -86,29 +86,63 @@ export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperience
 
   return (
     <main className="guides-page guides-page--reference" id="main">
-      <section className="guides-hero">
-        <div className="guides-hero-copy">
+      <section className="guides-hero guides-help-hero">
+        <div className="guides-help-search">
           <p className="guides-kicker"><span /> KSAN Settlement Guide</p>
-          <h1>
-            <span className="guides-title-line">
-              처음이라 <span className="guides-title-highlight">막막할 때,</span>
-            </span>
-            <span className="guides-title-line">순서대로 함께.</span>
-          </h1>
-          <p>
-            네덜란드 도착 전 준비부터 일상에 익숙해지는 순간까지. 지금 나에게 필요한 정보만
-            쉽고 빠르게 찾아보세요.
-          </p>
-          <div className="guides-hero-actions">
-            <a href="#settlement-path">첫 정착 순서 보기 <ArrowRight aria-hidden size={17} /></a>
-            <a href="#guide-browser">전체 주제 탐색</a>
-          </div>
-          <div aria-label="정착 가이드 구성" className="guides-hero-facts">
-            <span><strong>08</strong>개의 정착 주제</span>
-            <span><strong>NL</strong> 도착 전부터 일상까지</span>
+          <h1>네덜란드 생활,<br />무엇이 궁금한가요?</h1>
+          <p>도착 전 준비부터 주거, 행정, 금융과 일상까지 필요한 정보를 바로 찾아보세요.</p>
+          <form
+            className="guides-help-search-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              document.getElementById("guide-browser")?.scrollIntoView({ behavior: "smooth" });
+            }}
+          >
+            <Search aria-hidden size={22} />
+            <label className="sr-only" htmlFor="guides-main-search">정착 가이드 검색</label>
+            <input
+              id="guides-main-search"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="BSN, 집 구하기, 건강보험처럼 검색해보세요"
+              type="search"
+              value={query}
+            />
+            <button type="submit">
+              검색 <ArrowRight aria-hidden size={17} />
+            </button>
+          </form>
+          <div className="guides-popular-searches">
+            <strong>많이 찾는 검색어</strong>
+            {["BSN", "집 구하기", "건강보험", "DigiD"].map((term) => (
+              <button key={term} onClick={() => setQuery(term)} type="button">
+                {term}
+              </button>
+            ))}
           </div>
         </div>
 
+        <aside aria-label="인기 정착 가이드" className="guides-popular-panel">
+          <header>
+            <div>
+              <span>Popular guides</span>
+              <h2>지금 많이 찾는 가이드</h2>
+            </div>
+            <strong>03</strong>
+          </header>
+          <div className="guides-popular-list">
+            {guides.slice(0, 3).map((guide, index) => (
+              <Link href={`/guides/${guide.slug}`} key={guide.id}>
+                <span className="guides-popular-index">{String(index + 1).padStart(2, "0")}</span>
+                <div>
+                  <small>{guide.category}</small>
+                  <strong>{guide.title}</strong>
+                  <p>{guide.summary}</p>
+                </div>
+                <ArrowRight aria-hidden size={18} />
+              </Link>
+            ))}
+          </div>
+        </aside>
       </section>
 
       <section className="guides-start-strip" id="settlement-path">

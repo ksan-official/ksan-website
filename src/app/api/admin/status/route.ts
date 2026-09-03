@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createServiceSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
+import { createServiceSupabaseClient, getSupabaseServerSecretKey, hasSupabaseConfig } from "@/lib/supabase";
 
 async function tableCount(supabase: SupabaseClient, table: string) {
   const { count, error } = await supabase
@@ -14,7 +14,7 @@ async function tableCount(supabase: SupabaseClient, table: string) {
 }
 
 export async function GET() {
-  if (!hasSupabaseConfig() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!hasSupabaseConfig() || !getSupabaseServerSecretKey()) {
     return NextResponse.json({
       supabase: false,
       databaseReady: false,

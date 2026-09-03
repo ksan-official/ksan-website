@@ -3,15 +3,20 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { createBrowserSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
+import { ChevronDown } from "lucide-react";
+import { createBrowserSupabaseClient, getBrowserSupabaseSession, hasSupabaseConfig } from "@/lib/supabase";
 
 const navItems = [
   ["정착가이드", "/guides"],
   ["비즈니스 허브", "/business"],
   ["행사", "/events"],
   ["Pass it On", "/pass-it-on"],
-  ["Community", "/community"],
-  ["소개", "/about"]
+  ["Community", "/community"]
+];
+
+const aboutItems = [
+  ["KSAN 소개", "/about"],
+  ["후원사 소개", "/about/sponsors"]
 ];
 
 function isActive(pathname: string, href: string) {
@@ -21,13 +26,13 @@ function isActive(pathname: string, href: string) {
 export function SiteNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const [signedIn, setSignedIn] = useState(false);
+  const [signedIn, setSignedIn] = useState<boolean | null>(() => (hasSupabaseConfig() ? null : false));
 
   useEffect(() => {
     if (!hasSupabaseConfig()) return;
 
     const supabase = createBrowserSupabaseClient();
-    supabase.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session)));
+    getBrowserSupabaseSession().then(({ data }) => setSignedIn(Boolean(data.session)));
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSignedIn(Boolean(session));
     });
@@ -35,8 +40,8 @@ export function SiteNav() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  const accountLink = signedIn ? "/mypage" : "/auth";
-  const accountLabel = signedIn ? "마이페이지" : "로그인";
+  const accountLink = signedIn === false ? "/auth" : "/mypage";
+  const accountLabel = signedIn === false ? "로그인" : "마이페이지";
 
   async function signOut() {
     if (!hasSupabaseConfig()) return;
@@ -60,13 +65,31 @@ export function SiteNav() {
           {label}
         </Link>
       ))}
+      <div className={["nav-dropdown", isActive(pathname, "/about") ? "active" : ""].filter(Boolean).join(" ")}>
+        <Link className="nav-dropdown-trigger" href="/about">
+          소개
+          <ChevronDown aria-hidden size={16} strokeWidth={2.4} />
+        </Link>
+        <div className="nav-dropdown-menu" role="menu">
+          {aboutItems.map(([label, href]) => (
+            <Link
+              className={isActive(pathname, href) ? "active" : ""}
+              href={href}
+              key={href}
+              role="menuitem"
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+      </div>
       <Link
         className={[isActive(pathname, accountLink) ? "active" : "", "login-cta"].filter(Boolean).join(" ")}
         href={accountLink}
       >
         {accountLabel}
       </Link>
-      {signedIn ? (
+      {signedIn === true ? (
         <button className="nav-text-button" onClick={() => void signOut()} type="button">
           로그아웃
         </button>

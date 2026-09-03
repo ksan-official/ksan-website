@@ -68,6 +68,10 @@ alter table public.business_posts add column if not exists accent text not null 
 alter table public.business_posts add column if not exists company_intro text;
 alter table public.business_posts add column if not exists responsibilities text;
 alter table public.business_posts add column if not exists requirements text;
+alter table public.about_entries add column if not exists sponsor_kind text not null default 'sponsor';
+alter table public.about_entries add column if not exists benefits text;
+alter table public.about_entries add column if not exists usage_guide text;
+alter table public.about_entries add column if not exists cta_url text;
 alter table public.guide_posts add column if not exists notion_url text;
 alter table public.guide_posts alter column raw_text set default '';
 create index if not exists business_posts_public_order_idx
@@ -123,6 +127,11 @@ create table if not exists public.saved_business_items (
   primary key (user_id, job_id)
 );
 
+insert into public.saved_business_items (user_id, job_id, created_at)
+select user_id, business_post_id::text, created_at
+from public.saved_business_posts
+on conflict (user_id, job_id) do nothing;
+
 create table if not exists public.about_entries (
   id uuid primary key default gen_random_uuid(),
   entry_type text not null check (entry_type in ('executive', 'president', 'team_member', 'sponsor')),
@@ -130,6 +139,10 @@ create table if not exists public.about_entries (
   subtitle text,
   body text,
   image_url text,
+  sponsor_kind text not null default 'sponsor' check (sponsor_kind in ('sponsor', 'partner')),
+  benefits text,
+  usage_guide text,
+  cta_url text,
   sort_order integer not null default 0,
   published boolean not null default true,
   created_at timestamptz not null default now(),
@@ -161,6 +174,10 @@ insert into storage.buckets (id, name, public)
 values ('profile-photos', 'profile-photos', true)
 on conflict (id) do update set public = excluded.public;
 
+insert into storage.buckets (id, name, public)
+values ('about-images', 'about-images', true)
+on conflict (id) do update set public = excluded.public;
+
 create or replace function public.is_admin()
 returns boolean
 language sql
@@ -189,7 +206,11 @@ begin
     new.raw_user_meta_data ->> 'name',
     new.raw_user_meta_data ->> 'school',
     new.raw_user_meta_data ->> 'major',
-    nullif(new.raw_user_meta_data ->> 'admission_year', '')::integer
+    case
+      when (new.raw_user_meta_data ->> 'admission_year') ~ '^[0-9]{4}$'
+        then (new.raw_user_meta_data ->> 'admission_year')::integer
+      else null
+    end
   );
   return new;
 end;
@@ -247,6 +268,34 @@ create policy "Users can delete their own profile photos" on storage.objects
   for delete using (
     bucket_id = 'profile-photos'
     and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "Anyone can view about images" on storage.objects;
+create policy "Anyone can view about images" on storage.objects
+  for select using (bucket_id = 'about-images');
+
+drop policy if exists "Admins can upload about images" on storage.objects;
+create policy "Admins can upload about images" on storage.objects
+  for insert with check (
+    bucket_id = 'about-images'
+    and public.is_admin()
+  );
+
+drop policy if exists "Admins can update about images" on storage.objects;
+create policy "Admins can update about images" on storage.objects
+  for update using (
+    bucket_id = 'about-images'
+    and public.is_admin()
+  ) with check (
+    bucket_id = 'about-images'
+    and public.is_admin()
+  );
+
+drop policy if exists "Admins can delete about images" on storage.objects;
+create policy "Admins can delete about images" on storage.objects
+  for delete using (
+    bucket_id = 'about-images'
+    and public.is_admin()
   );
 
 create policy "Published guide posts are public" on public.guide_posts

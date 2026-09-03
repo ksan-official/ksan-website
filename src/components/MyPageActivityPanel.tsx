@@ -5,7 +5,7 @@ import type { User } from "@supabase/supabase-js";
 import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { Bookmark, Briefcase, CalendarCheck, Camera, MessageCircle, Pencil, Settings, UserRound } from "lucide-react";
-import { createBrowserSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
+import { createBrowserSupabaseClient, getBrowserSupabaseSession, hasSupabaseConfig } from "@/lib/supabase";
 
 export type MyPageSection = "profile" | "business" | "events" | "guides" | "community" | "pass-it-on";
 
@@ -59,6 +59,11 @@ type SavedBusinessItemRow = {
   created_at: string;
 };
 
+type LegacySavedBusinessPostRow = {
+  business_post_id: string;
+  created_at: string;
+};
+
 type BusinessPostRow = {
   apply_mode?: "email" | "external_link" | "internal_form" | null;
   apply_target?: string | null;
@@ -73,6 +78,12 @@ type ApplicationRow = {
   target_id: string;
   submitted_at: string;
   sheets_sync_status: string;
+};
+
+type EventRow = {
+  id: string;
+  title: string;
+  location: string | null;
 };
 
 const titles: Record<MyPageSection, string> = {
@@ -105,6 +116,18 @@ function authDisplayName(user: User) {
   const metadataName = typeof metadata.full_name === "string" ? metadata.full_name : metadata.name;
   if (typeof metadataName === "string" && metadataName.trim()) return metadataName.trim();
   return user.email?.split("@")[0] ?? "";
+}
+
+function ProfileAvatar({ profile, large = false }: { profile: Profile | null; large?: boolean }) {
+  return (
+    <div className={large ? "mypage-avatar is-large" : "mypage-avatar"} aria-hidden>
+      {profile?.avatar_url ? (
+        <span className="mypage-avatar-image" style={{ backgroundImage: `url("${profile.avatar_url}")` }} />
+      ) : (
+        displayName(profile).slice(0, 1)
+      )}
+    </div>
+  );
 }
 
 async function profileRequest(formData: FormData) {
@@ -154,99 +177,169 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
   useEffect(() => {
     if (!configured) return;
 
+    let active = true;
+    let requestId = 0;
     const supabase = createBrowserSupabaseClient();
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) {
-        setStatus("로그인이 필요합니다.");
+
+    function clearSignedOut() {
+      requestId += 1;
+      setUserId(null);
+      setEmail(null);
+      setProfile(null);
+      setSavedGuides([]);
+      setSavedBusinessItems([]);
+      setApplications([]);
+      setStatus("로그인이 필요합니다.");
+    }
+
+    async function loadActivity(user: User) {
+      const currentRequest = ++requestId;
+      const fallbackName = authDisplayName(user);
+
+      setUserId(user.id);
+      setEmail(user.email ?? null);
+      setProfile((current) => current ?? {
+        avatar_url: null,
+        admission_year: null,
+        full_name: fallbackName,
+        major: null,
+        school: null
+      });
+      setStatus("내역을 불러오는 중입니다.");
+
+      try {
+        const profileResult = await supabase
+          .from("profiles")
+          .select("full_name, school, major, admission_year, avatar_url")
+          .eq("id", user.id)
+          .single();
+        let profileRow = profileResult.data as Profile | null;
+
+        if (profileResult.error) {
+          const legacyProfileResult = await supabase
+            .from("profiles")
+            .select("full_name, school, major, admission_year")
+            .eq("id", user.id)
+            .single();
+          const legacyProfileRow = legacyProfileResult.data as Omit<Profile, "avatar_url"> | null;
+          profileRow = legacyProfileRow ? { ...legacyProfileRow, avatar_url: null } : null;
+        }
+
+        if (!active || currentRequest !== requestId) return;
+
+        setProfile({
+          avatar_url: profileRow?.avatar_url ?? null,
+          admission_year: profileRow?.admission_year ?? null,
+          full_name: profileRow?.full_name ?? fallbackName,
+          major: profileRow?.major ?? null,
+          school: profileRow?.school ?? null
+        });
+
+        const [savedGuidesResult, savedBusinessItemsResult, legacySavedBusinessResult, applicationsResult] = await Promise.all([
+          supabase.from("saved_guides").select("guide_slug, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
+          supabase.from("saved_business_items").select("job_id, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
+          supabase.from("saved_business_posts").select("business_post_id, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
+          supabase.from("applications").select("id, application_type, target_id, submitted_at, sheets_sync_status").eq("user_id", user.id).order("submitted_at", { ascending: false })
+        ]);
+
+        const savedGuideRows = (savedGuidesResult.data ?? []) as SavedGuideRow[];
+        const guideSlugs = savedGuideRows.map((item) => item.guide_slug);
+        const { data: guides } = guideSlugs.length
+          ? await supabase.from("guide_posts").select("slug, title, category").in("slug", guideSlugs)
+          : { data: [] };
+        const guideBySlug = new Map(((guides ?? []) as GuidePostRow[]).map((guide) => [guide.slug, guide]));
+        const legacySavedBusinessRows = (legacySavedBusinessResult.data ?? []) as LegacySavedBusinessPostRow[];
+        const savedBusinessRows = [
+          ...((savedBusinessItemsResult.data ?? []) as SavedBusinessItemRow[]),
+          ...legacySavedBusinessRows.map((item) => ({
+            created_at: item.created_at,
+            job_id: item.business_post_id
+          }))
+        ].filter((item, index, items) => items.findIndex((match) => match.job_id === item.job_id) === index);
+        const applicationRows = (applicationsResult.data ?? []) as ApplicationRow[];
+        const businessIds = Array.from(
+          new Set([
+            ...savedBusinessRows.map((item) => item.job_id),
+            ...applicationRows
+              .filter((item) => item.application_type === "business_application")
+              .map((item) => item.target_id)
+          ].filter(Boolean))
+        );
+        const { data: businessPosts } = businessIds.length
+          ? await supabase.from("business_posts").select("id, title, company, apply_mode, apply_target").in("id", businessIds)
+          : { data: [] };
+        const businessById = new Map(((businessPosts ?? []) as BusinessPostRow[]).map((post) => [post.id, post]));
+        const eventIds = Array.from(new Set(applicationRows.filter((item) => item.application_type === "event_registration").map((item) => item.target_id)));
+        const { data: events } = eventIds.length
+          ? await supabase.from("events").select("id, title, location").in("id", eventIds)
+          : { data: [] };
+        const eventById = new Map(((events ?? []) as EventRow[]).map((event) => [event.id, event]));
+
+        if (!active || currentRequest !== requestId) return;
+
+        setSavedGuides(savedGuideRows.map((item) => ({
+          slug: item.guide_slug,
+          title: guideBySlug.get(item.guide_slug)?.title ?? item.guide_slug,
+          category: guideBySlug.get(item.guide_slug)?.category ?? "정착가이드",
+          savedAt: item.created_at
+        })));
+        setSavedBusinessItems(savedBusinessRows.map((item) => {
+          const post = businessById.get(item.job_id);
+          return {
+            detailHref: `/business/${post?.id ?? item.job_id}`,
+            jobId: item.job_id,
+            title: post?.title ?? "삭제되었거나 찾을 수 없는 공고",
+            company: post?.company ?? null,
+            savedAt: item.created_at
+          };
+        }));
+        setApplications(applicationRows.map((item) => {
+          const businessPost = item.application_type === "business_application" ? businessById.get(item.target_id) : null;
+          const event = item.application_type === "event_registration" ? eventById.get(item.target_id) : null;
+          return {
+            detailHref: item.application_type === "business_application" ? `/business/${businessPost?.id ?? item.target_id}` : `/events/${event?.id ?? item.target_id}`,
+            id: item.id,
+            applicationType: item.application_type,
+            targetId: item.target_id,
+            targetTitle: businessPost?.title ?? event?.title ?? item.target_id,
+            targetMeta: businessPost?.company ?? event?.location ?? null,
+            submittedAt: item.submitted_at,
+            syncStatus: item.sheets_sync_status
+          };
+        }));
+        setStatus("");
+      } catch {
+        if (!active || currentRequest !== requestId) return;
+        setStatus("내역을 불러오지 못했습니다.");
+      }
+    }
+
+    getBrowserSupabaseSession().then(({ data }) => {
+      if (!active) return;
+      const user = data.session?.user;
+      if (!user) {
+        clearSignedOut();
         return;
       }
-
-      setUserId(data.user.id);
-      setEmail(data.user.email ?? null);
-      const fallbackName = authDisplayName(data.user);
-      const profileResult = await supabase
-        .from("profiles")
-        .select("full_name, school, major, admission_year, avatar_url")
-        .eq("id", data.user.id)
-        .single();
-      let profileRow = profileResult.data as Profile | null;
-
-      if (profileResult.error) {
-        const legacyProfileResult = await supabase
-          .from("profiles")
-          .select("full_name, school, major, admission_year")
-          .eq("id", data.user.id)
-          .single();
-        const legacyProfileRow = legacyProfileResult.data as Omit<Profile, "avatar_url"> | null;
-        profileRow = legacyProfileRow ? { ...legacyProfileRow, avatar_url: null } : null;
-      }
-
-      setProfile({
-        avatar_url: profileRow?.avatar_url ?? null,
-        admission_year: profileRow?.admission_year ?? null,
-        full_name: profileRow?.full_name ?? fallbackName,
-        major: profileRow?.major ?? null,
-        school: profileRow?.school ?? null
-      });
-
-      const [savedGuidesResult, savedBusinessItemsResult, applicationsResult] = await Promise.all([
-        supabase.from("saved_guides").select("guide_slug, created_at").eq("user_id", data.user.id).order("created_at", { ascending: false }),
-        supabase.from("saved_business_items").select("job_id, created_at").eq("user_id", data.user.id).order("created_at", { ascending: false }),
-        supabase.from("applications").select("id, application_type, target_id, submitted_at, sheets_sync_status").eq("user_id", data.user.id).order("submitted_at", { ascending: false })
-      ]);
-
-      const savedGuideRows = (savedGuidesResult.data ?? []) as SavedGuideRow[];
-      const guideSlugs = savedGuideRows.map((item) => item.guide_slug);
-      const { data: guides } = guideSlugs.length
-        ? await supabase.from("guide_posts").select("slug, title, category").in("slug", guideSlugs)
-        : { data: [] };
-      const guideBySlug = new Map(((guides ?? []) as GuidePostRow[]).map((guide) => [guide.slug, guide]));
-      const savedBusinessRows = (savedBusinessItemsResult.data ?? []) as SavedBusinessItemRow[];
-      const applicationRows = (applicationsResult.data ?? []) as ApplicationRow[];
-      const businessIds = Array.from(
-        new Set([
-          ...savedBusinessRows.map((item) => item.job_id),
-          ...applicationRows
-            .filter((item) => item.application_type === "business_application")
-            .map((item) => item.target_id)
-        ].filter(Boolean))
-      );
-      const { data: businessPosts } = businessIds.length
-        ? await supabase.from("business_posts").select("id, title, company, apply_mode, apply_target").in("id", businessIds)
-        : { data: [] };
-      const businessById = new Map(((businessPosts ?? []) as BusinessPostRow[]).map((post) => [post.id, post]));
-
-      setSavedGuides(savedGuideRows.map((item) => ({
-        slug: item.guide_slug,
-        title: guideBySlug.get(item.guide_slug)?.title ?? item.guide_slug,
-        category: guideBySlug.get(item.guide_slug)?.category ?? "정착가이드",
-        savedAt: item.created_at
-      })));
-      setSavedBusinessItems(savedBusinessRows.map((item) => {
-        const post = businessById.get(item.job_id);
-        return {
-          detailHref: `/business/${post?.id ?? item.job_id}`,
-          jobId: item.job_id,
-          title: post?.title ?? "삭제되었거나 찾을 수 없는 공고",
-          company: post?.company ?? null,
-          savedAt: item.created_at
-        };
-      }));
-      setApplications(applicationRows.map((item) => {
-        const businessPost = item.application_type === "business_application" ? businessById.get(item.target_id) : null;
-        return {
-        detailHref: item.application_type === "business_application" ? `/business/${businessPost?.id ?? item.target_id}` : null,
-        id: item.id,
-        applicationType: item.application_type,
-        targetId: item.target_id,
-          targetTitle: businessPost?.title ?? item.target_id,
-          targetMeta: businessPost?.company ?? null,
-        submittedAt: item.submitted_at,
-        syncStatus: item.sheets_sync_status
-        };
-      }));
-      setStatus("");
+      void loadActivity(user);
+    }).catch(() => {
+      if (!active) return;
+      setStatus("로그인 상태를 확인하지 못했습니다.");
     });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      if (!session?.user) {
+        clearSignedOut();
+        return;
+      }
+      void loadActivity(session.user);
+    });
+
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
   }, [configured]);
 
   async function handleProfilePhotoChange(event: ChangeEvent<HTMLInputElement>) {
@@ -326,19 +419,17 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
 
   const businessApplications = applications.filter((item) => item.applicationType === "business_application");
   const eventApplications = applications.filter((item) => item.applicationType === "event_registration");
+  const accountDetail = email ?? (status === "로그인이 필요합니다." ? "계정 확인 필요" : "계정 정보 확인 중");
 
   return (
     <main className="page mypage-page" id="main">
       <section className="mypage-profile-hero">
-        <div className="mypage-avatar" aria-hidden>
-          {profile?.avatar_url ? <img alt="" src={profile.avatar_url} /> : displayName(profile).slice(0, 1)}
-        </div>
+        <ProfileAvatar profile={profile} />
         <div>
           <p className="eyebrow">My page</p>
           <h1>안녕하세요, {displayName(profile)}님</h1>
-          <p>{profile?.school ?? "University of Amsterdam"} · {profile?.major ?? "회원 활동"} · {email ?? "로그인 후 더 자세히 볼 수 있어요"}</p>
+          <p>{profile?.school ?? "University of Amsterdam"} · {profile?.major ?? "회원 활동"} · {accountDetail}</p>
         </div>
-        {!email ? <Link className="mypage-profile-link" href="/auth">로그인/회원가입</Link> : <Link className="mypage-profile-link" href="/mypage">마이페이지 홈</Link>}
       </section>
 
       <section className="mypage-dashboard">
@@ -363,9 +454,7 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
               {!editingProfile ? (
                 <div className="mypage-profile-card">
                   <div className="mypage-profile-card-main">
-                    <div className="mypage-avatar is-large" aria-hidden>
-                      {profile?.avatar_url ? <img alt="" src={profile.avatar_url} /> : displayName(profile).slice(0, 1)}
-                    </div>
+                    <ProfileAvatar profile={profile} large />
                     <div>
                       <span>현재 프로필</span>
                       <h3>{displayName(profile)}님</h3>
@@ -378,17 +467,15 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
                   </button>
                   <div className="mypage-profile-grid is-compact">
                     <p><span>이름</span>{displayName(profile)}</p>
-                    <p><span>학교</span>{profile?.school ?? "학교 미입력"}</p>
-                    <p><span>전공</span>{profile?.major ?? "전공 미입력"}</p>
-                    <p><span>입학연도</span>{profile?.admission_year ?? "입학연도 미입력"}</p>
+                    <p><span>학교</span>{profile?.school ?? "등록 전"}</p>
+                    <p><span>전공</span>{profile?.major ?? "등록 전"}</p>
+                    <p><span>입학연도</span>{profile?.admission_year ?? "등록 전"}</p>
                   </div>
                 </div>
               ) : (
                 <div className="mypage-edit-panel">
                   <div className="mypage-photo-setting">
-                    <div className="mypage-avatar is-large" aria-hidden>
-                      {profile?.avatar_url ? <img alt="" src={profile.avatar_url} /> : displayName(profile).slice(0, 1)}
-                    </div>
+                    <ProfileAvatar profile={profile} large />
                     <div>
                       <strong>프로필 사진</strong>
                       <p>마이페이지와 회원 프로필에 보여질 사진을 설정합니다.</p>
@@ -457,7 +544,7 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
             <div className="mypage-detail-block">
               <div className="mypage-panel-heading"><div><span>Events</span><h2>신청한 이벤트</h2></div><p>{eventApplications.length}개</p></div>
               <div className="mypage-feature-list">
-                {eventApplications.length ? eventApplications.map((item) => <Link className="mypage-feature-row" href={`/events/${item.targetId}`} key={item.id}><span className="mypage-feature-icon"><CalendarCheck aria-hidden size={21} /></span><div><strong>{item.targetId}</strong><p>{new Date(item.submittedAt).toLocaleDateString("ko-KR")} · {item.syncStatus}</p></div></Link>) : <p className="muted">아직 신청한 이벤트가 없습니다.</p>}
+                {eventApplications.length ? eventApplications.map((item) => <Link className="mypage-feature-row" href={item.detailHref ?? `/events/${item.targetId}`} key={item.id}><span className="mypage-feature-icon"><CalendarCheck aria-hidden size={21} /></span><div><strong>{item.targetTitle}</strong><p>{item.targetMeta ? `${item.targetMeta} · ` : ""}{new Date(item.submittedAt).toLocaleDateString("ko-KR")} · {item.syncStatus}</p></div></Link>) : <p className="muted">아직 신청한 이벤트가 없습니다.</p>}
               </div>
             </div>
           ) : null}

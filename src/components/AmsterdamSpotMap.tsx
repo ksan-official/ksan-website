@@ -207,7 +207,6 @@ export function AmsterdamSpotMap() {
   const [selectedSpotRequest, setSelectedSpotRequest] = useState(0);
   const [hoveredSpotId, setHoveredSpotId] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
-  const [dataSource, setDataSource] = useState<"fallback" | "supabase">("fallback");
 
   const cityFilters = useMemo(() => {
     const cities = Array.from(new Set(spots.map((spot) => spot.city).filter(Boolean) as string[]));
@@ -263,7 +262,6 @@ export function AmsterdamSpotMap() {
       .then((payload: { source?: "fallback" | "supabase"; spots?: MapSpot[] }) => {
         if (payload.spots?.length) {
           setSpots(payload.spots);
-          setDataSource(payload.source ?? "fallback");
         }
       })
       .catch(() => undefined);
@@ -511,7 +509,7 @@ export function AmsterdamSpotMap() {
       </div>
 
       <p className="map-source-note">
-        KSAN 학생 큐레이션 · {dataSource === "supabase" ? "관리자 DB에서 업데이트됨" : "기본 큐레이션 데이터"} · 지도 © OpenStreetMap contributors
+        KSAN 학생 큐레이션 · 지도 © OpenStreetMap contributors
       </p>
     </section>
   );

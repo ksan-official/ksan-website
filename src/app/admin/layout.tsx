@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { createBrowserSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 
 const adminLinks = [
@@ -12,8 +12,43 @@ const adminLinks = [
   { href: "/admin/events/new", label: "행사 등록" },
   { href: "/admin/map-spots", label: "지도 장소 관리" },
   { href: "/admin/members", label: "회원 관리" },
-  { href: "/admin/about/new", label: "소개 수정" }
+  { href: "/admin/about/new", label: "소개 관리" },
+  { href: "/admin/about/new?type=sponsor", label: "후원사 관리" }
 ];
+
+function AdminNavigation({ pathname }: { pathname: string }) {
+  const searchParams = useSearchParams();
+  const aboutMode = searchParams.get("type") === "sponsor" ? "sponsor" : "team";
+
+  function isActiveLink(href: string) {
+    if (href === "/admin") return pathname === "/admin";
+    if (href === "/admin/about/new") return pathname === "/admin/about/new" && aboutMode === "team";
+    if (href === "/admin/about/new?type=sponsor") return pathname === "/admin/about/new" && aboutMode === "sponsor";
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
+  return (
+    <nav className="admin-nav" aria-label="관리자 메뉴">
+      {adminLinks.map((link) => (
+        <Link className={isActiveLink(link.href) ? "is-active" : undefined} href={link.href} key={link.href}>
+          {link.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+function AdminNavigationFallback() {
+  return (
+    <nav className="admin-nav" aria-label="관리자 메뉴">
+      {adminLinks.map((link) => (
+        <Link href={link.href} key={link.href}>
+          {link.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -115,13 +150,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <Link className="admin-brand" href="/admin">
           KSAN Admin
         </Link>
-        <nav className="admin-nav" aria-label="관리자 메뉴">
-          {adminLinks.map((link) => (
-            <Link href={link.href} key={link.href}>
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        <Suspense fallback={<AdminNavigationFallback />}>
+          <AdminNavigation pathname={pathname} />
+        </Suspense>
         <div className="admin-sidebar-foot">
           <Link href="/">공개 사이트 보기</Link>
           <button className="admin-sidebar-button" onClick={() => void signOut()} type="button">

@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
-import { createBrowserSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
+import { createBrowserSupabaseClient, getBrowserSupabaseSession, hasSupabaseConfig } from "@/lib/supabase";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -48,7 +48,17 @@ export default function AuthPage() {
     setStatus("처리되었습니다. 이메일 확인이 필요할 수 있습니다.");
     if (mode === "signin") {
       const next = new URLSearchParams(window.location.search).get("next");
-      router.push(next?.startsWith("/") ? next : "/mypage");
+      const destination = next?.startsWith("/") ? next : "/mypage";
+      if (result.data.session) {
+        await supabase.auth.setSession(result.data.session);
+      }
+      const sessionResult = await getBrowserSupabaseSession();
+      if (!sessionResult.data.session) {
+        setStatus("로그인 세션이 저장되지 않았어요. 같은 주소에서 다시 로그인해주세요.");
+        return;
+      }
+      router.replace(destination);
+      window.location.href = destination;
     }
   }
 

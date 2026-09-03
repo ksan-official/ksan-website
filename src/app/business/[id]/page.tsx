@@ -77,36 +77,17 @@ function applyLabel(target: string) {
 
 async function getBusinessJob(id: string) {
   if (hasSupabaseConfig()) {
-    try {
-      const supabase = createServerSupabaseClient();
-      const baseSelect = "id,title,company,location,employment_type,deadline,apply_mode,apply_target,description,department,tags,featured";
-      const detailSelect = `${baseSelect},company_intro,responsibilities,requirements`;
-      let { data, error } = await supabase
-        .from("business_posts")
-        .select(`${detailSelect},accent`)
-        .eq("id", id)
-        .eq("published", true)
-        .single();
+    const supabase = createServerSupabaseClient();
+    const { data, error } = await supabase
+      .from("business_posts")
+      .select("id,title,company,location,employment_type,deadline,apply_mode,apply_target,description,department,tags,featured,company_intro,responsibilities,requirements,accent")
+      .eq("id", id)
+      .eq("published", true)
+      .single();
 
-      const message = error?.message.toLowerCase() ?? "";
-      const missingDetailColumns = ["company_intro", "responsibilities", "requirements"].some((column) => message.includes(column));
-      if (message.includes("accent") || missingDetailColumns) {
-        const fallback = await supabase
-          .from("business_posts")
-          .select(baseSelect)
-          .eq("id", id)
-          .eq("published", true)
-          .single();
-        data = fallback.data
-          ? { ...fallback.data, accent: "orange", company_intro: null, requirements: null, responsibilities: null }
-          : null;
-        error = fallback.error;
-      }
-
-      if (!error && data) return toJob(data as BusinessPostRow);
-    } catch {
-      // Fall back to local demo data below.
-    }
+    if (error) throw new Error(error.message);
+    if (data) return toJob(data as BusinessPostRow);
+    return null;
   }
 
   return businessJobs.find((job) => job.id === id) ?? null;
