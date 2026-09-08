@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight } from "lucide-react";
 import { PaletteTabs } from "@/components/PaletteTabs";
 import { SiteNav } from "@/components/SiteNav";
 import { createBrowserSupabaseClient, getBrowserSupabaseSession, hasSupabaseConfig } from "@/lib/supabase";
@@ -87,7 +86,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   width={1809}
                 />
               </Link>
-              <p>네덜란드의 한국 학생들이 필요한 정보를 찾고, 서로 연결되도록 돕습니다.</p>
             </div>
             <nav aria-label="하단 주요 메뉴" className="footer-sitemap">
               <span className="footer-label">Navigation</span>
@@ -101,18 +99,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="footer-account">
               <span className="footer-label">My KSAN</span>
               <Link href={signedIn === false ? "/auth" : "/mypage"}>{signedIn === false ? "로그인" : "마이페이지"}</Link>
-              <p>저장한 가이드와 관심 공고를 한곳에서 확인하세요.</p>
             </div>
-          </div>
-          <div className="footer-contact-strip">
-            <div>
-              <span className="footer-label">Contact KSAN</span>
-              <strong>궁금한 점이 있거나 함께하고 싶다면</strong>
-            </div>
-            <Link className="footer-contact" href="/about#contact">
-              <span>문의하기</span>
-              <ArrowUpRight aria-hidden size={18} />
-            </Link>
           </div>
           <div className="footer-meta">
             <span>© 2026 KSAN</span>

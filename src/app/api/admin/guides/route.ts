@@ -15,6 +15,10 @@ function notionError(error: unknown) {
   return `Notion 불러오기 실패: ${message}`;
 }
 
+function isMissingColumnError(error: { message?: string } | null, column: string) {
+  return Boolean(error?.message?.includes(`'${column}' column`) || error?.message?.includes(`column "${column}"`));
+}
+
 export async function PUT(request: Request) {
   const accessToken = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? null;
   const admin = await requireAdmin(accessToken);
@@ -84,30 +88,50 @@ export async function POST(request: Request) {
     .map((tag) => tag.trim())
     .filter(Boolean);
 
-  const { data, error } = await admin.serviceClient
+  const guidePost = {
+    slug,
+    title,
+    category: category.id,
+    summary: String(payload.summary ?? "").trim() || notionSummary || deriveSummary(rawText),
+    author: String(payload.author ?? "KSAN").trim() || "KSAN",
+    tags,
+    notion_url: notionUrl || null,
+    raw_text: rawText,
+    blocks,
+    published: Boolean(payload.published),
+    updated_at: new Date().toISOString()
+  };
+
+  let result = await admin.serviceClient
     .from("guide_posts")
-    .upsert(
-      {
-        slug,
-        title,
-        category: category.id,
-        summary: String(payload.summary ?? "").trim() || notionSummary || deriveSummary(rawText),
-        author: String(payload.author ?? "KSAN").trim() || "KSAN",
-        tags,
-        notion_url: notionUrl || null,
-        raw_text: rawText,
-        blocks,
-        published: Boolean(payload.published),
-        updated_at: new Date().toISOString()
-      },
-      { onConflict: "slug" }
-    )
+    .upsert(guidePost, { onConflict: "slug" })
     .select("id, slug")
     .single();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (isMissingColumnError(result.error, "notion_url")) {
+    const guidePostWithoutNotionUrl = {
+      slug: guidePost.slug,
+      title: guidePost.title,
+      category: guidePost.category,
+      summary: guidePost.summary,
+      author: guidePost.author,
+      tags: guidePost.tags,
+      raw_text: guidePost.raw_text,
+      blocks: guidePost.blocks,
+      published: guidePost.published,
+      updated_at: guidePost.updated_at
+    };
+
+    result = await admin.serviceClient
+      .from("guide_posts")
+      .upsert(guidePostWithoutNotionUrl, { onConflict: "slug" })
+      .select("id, slug")
+      .single();
   }
 
-  return NextResponse.json({ id: data.id, slug: data.slug });
+  if (result.error) {
+    return NextResponse.json({ error: result.error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ id: result.data.id, slug: result.data.slug });
 }

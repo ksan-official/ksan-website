@@ -445,16 +445,12 @@ export function AmsterdamSpotMap() {
   }
 
   return (
-    <section className="section amsterdam-map-section" data-map-section data-motion-section>
+    <section className="section amsterdam-map-section" data-map-section data-motion-section id="netherlands-spots">
       <div className="map-intro">
         <div>
           <p className="map-kicker">KSAN Netherlands Picks</p>
           <h2>학생의 하루가 더 즐거워지는<br />네덜란드 스팟</h2>
         </div>
-        <p data-map-copy>
-          과제하기 좋은 자리부터 오래 머물고 싶은 카페까지. 네덜란드 곳곳의 장소를
-          지도 위에 담았습니다.
-        </p>
       </div>
 
       <div className="map-filter-group is-primary">
@@ -508,9 +504,6 @@ export function AmsterdamSpotMap() {
         </div>
       </div>
 
-      <p className="map-source-note">
-        KSAN 학생 큐레이션 · 지도 © OpenStreetMap contributors
-      </p>
     </section>
   );
 }

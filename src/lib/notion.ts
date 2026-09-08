@@ -33,6 +33,10 @@ type NotionBlock = {
 } & Record<string, unknown>;
 
 function richTextFromValue(value: unknown): GuideRichText[] {
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+
   const richText = value as { rich_text?: NotionRichText[]; title?: NotionRichText[] };
   const list = Array.isArray(value) ? (value as NotionRichText[]) : richText.title ?? richText.rich_text ?? [];
   return list

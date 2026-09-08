@@ -86,20 +86,6 @@ export function HomeMotion() {
           }
         );
 
-        gsap.fromTo(
-          "[data-map-copy]",
-          { opacity: 0.28 },
-          {
-            ease: "none",
-            opacity: 1,
-            scrollTrigger: {
-              end: "top 50%",
-              scrub: 0.55,
-              start: "top 82%",
-              trigger: mapSection
-            }
-          }
-        );
       }
     }, page);
 
