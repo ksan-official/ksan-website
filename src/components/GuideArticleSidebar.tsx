@@ -7,11 +7,11 @@ import { createBrowserSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 
 export type GuideHeading = {
   id: string;
-  level: 1 | 2 | 3;
+  level: 2 | 3;
   text: string;
 };
 
-export function GuideArticleSidebar({ headings, slug }: { headings: GuideHeading[]; slug: string }) {
+export function GuideArticleSidebar({ headings, showSave = true, slug }: { headings: GuideHeading[]; showSave?: boolean; slug: string }) {
   const router = useRouter();
   const [activeId, setActiveId] = useState(headings[0]?.id ?? "");
   const [saved, setSaved] = useState(false);
@@ -38,7 +38,7 @@ export function GuideArticleSidebar({ headings, slug }: { headings: GuideHeading
   }, [headings]);
 
   useEffect(() => {
-    if (!hasSupabaseConfig()) return;
+    if (!showSave || !hasSupabaseConfig()) return;
 
     const supabase = createBrowserSupabaseClient();
     supabase.auth.getSession().then(async ({ data }) => {
@@ -54,7 +54,7 @@ export function GuideArticleSidebar({ headings, slug }: { headings: GuideHeading
         .maybeSingle();
       setSaved(Boolean(savedGuide));
     });
-  }, [slug]);
+  }, [showSave, slug]);
 
   async function toggleSaved() {
     if (!hasSupabaseConfig() || !userId) {
@@ -87,19 +87,21 @@ export function GuideArticleSidebar({ headings, slug }: { headings: GuideHeading
 
   return (
     <aside className="guide-article-sidebar">
-      <button
-        aria-pressed={saved}
-        className="guide-save-button"
-        disabled={saving}
-        onClick={toggleSaved}
-        type="button"
-      >
-        <span>{saved ? <Check aria-hidden size={17} /> : <Bookmark aria-hidden size={17} />}</span>
-        <div>
-          <strong>{saved ? "저장됨" : "가이드 저장"}</strong>
-          <small>{saved ? "마이페이지에서 다시 볼 수 있어요" : "로그인하고 나중에 다시 보기"}</small>
-        </div>
-      </button>
+      {showSave ? (
+        <button
+          aria-pressed={saved}
+          className="guide-save-button"
+          disabled={saving}
+          onClick={toggleSaved}
+          type="button"
+        >
+          <span>{saved ? <Check aria-hidden size={17} /> : <Bookmark aria-hidden size={17} />}</span>
+          <div>
+            <strong>{saved ? "저장됨" : "가이드 저장"}</strong>
+            <small>{saved ? "마이페이지에서 다시 볼 수 있어요" : "로그인하고 나중에 다시 보기"}</small>
+          </div>
+        </button>
+      ) : null}
 
       {headings.length ? (
         <button

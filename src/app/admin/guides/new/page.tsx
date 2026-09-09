@@ -1,33 +1,75 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Maximize2, X } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
-import { deriveSummary, parseGuideText, slugFromTitle } from "@/lib/guideParser";
-import { guideCategories } from "@/lib/guide-structure";
+import { AdminGuideWebsitePreview } from "@/components/AdminGuideWebsitePreview";
+import { guideCategories, resolveGuideCategory } from "@/lib/guide-structure";
+import { formatGuideTagsInput, parseGuideTags } from "@/lib/guideTags";
+import type { GuideBlock } from "@/lib/types";
+
+type AdminGuideOption = {
+  category: string;
+  id: string;
+  published: boolean;
+  slug: string;
+  title: string;
+};
 
 export default function NewGuidePage() {
   const [status, setStatus] = useState<string | null>(null);
-  const [rawText, setRawText] = useState("");
   const [notionUrl, setNotionUrl] = useState("");
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [summary, setSummary] = useState("");
-  const [notionHeadings, setNotionHeadings] = useState<Array<{ id: string; text: string; type: string }>>([]);
-  const [notionBlockCount, setNotionBlockCount] = useState(0);
+  const [tags, setTags] = useState("");
+  const [author, setAuthor] = useState("KSAN 기획총괄팀");
+  const [category, setCategory] = useState("residency");
+  const [importedBlocks, setImportedBlocks] = useState<GuideBlock[] | null>(null);
   const [notionLoading, setNotionLoading] = useState(false);
-  const blocks = useMemo(() => parseGuideText(rawText), [rawText]);
-  const headings = blocks.filter((block) => block.type.startsWith("heading"));
-  const previewHeadings = notionHeadings.length ? notionHeadings : headings;
-  const previewBlockCount = notionBlockCount || blocks.length;
+  const [published, setPublished] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [guideOptions, setGuideOptions] = useState<AdminGuideOption[]>([]);
+  const [relatedIds, setRelatedIds] = useState<string[]>([]);
+  const [relatedCategory, setRelatedCategory] = useState("residency");
+  const previewBlocks = importedBlocks ?? [];
+  const filteredRelatedGuides = useMemo(
+    () => guideOptions.filter((guide) => resolveGuideCategory(guide.category).id === relatedCategory && guide.slug !== slug),
+    [guideOptions, relatedCategory, slug]
+  );
 
-  function scanContent() {
-    const firstHeading = blocks.find((block) => block.type === "heading_1" || block.type === "heading_2");
-    const nextTitle = firstHeading?.text ?? title;
-    setTitle(nextTitle);
-    setSlug(slugFromTitle(nextTitle));
-    setSummary(deriveSummary(rawText));
-    setStatus("본문을 스캔해서 제목, slug, 요약, 목차를 갱신했습니다.");
+  useEffect(() => {
+    if (!status || status.includes("중입니다")) return;
+    const timeout = window.setTimeout(() => setStatus(null), 1500);
+    return () => window.clearTimeout(timeout);
+  }, [status]);
+
+  useEffect(() => {
+    async function loadGuideOptions() {
+      try {
+        const supabase = createBrowserSupabaseClient();
+        const { data } = await supabase.auth.getSession();
+        if (!data.session) return;
+        const response = await fetch("/api/admin/guides", {
+          headers: { Authorization: `Bearer ${data.session.access_token}` }
+        });
+        const result = await response.json();
+        if (response.ok) setGuideOptions(result.guides ?? []);
+      } catch {
+        setGuideOptions([]);
+      }
+    }
+
+    void loadGuideOptions();
+  }, []);
+
+  function toggleRelatedGuide(id: string) {
+    setRelatedIds((current) => {
+      if (current.includes(id)) return current.filter((item) => item !== id);
+      if (current.length >= 3) return current;
+      return [...current, id];
+    });
   }
 
   async function scanNotion() {
@@ -64,10 +106,11 @@ export default function NewGuidePage() {
     const result = await response.json();
     if (response.ok) {
       setTitle(result.title);
-      setSlug(slugFromTitle(result.title));
+      setSlug(result.slug);
       setSummary(result.summary);
-      setNotionHeadings(result.headings ?? []);
-      setNotionBlockCount(result.blocks?.length ?? 0);
+      setAuthor(result.author ?? "KSAN 기획총괄팀");
+      setTags(formatGuideTagsInput(result.tags ?? []));
+      setImportedBlocks(Array.isArray(result.blocks) ? result.blocks : null);
       setStatus(`Notion 연결 완료: ${result.blocks?.length ?? 0}개 블록을 확인했습니다.`);
     } else {
       setStatus(`불러오기 실패: ${result.error}`);
@@ -77,7 +120,6 @@ export default function NewGuidePage() {
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
     let supabase;
     try {
       supabase = createBrowserSupabaseClient();
@@ -101,16 +143,17 @@ export default function NewGuidePage() {
         title,
         slug,
         summary,
-        rawText,
-        category: formData.get("category"),
-        author: formData.get("author"),
-        tags: formData.get("tags"),
+        rawText: "",
+        category,
+        author,
+        tags,
         notionUrl,
-        published: formData.get("published") === "on"
+        published,
+        relatedIds
       })
     });
     const result = await response.json();
-    setStatus(response.ok ? `가이드가 저장되었습니다. /guides/${result.slug}` : `저장 실패: ${result.error}`);
+    setStatus(response.ok ? "가이드가 저장되었습니다." : `저장 실패: ${result.error}`);
   }
 
   return (
@@ -119,15 +162,14 @@ export default function NewGuidePage() {
         <div>
           <p className="admin-kicker">정착가이드</p>
           <h1>글 작성</h1>
-          <p>Notion 링크를 연결하고 L2 카테고리를 고르면 KSAN 디자인으로 변환해 게시합니다.</p>
         </div>
         <Link className="admin-button secondary" href="/admin/guides">
           목록으로
         </Link>
       </header>
 
-      <section className="admin-editor-layout">
-        <form className="admin-form" onSubmit={submit}>
+      <section>
+        <form className="admin-form" id="new-guide-form" onSubmit={submit}>
           <label className="field">
             <span>Notion 글 링크</span>
             <input
@@ -140,84 +182,88 @@ export default function NewGuidePage() {
           <button className="admin-button secondary" disabled={notionLoading} type="button" onClick={scanNotion}>
             {notionLoading ? "Notion 확인 중…" : "Notion 내용 불러오기"}
           </button>
-          <p className="admin-form-note">페이지를 KSAN Notion Integration과 공유해야 내용을 불러올 수 있습니다.</p>
           <label className="field">
-            <span>제목</span>
-            <input placeholder="Notion에서 자동으로 불러옵니다" value={title} onChange={(event) => setTitle(event.target.value)} />
-          </label>
-          <label className="field">
-            <span>Slug</span>
-            <input placeholder="제목에서 자동 생성됩니다" value={slug} onChange={(event) => setSlug(event.target.value)} />
-          </label>
-          <label className="field">
-            <span>L2 카테고리</span>
-            <select defaultValue="residency" name="category">
+            <span>카테고리</span>
+            <select name="category" onChange={(event) => setCategory(event.target.value)} value={category}>
               {guideCategories.map((category) => (
                 <option key={category.id} value={category.id}>{category.emoji} {category.title}</option>
               ))}
             </select>
           </label>
-          <label className="field">
-            <span>요약</span>
-            <textarea value={summary} onChange={(event) => setSummary(event.target.value)} rows={3} />
+          <label className="admin-check">
+            <input checked={published} onChange={(event) => setPublished(event.target.checked)} type="checkbox" /> 공개
           </label>
-          <label className="field">
-            <span>작성자</span>
-            <input name="author" defaultValue="KSAN 기획총괄팀" />
-          </label>
-          <label className="field">
-            <span>태그</span>
-            <input name="tags" placeholder="BSN, 행정, 정착" />
-          </label>
-          <label className="field admin-manual-content">
-            <span>직접 작성 본문 (Notion을 사용하지 않을 때)</span>
-            <textarea
-              placeholder="# 제목\n\n## 소제목\n본문을 입력하세요."
-              value={rawText}
-              onChange={(event) => setRawText(event.target.value)}
-              rows={10}
-            />
-          </label>
-          {rawText ? (
-            <button className="admin-button secondary" type="button" onClick={scanContent}>직접 작성 본문 스캔</button>
-          ) : null}
-          <label>
-            <input name="published" type="checkbox" /> 공개
-          </label>
+          <fieldset className="admin-related-guides">
+            <legend>연관 가이드</legend>
+            <p>글 하단에 보여줄 가이드를 최대 3개까지 선택할 수 있어요. 현재 {relatedIds.length}/3개 선택됨</p>
+            <label className="field">
+              <span>연관 가이드 카테고리</span>
+              <select onChange={(event) => setRelatedCategory(event.target.value)} value={relatedCategory}>
+                {guideCategories.map((category) => (
+                  <option key={category.id} value={category.id}>{category.emoji} {category.title}</option>
+                ))}
+              </select>
+            </label>
+            {guideOptions.length ? (
+              <div>
+                {filteredRelatedGuides.length ? filteredRelatedGuides.map((guide) => {
+                  const checked = relatedIds.includes(guide.id);
+                  const disabled = !checked && relatedIds.length >= 3;
+                  const guideCategory = resolveGuideCategory(guide.category);
+                  return (
+                    <label className="admin-related-guide-option" key={guide.id}>
+                      <input
+                        checked={checked}
+                        disabled={disabled}
+                        onChange={() => toggleRelatedGuide(guide.id)}
+                        type="checkbox"
+                      />
+                      <span>
+                        <strong>{guide.title}</strong>
+                        <small>{guideCategory.title} · {guide.published ? "공개" : "비공개"}</small>
+                      </span>
+                    </label>
+                  );
+                }) : <span className="admin-form-note">이 카테고리에 선택할 수 있는 가이드가 없습니다.</span>}
+              </div>
+            ) : (
+              <span className="admin-form-note">아직 선택할 수 있는 가이드가 없습니다.</span>
+            )}
+          </fieldset>
+          <button
+            className={`admin-button admin-preview-open-button${previewBlocks.length ? " is-ready" : ""}`}
+            disabled={!previewBlocks.length}
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+          >
+            <Maximize2 aria-hidden size={16} /> {previewBlocks.length ? "미리보기 준비됨" : "미리보기 준비 전"}
+          </button>
           <button className="admin-button" type="submit">
             저장
           </button>
-          {status ? <p className="status">{status}</p> : null}
         </form>
-
-        <aside className="admin-section">
-          <h2>스캔 결과</h2>
-          <div className="admin-stack">
-            <div className="admin-field-readonly">
-              <strong>목차</strong>
-              {previewHeadings.length > 0 ? (
-                previewHeadings.map((heading) => (
-                  <span key={heading.id}>
-                    {heading.text}
-                  </span>
-                ))
-              ) : (
-                <span>heading이 아직 없습니다.</span>
-              )}
-            </div>
-            <div className="admin-field-readonly">
-              <strong>본문 블록</strong>
-              <span>{previewBlockCount}개 블록으로 변환됩니다.</span>
-            </div>
-            <div className="admin-field-readonly">
-              <strong>공개 URL</strong>
-              <Link href={`/guides/${slug}`}>
-                /guides/{slug}
-              </Link>
-            </div>
-          </div>
-        </aside>
       </section>
+      {previewOpen ? (
+        <div className="admin-preview-modal" role="dialog" aria-modal="true" aria-label="가이드 풀스크린 미리보기">
+          <button className="admin-preview-close" type="button" onClick={() => setPreviewOpen(false)}>
+            <X aria-hidden size={18} /> 닫기
+          </button>
+          <AdminGuideWebsitePreview
+            blocks={previewBlocks}
+            categoryEmoji={guideCategories.find((item) => item.id === category)?.emoji}
+            categoryTitle={guideCategories.find((item) => item.id === category)?.title ?? "정착가이드"}
+            headingIdPrefix="preview-"
+            tags={parseGuideTags(tags)}
+            title={title || "제목 없음"}
+            updatedAt="미리보기"
+          />
+        </div>
+      ) : null}
+      {status ? (
+        <p aria-live="polite" className={`admin-toast${status.includes("중입니다") ? " is-loading" : ""}`}>
+          {status}
+        </p>
+      ) : null}
     </main>
   );
 }

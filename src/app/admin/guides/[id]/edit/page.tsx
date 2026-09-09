@@ -3,8 +3,11 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Maximize2, X } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
-import { deriveSummary, parseGuideText, slugFromTitle } from "@/lib/guideParser";
+import { AdminGuideWebsitePreview } from "@/components/AdminGuideWebsitePreview";
+import { formatGuideTagsInput, parseGuideTags } from "@/lib/guideTags";
+import { guideCategories, resolveGuideCategory } from "@/lib/guide-structure";
 import type { GuideBlock } from "@/lib/types";
 
 type EditableGuide = {
@@ -17,14 +20,12 @@ type EditableGuide = {
   tags: string[] | null;
   raw_text: string;
   blocks: GuideBlock[] | null;
+  notion_url?: string | null;
   published: boolean;
+  related_ids?: string[] | null;
 };
 
-type HeadingBlock = GuideBlock & { type: "heading_1" | "heading_2" | "heading_3"; text: string };
-
-function isHeadingBlock(block: GuideBlock): block is HeadingBlock {
-  return block.type === "heading_1" || block.type === "heading_2" || block.type === "heading_3";
-}
+type AdminGuideOption = Pick<EditableGuide, "category" | "id" | "published" | "title">;
 
 export default function EditGuidePage() {
   const params = useParams<{ id: string }>();
@@ -35,14 +36,28 @@ export default function EditGuidePage() {
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [notionUrl, setNotionUrl] = useState("");
-  const [category, setCategory] = useState("정착가이드");
+  const [category, setCategory] = useState("start");
   const [summary, setSummary] = useState("");
   const [author, setAuthor] = useState("KSAN");
   const [tags, setTags] = useState("");
   const [importedBlocks, setImportedBlocks] = useState<GuideBlock[] | null>(null);
-  const blocks = useMemo(() => parseGuideText(rawText), [rawText]);
-  const effectiveBlockCount = importedBlocks?.length ?? blocks.length;
-  const headings = blocks.filter(isHeadingBlock);
+  const [published, setPublished] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [guideOptions, setGuideOptions] = useState<AdminGuideOption[]>([]);
+  const [relatedIds, setRelatedIds] = useState<string[]>([]);
+  const [relatedCategory, setRelatedCategory] = useState("residency");
+  const previewBlocks = useMemo(() => importedBlocks ?? guide?.blocks ?? [], [guide?.blocks, importedBlocks]);
+  const selectedCategory = resolveGuideCategory(category);
+  const filteredRelatedGuides = useMemo(
+    () => guideOptions.filter((guide) => resolveGuideCategory(guide.category).id === relatedCategory),
+    [guideOptions, relatedCategory]
+  );
+
+  useEffect(() => {
+    if (!status || status.includes("중입니다")) return;
+    const timeout = window.setTimeout(() => setStatus(""), 1500);
+    return () => window.clearTimeout(timeout);
+  }, [status]);
 
   const request = useCallback(async (path = "", options: RequestInit = {}) => {
     const supabase = createBrowserSupabaseClient();
@@ -62,15 +77,19 @@ export default function EditGuidePage() {
         if (!response.ok) throw new Error(result.error);
         const match = (result.guides as EditableGuide[]).find((item) => item.id === params.id) ?? null;
         if (!match) throw new Error("가이드를 찾지 못했습니다.");
+        setGuideOptions((result.guides as EditableGuide[]).filter((item) => item.id !== params.id));
         setGuide(match);
         setRawText(match.raw_text);
         setTitle(match.title);
         setSlug(match.slug);
-        setCategory(match.category);
+        setNotionUrl(match.notion_url ?? "");
+        setCategory(resolveGuideCategory(match.category).id);
         setSummary(match.summary ?? "");
         setAuthor(match.author ?? "KSAN");
-        setTags((match.tags ?? []).join(", "));
+        setTags(formatGuideTagsInput(match.tags ?? []));
         setImportedBlocks(match.blocks ?? null);
+        setPublished(match.published);
+        setRelatedIds((match.related_ids ?? []).slice(0, 3));
         setStatus("");
       } catch (error) {
         setStatus(error instanceof Error ? error.message : "가이드를 불러오지 못했습니다.");
@@ -80,14 +99,12 @@ export default function EditGuidePage() {
     void loadGuide();
   }, [params.id, request]);
 
-  function scanContent() {
-    const firstHeading = blocks.filter(isHeadingBlock).find((block) => block.type === "heading_1" || block.type === "heading_2");
-    const nextTitle = firstHeading?.text ?? title;
-    setImportedBlocks(null);
-    setTitle(nextTitle);
-    setSlug(slugFromTitle(nextTitle));
-    setSummary(deriveSummary(rawText));
-    setStatus("본문을 스캔해서 제목, slug, 요약, 목차를 갱신했습니다.");
+  function toggleRelatedGuide(id: string) {
+    setRelatedIds((current) => {
+      if (current.includes(id)) return current.filter((item) => item !== id);
+      if (current.length >= 3) return current;
+      return [...current, id];
+    });
   }
 
   async function importNotion() {
@@ -105,10 +122,10 @@ export default function EditGuidePage() {
     setRawText(result.rawText ?? "");
     setTitle(result.title ?? "");
     setSlug(result.slug ?? "");
-    setCategory(result.category ?? "정착가이드");
+    setCategory(resolveGuideCategory(result.category ?? "start").id);
     setSummary(result.summary ?? "");
     setAuthor(result.author ?? "KSAN");
-    setTags((result.tags ?? []).join(", "));
+    setTags(formatGuideTagsInput(result.tags ?? []));
     setImportedBlocks(Array.isArray(result.blocks) ? result.blocks : null);
     setStatus("Notion 페이지를 불러왔습니다. 확인 후 저장해주세요.");
   }
@@ -116,7 +133,6 @@ export default function EditGuidePage() {
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!guide) return;
-    const formData = new FormData(event.currentTarget);
 
     const response = await request("", {
       body: JSON.stringify({
@@ -127,9 +143,11 @@ export default function EditGuidePage() {
         rawText,
         category,
         author,
-        tags,
+        tags: parseGuideTags(tags).join(", "),
+        notionUrl,
         blocks: importedBlocks ?? undefined,
-        published: formData.get("published") === "on"
+        published,
+        relatedIds
       }),
       headers: { "Content-Type": "application/json" },
       method: "PATCH"
@@ -149,16 +167,17 @@ export default function EditGuidePage() {
         <div>
           <p className="admin-kicker">정착가이드</p>
           <h1>가이드 수정</h1>
-          <p>Notion 링크로 다시 불러오거나 본문과 공개 상태를 수정합니다.</p>
         </div>
-        <Link className="admin-button secondary" href="/admin/guides">
-          목록으로
-        </Link>
+        <div className="admin-page-actions">
+          <Link className="admin-button secondary" href="/admin/guides">
+            목록으로
+          </Link>
+        </div>
       </header>
 
       {guide ? (
-        <section className="admin-editor-layout">
-          <form className="admin-form" onSubmit={submit}>
+        <section>
+          <form className="admin-form" id="edit-guide-form" onSubmit={submit}>
             <label className="field">
               <span>Notion 페이지 링크</span>
               <input
@@ -171,71 +190,86 @@ export default function EditGuidePage() {
               Notion에서 불러오기
             </button>
             <label className="field">
-              <span>본문</span>
-              <textarea
-                value={rawText}
-                onChange={(event) => {
-                  setRawText(event.target.value);
-                  setImportedBlocks(null);
-                }}
-                rows={14}
-              />
-            </label>
-            <button className="admin-button secondary" type="button" onClick={scanContent}>
-              본문 스캔
-            </button>
-            <label className="field">
-              <span>제목</span>
-              <input value={title} onChange={(event) => setTitle(event.target.value)} required />
-            </label>
-            <label className="field">
-              <span>Slug</span>
-              <input value={slug} onChange={(event) => setSlug(event.target.value)} required />
-            </label>
-            <label className="field">
               <span>카테고리</span>
-              <input value={category} onChange={(event) => setCategory(event.target.value)} />
-            </label>
-            <label className="field">
-              <span>요약</span>
-              <textarea value={summary} onChange={(event) => setSummary(event.target.value)} rows={3} />
-            </label>
-            <label className="field">
-              <span>작성자</span>
-              <input value={author} onChange={(event) => setAuthor(event.target.value)} />
-            </label>
-            <label className="field">
-              <span>태그</span>
-              <input value={tags} onChange={(event) => setTags(event.target.value)} />
+              <select onChange={(event) => setCategory(event.target.value)} value={category}>
+                {guideCategories.map((item) => <option key={item.id} value={item.id}>{item.emoji} {item.title}</option>)}
+              </select>
             </label>
             <label className="admin-check">
-              <input name="published" type="checkbox" defaultChecked={guide.published} /> 공개
+              <input checked={published} onChange={(event) => setPublished(event.target.checked)} type="checkbox" /> 공개
             </label>
+            <fieldset className="admin-related-guides">
+              <legend>연관 가이드</legend>
+              <p>글 하단에 보여줄 가이드를 최대 3개까지 선택할 수 있어요. 현재 {relatedIds.length}/3개 선택됨</p>
+              <label className="field">
+                <span>연관 가이드 카테고리</span>
+                <select onChange={(event) => setRelatedCategory(event.target.value)} value={relatedCategory}>
+                  {guideCategories.map((category) => (
+                    <option key={category.id} value={category.id}>{category.emoji} {category.title}</option>
+                  ))}
+                </select>
+              </label>
+              {guideOptions.length ? (
+                <div>
+                  {filteredRelatedGuides.length ? filteredRelatedGuides.map((guide) => {
+                    const checked = relatedIds.includes(guide.id);
+                    const disabled = !checked && relatedIds.length >= 3;
+                    const optionCategory = resolveGuideCategory(guide.category);
+                    return (
+                      <label className="admin-related-guide-option" key={guide.id}>
+                        <input
+                          checked={checked}
+                          disabled={disabled}
+                          onChange={() => toggleRelatedGuide(guide.id)}
+                          type="checkbox"
+                        />
+                        <span>
+                          <strong>{guide.title}</strong>
+                          <small>{optionCategory.title} · {guide.published ? "공개" : "비공개"}</small>
+                        </span>
+                      </label>
+                    );
+                  }) : <span className="admin-form-note">이 카테고리에 선택할 수 있는 다른 가이드가 없습니다.</span>}
+                </div>
+              ) : (
+                <span className="admin-form-note">아직 선택할 수 있는 다른 가이드가 없습니다.</span>
+              )}
+            </fieldset>
+            <button
+              className={`admin-button admin-preview-open-button${previewBlocks.length ? " is-ready" : ""}`}
+              disabled={!previewBlocks.length}
+              type="button"
+              onClick={() => setPreviewOpen(true)}
+            >
+              <Maximize2 aria-hidden size={16} /> {previewBlocks.length ? "미리보기 준비됨" : "미리보기 준비 전"}
+            </button>
             <button className="admin-button" type="submit">
               저장
             </button>
           </form>
-
-          <aside className="admin-section">
-            <h2>스캔 결과</h2>
-            <div className="admin-stack">
-              <div className="admin-field-readonly">
-                <strong>목차</strong>
-                {headings.length > 0 ? headings.map((heading) => <span key={heading.id}>{heading.text}</span>) : <span>heading이 아직 없습니다.</span>}
-              </div>
-              <div className="admin-field-readonly">
-                <strong>본문 블록</strong>
-                <span>{effectiveBlockCount}개 블록으로 저장됩니다.</span>
-              </div>
-              <div className="admin-field-readonly">
-                <strong>공개 URL</strong>
-                <Link href={`/guides/${slug}`}>/guides/{slug}</Link>
-              </div>
-            </div>
-          </aside>
         </section>
       ) : null}
-      {status ? <p className="status">{status}</p> : null}
+      {previewOpen ? (
+        <div className="admin-preview-modal" role="dialog" aria-modal="true" aria-label="가이드 풀스크린 미리보기">
+          <button className="admin-preview-close" type="button" onClick={() => setPreviewOpen(false)}>
+            <X aria-hidden size={18} /> 닫기
+          </button>
+          <AdminGuideWebsitePreview
+            blocks={previewBlocks}
+            categoryEmoji={selectedCategory.emoji}
+            categoryTitle={selectedCategory.title}
+            headingIdPrefix="preview-"
+            tags={parseGuideTags(tags)}
+            title={title || "제목 없음"}
+            updatedAt="미리보기"
+          />
+        </div>
+      ) : null}
+      {status ? (
+        <p aria-live="polite" className={`admin-toast${status.includes("중입니다") ? " is-loading" : ""}`}>
+          {status}
+        </p>
+      ) : null}
     </main>
   );
 }

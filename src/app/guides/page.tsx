@@ -1,6 +1,8 @@
 import { GuidesExperience } from "@/components/GuidesExperience";
 import { listGuides } from "@/lib/guides";
 
+export const dynamic = "force-dynamic";
+
 export default async function GuidesPage({
   searchParams
 }: {

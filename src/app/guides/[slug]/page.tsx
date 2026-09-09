@@ -2,40 +2,37 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowUpRight } from "lucide-react";
 import { GuideArticleSidebar, type GuideHeading } from "@/components/GuideArticleSidebar";
-import { flattenGuideBlocks, GuideNotionContent, guideHeadingId } from "@/components/GuideNotionContent";
+import { GuideNotionContent, guideHeadingId } from "@/components/GuideNotionContent";
 import { getGuideBySlug } from "@/lib/guides";
-import type { GuideBlock } from "@/lib/types";
+import { buildGuideTocHeadings } from "@/lib/guideToc";
 
-function headingLevel(block: GuideBlock): 1 | 2 | 3 {
-  if (block.type === "heading_1") return 1;
-  if (block.type === "heading_2") return 2;
-  return 3;
-}
+export const dynamic = "force-dynamic";
 
 export default async function GuideDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const guide = await getGuideBySlug(slug);
+  const guide = await getGuideBySlug(decodeURIComponent(slug));
 
   if (!guide) {
     notFound();
   }
 
-  const headings: GuideHeading[] = flattenGuideBlocks(guide.blocks)
-    .filter((block) => block.type.startsWith("heading"))
-    .map((block) => ({ id: guideHeadingId(block), level: headingLevel(block), text: block.text }));
+  const headings: GuideHeading[] = buildGuideTocHeadings(guide.blocks, guideHeadingId);
 
   return (
     <main className="page article-layout guide-article-page" id="main">
       <article className="guide-article-main">
         <Link className="guide-breadcrumb" href="/guides">홈 / 정착가이드 / {guide.category}</Link>
         <header className="guide-article-header">
-          <div className="guide-article-tags">
+          <div className="guide-article-category-row">
             <span className="guide-article-category"><i aria-hidden>🏛️</i>{guide.category}</span>
-            {guide.tags.map((tag) => <span key={tag}>#{tag}</span>)}
           </div>
           <h1 className="page-title">{guide.title}</h1>
-          <p className="guide-article-summary">{guide.summary}</p>
-          <p className="guide-article-meta">업데이트 {guide.updatedAt} · {guide.author}</p>
+          {guide.tags.length ? (
+            <div className="guide-article-tag-row">
+              {guide.tags.map((tag) => <span className="guide-article-tag" key={tag}>#{tag}</span>)}
+            </div>
+          ) : null}
+          <p className="guide-article-meta">업데이트 {guide.updatedAt}</p>
         </header>
 
         <div className="article-body"><GuideNotionContent blocks={guide.blocks} /></div>
@@ -54,7 +51,20 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
               ))}
             </div>
           </section>
-        ) : null}
+        ) : (
+          <section className="guide-end-card">
+            <p>정착가이드</p>
+            <h2>필요한 정보를 더 찾아보세요</h2>
+            <div>
+              <Link href={`/guides/category/${guide.categoryId}`}>
+                같은 카테고리 보기 <ArrowUpRight aria-hidden size={17} />
+              </Link>
+              <Link href="/guides">
+                정착가이드 목록 <ArrowUpRight aria-hidden size={17} />
+              </Link>
+            </div>
+          </section>
+        )}
       </article>
       <GuideArticleSidebar headings={headings} slug={guide.slug} />
     </main>

@@ -10,6 +10,7 @@ export type GuideSummary = {
   updatedAt: string;
   author: string;
   tags: string[];
+  relatedIds?: string[];
 };
 
 export type GuideRichText = {
@@ -57,6 +58,7 @@ export type GuideBlock = {
   language?: string;
   html?: string;
   rows?: string[][];
+  tableRows?: GuideRichText[][][];
   hasColumnHeader?: boolean;
   hasRowHeader?: boolean;
 };

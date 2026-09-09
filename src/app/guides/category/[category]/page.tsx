@@ -1,16 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import {
   getGuideCategory,
   guideCategories,
   guidePriorityLabels,
   resolveGuideCategory,
-  settlementStages,
   type GuideTreeItem
 } from "@/lib/guide-structure";
 import { listGuides } from "@/lib/guides";
 import type { GuideSummary } from "@/lib/types";
+
+export const dynamic = "force-dynamic";
 
 function normalize(value: string) {
   return value.toLowerCase().replace(/[\s·/&()\-]/g, "");
@@ -32,6 +33,10 @@ function findPublishedGuide(item: GuideTreeItem, guides: GuideSummary[]) {
       itemTerms.some((term) => guideTitle.includes(term))
     );
   });
+}
+
+function displayTags(tags: string[]) {
+  return tags.map((tag) => `#${tag.replace(/^#+/, "")}`);
 }
 
 export function generateStaticParams() {
@@ -73,35 +78,11 @@ export default async function GuideCategoryPage({ params }: { params: Promise<{ 
           </div>
         </div>
         <p className="guide-category-summary">
-          {category.items.length}개의 세부 가이드에서 필요한 항목을 골라 확인하세요.
-          공개된 Notion 문서는 바로 열리고, 작성 중인 항목은 준비 상태로 표시됩니다.
+          {categoryGuides.length ? `${categoryGuides.length}개의 공개된 가이드에서 필요한 항목을 골라 확인하세요.` : "이 카테고리는 지금 업데이트 중입니다."}
+          {" "}
+          관리자페이지에서 공개로 저장한 글만 표시됩니다.
         </p>
       </section>
-
-      {category.id === "start" ? (
-        <section className="guide-category-roadmap">
-          <header>
-            <p>정착 체크리스트</p>
-            <h2>지금 내 시점부터 시작해도 괜찮아요.</h2>
-          </header>
-          <div>
-            {settlementStages.map((stage) => (
-              <article id={stage.id} key={stage.id}>
-                <span>{stage.title}</span>
-                <div>
-                  <h3>{stage.title}에 챙길 것</h3>
-                  <p>{stage.description}</p>
-                  <ul>
-                    {stage.tasks.map((task) => (
-                      <li key={task}><Check aria-hidden size={16} />{task}</li>
-                    ))}
-                  </ul>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      ) : null}
 
       <section className="guide-category-topics">
         <header>
@@ -109,31 +90,38 @@ export default async function GuideCategoryPage({ params }: { params: Promise<{ 
           <h2>필요한 내용을 선택하세요.</h2>
         </header>
         <div className="guide-category-topic-list">
-          {category.items.map((item) => {
+          {categoryGuides.length ? null : (
+            <div className="guides-empty-state guides-empty-state--category">
+              <strong>아직 공개된 가이드가 없습니다.</strong>
+              <p>새 글을 준비 중입니다. 관리자페이지에서 공개로 저장하면 이 카테고리에 표시됩니다.</p>
+            </div>
+          )}
+          {category.items.flatMap((item) => {
             const publishedGuide = findPublishedGuide(item, categoryGuides);
+            if (!publishedGuide) return [];
+            const tags = displayTags(publishedGuide.tags);
             const content = (
               <>
                 <div className="guide-category-topic-title">
                   <span>{guidePriorityLabels[item.priority]}</span>
                   <h3>{item.title}</h3>
                 </div>
-                <div className="guide-category-topic-index">
-                  {item.topics.map((topic) => <span key={topic}>{topic}</span>)}
-                </div>
+                {tags.length ? (
+                  <div className="guide-category-topic-index">
+                    {tags.map((tag) => <span key={tag}>{tag}</span>)}
+                  </div>
+                ) : <div />}
                 <div className="guide-category-topic-action">
-                  {publishedGuide ? "가이드 열기" : "콘텐츠 준비 중"}
-                  {publishedGuide ? <ArrowRight aria-hidden size={18} /> : null}
+                  가이드 열기 <ArrowRight aria-hidden size={18} />
                 </div>
               </>
             );
 
-            return publishedGuide ? (
+            return [
               <Link className="guide-category-topic" href={`/guides/${publishedGuide.slug}`} key={item.title}>
                 {content}
               </Link>
-            ) : (
-              <div className="guide-category-topic is-pending" key={item.title}>{content}</div>
-            );
+            ];
           })}
           {additionalGuides.map((guide) => (
             <Link className="guide-category-topic" href={`/guides/${guide.slug}`} key={guide.id}>
@@ -141,9 +129,11 @@ export default async function GuideCategoryPage({ params }: { params: Promise<{ 
                 <span>새 가이드</span>
                 <h3>{guide.title}</h3>
               </div>
-              <div className="guide-category-topic-index">
-                {(guide.tags.length ? guide.tags : [guide.summary]).filter(Boolean).map((tag) => <span key={tag}>{tag}</span>)}
-              </div>
+              {guide.tags.length ? (
+                <div className="guide-category-topic-index">
+                  {displayTags(guide.tags).map((tag) => <span key={tag}>{tag}</span>)}
+                </div>
+              ) : <div />}
               <div className="guide-category-topic-action">가이드 열기 <ArrowRight aria-hidden size={18} /></div>
             </Link>
           ))}

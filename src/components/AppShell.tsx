@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { PaletteTabs } from "@/components/PaletteTabs";
+import { CustomCursor } from "@/components/CustomCursor";
 import { SiteNav } from "@/components/SiteNav";
 import { createBrowserSupabaseClient, getBrowserSupabaseSession, hasSupabaseConfig } from "@/lib/supabase";
 
@@ -12,6 +13,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isAdmin = pathname?.startsWith("/admin");
+  const isAuth = pathname === "/auth";
   const [signedIn, setSignedIn] = useState<boolean | null>(() => (hasSupabaseConfig() ? null : false));
   const adminTapCount = useRef(0);
   const adminTapTimer = useRef<number | null>(null);
@@ -62,50 +64,54 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </a>
       <div className="shell">
         <header className="site-header">
-          <Link aria-label="KSAN 홈" className="brand brand-logo" href="/">
-            <Image
-              alt="KSAN 네덜란드 한인 학생회"
-              height={584}
-              priority
-              src="/images/ksan-logo-black.png"
-              width={1809}
-            />
-          </Link>
+          {isAuth ? null : (
+            <Link aria-label="KSAN 홈" className="brand brand-logo" href="/">
+              <Image
+                alt="KSAN 네덜란드 한인 학생회"
+                height={584}
+                priority
+                src="/images/ksan-logo-black.png"
+                width={1809}
+              />
+            </Link>
+          )}
           <SiteNav />
           <PaletteTabs />
         </header>
         {children}
-        <footer className="site-footer">
-          <div className="footer-grid">
-            <div className="footer-identity">
-              <Link aria-label="KSAN 홈" className="brand brand-logo compact" href="/">
-                <Image
-                  alt="KSAN 네덜란드 한인 학생회"
-                  height={584}
-                  src="/images/ksan-logo-black.png"
-                  width={1809}
-                />
-              </Link>
+        {isAuth ? null : (
+          <footer className="site-footer">
+            <div className="footer-grid">
+              <div className="footer-identity">
+                <Link aria-label="KSAN 홈" className="brand brand-logo compact" href="/">
+                  <Image
+                    alt="KSAN 네덜란드 한인 학생회"
+                    height={584}
+                    src="/images/ksan-logo-black.png"
+                    width={1809}
+                  />
+                </Link>
+              </div>
+              <nav aria-label="하단 주요 메뉴" className="footer-sitemap">
+                <span className="footer-label">Navigation</span>
+                <Link href="/guides">정착가이드</Link>
+                <Link href="/business">비즈니스 허브</Link>
+                <Link href="/events">행사</Link>
+                <Link href="/pass-it-on">Pass it On</Link>
+                <Link href="/community">Community</Link>
+                <Link href="/about">소개</Link>
+              </nav>
+              <div className="footer-account">
+                <span className="footer-label">My KSAN</span>
+                <Link href={signedIn === false ? "/auth" : "/mypage"}>{signedIn === false ? "로그인" : "마이페이지"}</Link>
+              </div>
             </div>
-            <nav aria-label="하단 주요 메뉴" className="footer-sitemap">
-              <span className="footer-label">Navigation</span>
-              <Link href="/guides">정착가이드</Link>
-              <Link href="/business">비즈니스 허브</Link>
-              <Link href="/events">행사</Link>
-              <Link href="/pass-it-on">Pass it On</Link>
-              <Link href="/community">Community</Link>
-              <Link href="/about">소개</Link>
-            </nav>
-            <div className="footer-account">
-              <span className="footer-label">My KSAN</span>
-              <Link href={signedIn === false ? "/auth" : "/mypage"}>{signedIn === false ? "로그인" : "마이페이지"}</Link>
+            <div className="footer-meta">
+              <span>© 2026 KSAN</span>
+              <span>KSAN · Korean Students Association in the Netherlands</span>
             </div>
-          </div>
-          <div className="footer-meta">
-            <span>© 2026 KSAN</span>
-            <span>KSAN · Korean Students Association in the Netherlands</span>
-          </div>
-        </footer>
+          </footer>
+        )}
       </div>
       <button
         aria-hidden="true"
@@ -114,6 +120,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         tabIndex={-1}
         type="button"
       />
+      <CustomCursor />
     </>
   );
 }

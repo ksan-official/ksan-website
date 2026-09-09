@@ -1,9 +1,4 @@
-import { fallbackGuideDetail, fallbackGuides } from "@/lib/content";
-import {
-  getGuideBySlug as getNotionGuideBySlug,
-  getNotionBlocksFromUrl,
-  listGuides as listNotionGuides
-} from "@/lib/notion";
+import { getNotionBlocksFromUrl } from "@/lib/notion";
 import { createServiceSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 import { resolveGuideCategory } from "@/lib/guide-structure";
 import type { GuideBlock, GuideDetail, GuideSummary } from "@/lib/types";
@@ -16,15 +11,12 @@ type GuidePostRow = {
   summary: string | null;
   author: string | null;
   tags: string[] | null;
+  related_ids?: string[] | null;
   blocks: GuideBlock[] | null;
   published: boolean;
   updated_at: string;
   notion_url?: string | null;
 };
-
-function hasNotionConfig() {
-  return Boolean(process.env.NOTION_API_KEY && process.env.NOTION_GUIDES_DATABASE_ID);
-}
 
 function mapGuideRow(row: GuidePostRow): GuideSummary {
   const category = resolveGuideCategory(row.category);
@@ -37,7 +29,8 @@ function mapGuideRow(row: GuidePostRow): GuideSummary {
     summary: row.summary ?? "",
     updatedAt: row.updated_at.slice(0, 10),
     author: row.author ?? "KSAN",
-    tags: row.tags ?? []
+    tags: row.tags ?? [],
+    relatedIds: row.related_ids ?? []
   };
 }
 
@@ -55,11 +48,13 @@ async function listSupabaseGuides() {
       .order("updated_at", { ascending: false });
 
     if (error) {
+      console.error("Failed to load published guides", error.message);
       return [];
     }
 
     return (data ?? []).map((row) => mapGuideRow(row as GuidePostRow));
   } catch {
+    console.error("Failed to load published guides");
     return [];
   }
 }
@@ -79,11 +74,17 @@ async function getSupabaseGuideBySlug(slug: string): Promise<GuideDetail | null>
       .single();
 
     if (error || !data) {
+      if (error) console.error("Failed to load guide by slug", error.message);
       return null;
     }
 
     const summary = mapGuideRow(data as GuidePostRow);
-    const related = (await listSupabaseGuides()).filter((guide) => guide.slug !== slug).slice(0, 3);
+    const relatedIds = ((data as GuidePostRow).related_ids ?? []).slice(0, 3);
+    const guides = await listSupabaseGuides();
+    const related = relatedIds
+      .map((id) => guides.find((guide) => guide.id === id))
+      .filter((guide) => guide?.slug !== slug)
+      .filter((guide): guide is GuideSummary => Boolean(guide));
 
     let blocks = ((data as GuidePostRow).blocks ?? []) as GuideBlock[];
     const notionUrl = (data as GuidePostRow).notion_url;
@@ -101,36 +102,15 @@ async function getSupabaseGuideBySlug(slug: string): Promise<GuideDetail | null>
       related
     };
   } catch {
+    console.error("Failed to load guide by slug");
     return null;
   }
 }
 
 export async function listGuides(): Promise<GuideSummary[]> {
-  const supabaseGuides = await listSupabaseGuides();
-  if (supabaseGuides.length > 0) {
-    return supabaseGuides;
-  }
-  if (hasNotionConfig()) {
-    try {
-      return await listNotionGuides();
-    } catch {
-      return fallbackGuides;
-    }
-  }
-  return fallbackGuides;
+  return listSupabaseGuides();
 }
 
 export async function getGuideBySlug(slug: string): Promise<GuideDetail | null> {
-  const supabaseGuide = await getSupabaseGuideBySlug(slug);
-  if (supabaseGuide) {
-    return supabaseGuide;
-  }
-  if (hasNotionConfig()) {
-    try {
-      return await getNotionGuideBySlug(slug);
-    } catch {
-      return slug === fallbackGuideDetail.slug ? fallbackGuideDetail : null;
-    }
-  }
-  return slug === fallbackGuideDetail.slug ? fallbackGuideDetail : null;
+  return getSupabaseGuideBySlug(slug);
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -112,8 +113,12 @@ function authDisplayName(user: User) {
 }
 
 export function MyPageHome() {
+  const router = useRouter();
   const configured = hasSupabaseConfig();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [authState, setAuthState] = useState<"checking" | "signed-in" | "signed-out">(
+    configured ? "checking" : "signed-out"
+  );
   const [counts, setCounts] = useState<MyPageCounts>({
     business: "0",
     events: "0",
@@ -131,6 +136,7 @@ export function MyPageHome() {
     function clearDashboard() {
       requestId += 1;
       setProfile(null);
+      setAuthState("signed-out");
       setCounts({
         business: "0",
         events: "0",
@@ -142,6 +148,7 @@ export function MyPageHome() {
     async function loadDashboard(user: User) {
       const currentRequest = ++requestId;
       const fallbackName = authDisplayName(user);
+      setAuthState("signed-in");
       setProfile((current) => current ?? { avatar_url: null, full_name: fallbackName });
 
       const [profileResult, savedGuidesCount, savedBusinessCount, applicationsResult] = await Promise.all([
@@ -206,15 +213,23 @@ export function MyPageHome() {
       const user = data.session?.user;
       if (!user) {
         clearDashboard();
+        router.replace("/auth?next=/mypage");
         return;
       }
       void loadDashboard(user);
+    }).catch(() => {
+      if (!active) return;
+      clearDashboard();
+      router.replace("/auth?next=/mypage");
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return;
       if (!session?.user) {
-        clearDashboard();
+        if (event === "SIGNED_OUT") {
+          clearDashboard();
+          router.replace("/auth?next=/mypage");
+        }
         return;
       }
       void loadDashboard(session.user);
@@ -224,7 +239,18 @@ export function MyPageHome() {
       active = false;
       listener.subscription.unsubscribe();
     };
-  }, [configured]);
+  }, [configured, router]);
+
+  if (configured && authState === "checking") {
+    return (
+      <main className="page mypage-page" id="main">
+        <section className="mypage-auth-check" aria-live="polite">
+          <span>계정 확인 중</span>
+          <p>로그인 세션을 확인하고 있습니다.</p>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="page mypage-page" id="main">

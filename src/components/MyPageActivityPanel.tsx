@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useState } from "react";
@@ -160,6 +161,7 @@ async function profileRequest(formData: FormData) {
 }
 
 export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
+  const router = useRouter();
   const configured = hasSupabaseConfig();
   const [email, setEmail] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -172,6 +174,9 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
   const [editingProfile, setEditingProfile] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [authState, setAuthState] = useState<"checking" | "signed-in" | "signed-out">(
+    configured ? "checking" : "signed-out"
+  );
   const [status, setStatus] = useState(configured ? "내역을 불러오는 중입니다." : "계정 기능이 아직 준비 중입니다.");
 
   useEffect(() => {
@@ -189,6 +194,7 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
       setSavedGuides([]);
       setSavedBusinessItems([]);
       setApplications([]);
+      setAuthState("signed-out");
       setStatus("로그인이 필요합니다.");
     }
 
@@ -196,6 +202,7 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
       const currentRequest = ++requestId;
       const fallbackName = authDisplayName(user);
 
+      setAuthState("signed-in");
       setUserId(user.id);
       setEmail(user.email ?? null);
       setProfile((current) => current ?? {
@@ -319,18 +326,23 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
       const user = data.session?.user;
       if (!user) {
         clearSignedOut();
+        router.replace(`/auth?next=/mypage/${section}`);
         return;
       }
       void loadActivity(user);
     }).catch(() => {
       if (!active) return;
       setStatus("로그인 상태를 확인하지 못했습니다.");
+      router.replace(`/auth?next=/mypage/${section}`);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return;
       if (!session?.user) {
-        clearSignedOut();
+        if (event === "SIGNED_OUT") {
+          clearSignedOut();
+          router.replace(`/auth?next=/mypage/${section}`);
+        }
         return;
       }
       void loadActivity(session.user);
@@ -340,7 +352,18 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
       active = false;
       listener.subscription.unsubscribe();
     };
-  }, [configured]);
+  }, [configured, router, section]);
+
+  if (configured && authState === "checking") {
+    return (
+      <main className="page mypage-page" id="main">
+        <section className="mypage-auth-check" aria-live="polite">
+          <span>계정 확인 중</span>
+          <p>로그인 세션을 확인하고 있습니다.</p>
+        </section>
+      </main>
+    );
+  }
 
   async function handleProfilePhotoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];

@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
 import { getOptionalEnv } from "@/lib/env";
 import { deriveSummary, slugFromTitle } from "@/lib/guideParser";
-import { blocksToHtml } from "@/lib/notionHtml";
+import { extractHashTagsFromText, mergeGuideTags } from "@/lib/guideTags";
+import { buildGuideTocHeadings } from "@/lib/guideToc";
+import { getNotionPageFromUrl } from "@/lib/notion";
 
 const NOTION_VERSION = "2022-06-28";
 
@@ -191,9 +193,9 @@ export async function POST(request: Request) {
   try {
     const page = await notionFetch<NotionPage>(`/pages/${pageId}`);
     const blocks = await listBlockChildren(pageId);
+    const notionPage = await getNotionPageFromUrl(String(payload.url ?? ""));
     const title = propertyText(page, ["Title", "Name", "이름", "제목", "주제"]) || "Untitled";
     const rawText = (await blocksToMarkdown(blocks)).join("\n\n");
-    const html = await blocksToHtml(blocks, listBlockChildren);
 
     return NextResponse.json({
       title,
@@ -201,8 +203,9 @@ export async function POST(request: Request) {
       category: propertySelect(page, ["Category", "카테고리", "분류"]) || "정착가이드",
       summary: propertyText(page, ["Summary", "요약", "설명", "소개"]) || deriveSummary(rawText),
       author: propertyText(page, ["Author", "작성자", "담당자"]) || "KSAN",
-      tags: propertyMultiSelect(page, ["Tags", "태그", "키워드"]),
-      blocks: html.trim() ? [{ id: `${page.id}-notion-html`, type: "html", html }] : undefined,
+      tags: mergeGuideTags(propertyMultiSelect(page, ["Tags", "태그", "키워드"]), notionPage.tags, extractHashTagsFromText(rawText)),
+      blocks: notionPage.blocks,
+      headings: buildGuideTocHeadings(notionPage.blocks),
       rawText
     });
   } catch (error) {

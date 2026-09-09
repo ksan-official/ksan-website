@@ -454,7 +454,6 @@ export function AmsterdamSpotMap() {
       </div>
 
       <div className="map-filter-group is-primary">
-        <span className="map-filter-label">1. 도시 선택</span>
         <div className="map-city-bar" aria-label="도시 필터">
           {cityFilters.length ? cityFilters.map((city) => (
             <button aria-pressed={activeCity === city} key={city} onClick={() => selectCity(city)} type="button">
@@ -467,7 +466,6 @@ export function AmsterdamSpotMap() {
       </div>
 
       <div className="map-filter-group">
-        <span className="map-filter-label">2. 장소 유형 선택</span>
         <div className="map-category-bar" aria-label="장소 카테고리">
           {categories.map((category) => {
             const Icon = category.icon;

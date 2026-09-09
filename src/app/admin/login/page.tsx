@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { ArrowRight, LockKeyhole } from "lucide-react";
 import { createBrowserSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 
 export default function AdminLoginPage() {
@@ -50,27 +51,31 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="admin-page" id="main">
-      <header className="admin-page-header">
+    <main className="admin-login-page" id="main">
+      <header className="admin-login-intro">
         <div>
-          <p className="admin-kicker">Administration</p>
+          <p>KSAN Admin</p>
           <h1>관리자 로그인</h1>
-          <p>운영자 계정으로 로그인하면 관리자 현황, 회원 목록, 콘텐츠 관리 도구를 사용할 수 있습니다.</p>
         </div>
       </header>
 
-      <section className="admin-section admin-login-panel">
+      <section className="admin-login-panel" aria-label="관리자 로그인">
+        <div className="admin-login-panel-header">
+          <span><LockKeyhole aria-hidden size={16} /> 운영자 전용</span>
+          <strong>계정 확인</strong>
+        </div>
         <form className="form" onSubmit={submit}>
           <label className="field">
-            <span>관리자 이메일 *</span>
-            <input name="email" required type="email" />
+            <span>이메일</span>
+            <input autoComplete="email" name="email" required type="email" />
           </label>
           <label className="field">
-            <span>비밀번호 *</span>
-            <input name="password" minLength={8} required type="password" />
+            <span>비밀번호</span>
+            <input autoComplete="current-password" name="password" minLength={8} required type="password" />
           </label>
-          <button className="admin-button" type="submit">
+          <button className="admin-login-submit" type="submit">
             관리자 로그인
+            <ArrowRight aria-hidden size={17} />
           </button>
         </form>
         {status ? <p className="status">{status}</p> : null}

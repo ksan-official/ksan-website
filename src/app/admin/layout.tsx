@@ -3,17 +3,18 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { ExternalLink, LogOut } from "lucide-react";
 import { createBrowserSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 
 const adminLinks = [
   { href: "/admin", label: "현황" },
-  { href: "/admin/guides", label: "정착가이드 관리" },
-  { href: "/admin/business", label: "채용 공고 관리" },
-  { href: "/admin/events/new", label: "행사 등록" },
-  { href: "/admin/map-spots", label: "지도 장소 관리" },
-  { href: "/admin/members", label: "회원 관리" },
-  { href: "/admin/about/new", label: "소개 관리" },
-  { href: "/admin/about/new?type=sponsor", label: "후원사 관리" }
+  { href: "/admin/guides", label: "정착가이드" },
+  { href: "/admin/business", label: "채용" },
+  { href: "/admin/events/new", label: "행사" },
+  { href: "/admin/map-spots", label: "지도" },
+  { href: "/admin/members", label: "회원" },
+  { href: "/admin/about/new", label: "소개" },
+  { href: "/admin/about/new?type=sponsor", label: "후원사" }
 ];
 
 function AdminNavigation({ pathname }: { pathname: string }) {
@@ -80,7 +81,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       const role = (profile as { role?: string } | null)?.role;
 
       if (active) setAuthState(role === "admin" ? "admin" : "guest");
-      if (role !== "admin") await supabase.auth.signOut();
     }
 
     checkAdmin();
@@ -146,20 +146,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="admin-shell">
-      <aside className="admin-sidebar">
-        <Link className="admin-brand" href="/admin">
-          KSAN Admin
-        </Link>
+      <header className="admin-sidebar">
+        <div className="admin-topbar">
+          <Link className="admin-brand" href="/admin">
+            KSAN Admin
+          </Link>
+          <div className="admin-sidebar-foot">
+            <Link className="admin-utility-link" href="/">
+              <ExternalLink aria-hidden size={15} /> 사이트
+            </Link>
+            <button className="admin-sidebar-button" onClick={() => void signOut()} type="button">
+              <LogOut aria-hidden size={15} /> 로그아웃
+            </button>
+          </div>
+        </div>
         <Suspense fallback={<AdminNavigationFallback />}>
           <AdminNavigation pathname={pathname} />
         </Suspense>
-        <div className="admin-sidebar-foot">
-          <Link href="/">공개 사이트 보기</Link>
-          <button className="admin-sidebar-button" onClick={() => void signOut()} type="button">
-            로그아웃
-          </button>
-        </div>
-      </aside>
+      </header>
       <div className="admin-workspace">{children}</div>
     </div>
   );

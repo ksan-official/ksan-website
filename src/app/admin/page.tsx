@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { createBrowserSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
+import { hasSupabaseConfig } from "@/lib/supabase";
 
 type AdminSystemStatus = {
   supabase: boolean;
@@ -11,14 +11,27 @@ type AdminSystemStatus = {
   businessPostCount: number;
   eventCount: number;
   memberCount: number;
+  recentGuideCount?: number;
+  recentBusinessPostCount?: number;
+  recentEventCount?: number;
+  recentMemberCount?: number;
+  pendingGuideCount?: number;
+  pendingBusinessPostCount?: number;
+  pendingEventCount?: number;
+  recentUpdates?: Array<{ href: string; id: string; title: string; type: string; updatedAt: string }>;
+  upcomingEvents?: Array<{ href: string; id: string; published: boolean; startsAt: string; title: string }>;
+  urgentBusinessPosts?: Array<{ company: string; deadline: string; href: string; id: string; published: boolean; title: string }>;
+  newMembers?: Array<{ createdAt: string; email: string; id: string; name: string; school: string }>;
   error?: string;
 };
 
+function shortDate(value?: string) {
+  if (!value) return "";
+  return value.slice(0, 10);
+}
+
 export default function AdminPage() {
   const configured = hasSupabaseConfig();
-  const [status, setStatus] = useState(
-    configured ? "Supabase 설정을 확인하는 중입니다." : "Supabase 환경 변수가 설정되면 관리자 권한을 확인합니다."
-  );
   const [systemStatus, setSystemStatus] = useState<AdminSystemStatus | null>(null);
 
   useEffect(() => {
@@ -39,103 +52,138 @@ export default function AdminPage() {
         })
       );
 
-    const supabase = createBrowserSupabaseClient();
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) {
-        setStatus("관리자 로그인이 필요합니다.");
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", data.user.id)
-        .single();
-      const role = (profile as { role?: string } | null)?.role;
-
-      setStatus(role === "admin" ? "관리자 권한 확인 완료" : "관리자 권한이 없습니다.");
-    });
   }, [configured]);
 
   const dashboardCards = [
     { label: "채용 공고", value: systemStatus?.businessPostCount ?? 0, href: "/admin/business" },
     { label: "정착가이드", value: systemStatus?.guideCount ?? 0, href: "/admin/guides" },
     { label: "행사", value: systemStatus?.eventCount ?? 0, href: "/admin/events/new" },
-    { label: "회원", value: systemStatus?.memberCount ?? 0, href: "/admin/members" }
+    { label: "회원", value: systemStatus?.memberCount ?? 0, delta: systemStatus?.recentMemberCount ?? 0, showDelta: true, href: "/admin/members" }
+  ];
+  const pendingItems = [
+    { label: "가이드", value: systemStatus?.pendingGuideCount ?? 0, href: "/admin/guides" },
+    { label: "채용", value: systemStatus?.pendingBusinessPostCount ?? 0, href: "/admin/business" },
+    { label: "행사", value: systemStatus?.pendingEventCount ?? 0, href: "/admin/events/new" }
+  ];
+  const quickActions = [
+    { label: "새 가이드", href: "/admin/guides/new" },
+    { label: "채용 공고", href: "/admin/business/new" },
+    { label: "행사 등록", href: "/admin/events/new" }
   ];
 
   return (
     <main className="admin-page" id="main">
       <header className="admin-page-header">
         <div>
-          <p className="admin-kicker">운영 콘솔</p>
-          <h1>관리자 페이지</h1>
-          <p>공개 사이트와 분리된 내부 작업 공간입니다. 글 등록, 공개 상태, 연동 상태만 봅니다.</p>
+          <h1>운영 현황</h1>
         </div>
-        <Link className="admin-button" href="/admin/guides">
-          정착가이드 관리
-        </Link>
       </header>
 
       <section className="admin-section">
-        <h2>현재 상태</h2>
-        <div className="admin-status-line">{status}</div>
-        {systemStatus?.databaseReady ? (
-          <div className="admin-note success">
-            DB 연결 완료. 공개/비공개 포함 운영 데이터를 불러오고 있습니다.
-          </div>
-        ) : (
-          <div className="admin-note">
-            DB 테이블이 아직 준비되지 않았습니다. Supabase SQL Editor에서{" "}
-            <code>supabase/schema.sql</code>을 실행해야 실제 저장 테이블이 생깁니다.
-            {systemStatus?.error ? ` (${systemStatus.error})` : null}
-          </div>
-        )}
-      </section>
-
-      <section className="admin-section">
-        <h2>운영 현황</h2>
-        <div className="admin-dashboard-grid">
+        {systemStatus && !systemStatus.databaseReady ? (
+          <p className="admin-note">{systemStatus.error ?? "Supabase 테이블 상태를 확인해주세요."}</p>
+        ) : null}
+        <div className="admin-dashboard-grid admin-dashboard-grid--primary">
           {dashboardCards.map((card) => (
             <Link className="admin-dashboard-card" href={card.href} key={card.label}>
               <span>{card.label}</span>
               <strong>{card.value}</strong>
+              {card.showDelta ? <em>최근 7일 +{card.delta ?? 0}</em> : null}
             </Link>
           ))}
         </div>
       </section>
 
-      <section className="admin-section">
-        <h2>작업 바로가기</h2>
-        <div className="admin-action-list">
-          <Link href="/admin/guides">
-            <strong>정착가이드 관리</strong>
-            <span>가이드를 추가·수정하고 공개 여부를 관리</span>
-          </Link>
-          <Link href="/admin/business">
-            <strong>채용 공고 관리</strong>
-            <span>공고를 추가·수정하고 공개 여부와 하이라이트 배너 관리</span>
-          </Link>
-          <Link href="/admin/events/new">
-            <strong>행사 등록</strong>
-            <span>행사 소개, 신청 방식, 외부 폼 링크 입력</span>
-          </Link>
-          <Link href="/admin/map-spots">
-            <strong>지도 장소 관리</strong>
-            <span>카페, 맛집, 공부 스팟을 추가·수정하고 공개 여부 관리</span>
-          </Link>
-          <Link href="/admin/members">
-            <strong>회원 관리</strong>
-            <span>가입 회원과 저장·신청 내역 확인</span>
-          </Link>
-          <Link href="/admin/about/new">
-            <strong>소개 항목 관리</strong>
-            <span>운영진 사진, 이름, 기수, 후원사 항목 추가·수정·삭제</span>
-          </Link>
-          <Link href="/admin/about/new?type=sponsor">
-            <strong>후원사 관리</strong>
-            <span>후원사 로고, 소개, 제휴 혜택을 추가·수정·삭제</span>
-          </Link>
+      <section className="admin-dashboard-layout">
+        <div className="admin-dashboard-panel admin-dashboard-panel--attention">
+          <div className="admin-panel-heading">
+            <span>확인 필요</span>
+            <h2>공개 대기</h2>
+          </div>
+          <div className="admin-pending-grid">
+            {pendingItems.map((item) => (
+              <Link href={item.href} key={item.label}>
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="admin-dashboard-panel">
+          <div className="admin-panel-heading">
+            <span>최근 변경</span>
+            <h2>수정/추가된 항목</h2>
+          </div>
+          <div className="admin-dashboard-list">
+            {systemStatus?.recentUpdates?.length ? systemStatus.recentUpdates.map((item) => (
+              <Link href={item.href} key={`${item.type}-${item.id}`}>
+                <span>{item.type}</span>
+                <strong>{item.title}</strong>
+                <small>{shortDate(item.updatedAt)}</small>
+              </Link>
+            )) : <p>최근 변경된 항목이 없습니다.</p>}
+          </div>
+        </div>
+
+        <div className="admin-dashboard-panel">
+          <div className="admin-panel-heading">
+            <span>일정</span>
+            <h2>다가오는 행사</h2>
+          </div>
+          <div className="admin-dashboard-list">
+            {systemStatus?.upcomingEvents?.length ? systemStatus.upcomingEvents.map((event) => (
+              <Link href={event.href} key={event.id}>
+                <span>{event.published ? "공개" : "비공개"}</span>
+                <strong>{event.title}</strong>
+                <small>{shortDate(event.startsAt)}</small>
+              </Link>
+            )) : <p>예정된 행사가 없습니다.</p>}
+          </div>
+        </div>
+
+        <div className="admin-dashboard-panel">
+          <div className="admin-panel-heading">
+            <span>D-7</span>
+            <h2>마감 임박 채용</h2>
+          </div>
+          <div className="admin-dashboard-list">
+            {systemStatus?.urgentBusinessPosts?.length ? systemStatus.urgentBusinessPosts.map((post) => (
+              <Link href={post.href} key={post.id}>
+                <span>{post.published ? "공개" : "비공개"}</span>
+                <strong>{post.title}</strong>
+                <small>{post.company ? `${post.company} · ` : ""}{shortDate(post.deadline)}</small>
+              </Link>
+            )) : <p>7일 안에 마감되는 공고가 없습니다.</p>}
+          </div>
+        </div>
+
+        <div className="admin-dashboard-panel">
+          <div className="admin-panel-heading">
+            <span>최근 7일</span>
+            <h2>신규 회원</h2>
+          </div>
+          <div className="admin-dashboard-list">
+            {systemStatus?.newMembers?.length ? systemStatus.newMembers.map((member) => (
+              <Link href="/admin/members" key={member.id}>
+                <span>{member.school || "학교 미입력"}</span>
+                <strong>{member.name}</strong>
+                <small>{shortDate(member.createdAt)}</small>
+              </Link>
+            )) : <p>최근 가입한 회원이 없습니다.</p>}
+          </div>
+        </div>
+
+        <div className="admin-dashboard-panel admin-dashboard-panel--quick">
+          <div className="admin-panel-heading">
+            <span>바로가기</span>
+            <h2>빠른 작업</h2>
+          </div>
+          <div className="admin-quick-actions">
+            {quickActions.map((action) => (
+              <Link href={action.href} key={action.href}>{action.label}</Link>
+            ))}
+          </div>
         </div>
       </section>
     </main>

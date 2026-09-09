@@ -10,7 +10,6 @@ import {
   guideCategories,
   guidePriorityLabels,
   resolveGuideCategory,
-  settlementStages,
   type GuideCategory,
   type GuideTreeItem
 } from "@/lib/guide-structure";
@@ -62,9 +61,15 @@ function findPublishedGuide(item: GuideTreeItem, guides: GuideSummary[]) {
   });
 }
 
+function displayTags(tags: string[]) {
+  return tags.map((tag) => `#${tag.replace(/^#+/, "")}`);
+}
+
 export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperienceProps) {
   const [query, setQuery] = useState(initialQuery);
-  const [activeCategory, setActiveCategory] = useState("start");
+  const [activeCategory, setActiveCategory] = useState(
+    () => guides[0] ? resolveGuideCategory(guides[0].categoryId ?? guides[0].category).id : "start"
+  );
   const normalizedQuery = query.trim().toLowerCase();
 
   const guideBrowserCategories = useMemo(() => [...guideCategories, spotGuideCategory], []);
@@ -78,8 +83,16 @@ export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperience
 
   const selectedCategory =
     visibleCategories.find((category) => category.id === activeCategory) ?? visibleCategories[0];
+  const searchedGuides = normalizedQuery
+    ? guides.filter((guide) =>
+        [guide.title, guide.category, guide.summary, guide.author, ...guide.tags]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedQuery)
+      )
+    : guides;
   const selectedCategoryGuides = selectedCategory
-    ? guides.filter((guide) => resolveGuideCategory(guide.categoryId ?? guide.category).id === selectedCategory.id)
+    ? searchedGuides.filter((guide) => resolveGuideCategory(guide.categoryId ?? guide.category).id === selectedCategory.id)
     : [];
   const matchedGuideIds = new Set(
     selectedCategory?.items
@@ -105,17 +118,26 @@ export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperience
             </div>
           </header>
           <div className="guides-popular-list">
-            {guides.slice(0, 3).map((guide, index) => (
-              <Link href={`/guides/${guide.slug}`} key={guide.id}>
-                <span className="guides-popular-index">{String(index + 1).padStart(2, "0")}</span>
-                <div>
-                  <small>{guide.category}</small>
-                  <strong>{guide.title}</strong>
-                  <p>{guide.summary}</p>
-                </div>
-                <ArrowRight aria-hidden size={18} />
-              </Link>
-            ))}
+            {guides.length ? (
+              guides.slice(0, 3).map((guide) => {
+                const tags = displayTags(guide.tags);
+                return (
+                  <Link href={`/guides/${guide.slug}`} key={guide.id}>
+                    <div>
+                      <small>{guide.category}</small>
+                      <strong>{guide.title}</strong>
+                      {tags.length ? <p>{tags.join(" ")}</p> : null}
+                    </div>
+                    <ArrowRight aria-hidden size={18} />
+                  </Link>
+                );
+              })
+            ) : (
+              <div className="guides-empty-state">
+                <strong>공개된 가이드가 없습니다.</strong>
+                <p>관리자페이지에서 공개로 저장한 글만 여기에 표시됩니다.</p>
+              </div>
+            )}
           </div>
         </aside>
       </section>
@@ -160,65 +182,43 @@ export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperience
             {selectedCategory.id === "spots" ? (
               <AmsterdamSpotMap />
             ) : null}
-            {selectedCategory.id === "start" ? (
-              <div className="guides-reference-list" id="settlement-path">
-                {settlementStages.map((stage, index) => (
-                  <Link className="guides-reference-row" href={`/guides/category/start#${stage.id}`} key={stage.id}>
-                    <span className="guides-reference-number">{String(index + 1).padStart(2, "0")}</span>
-                    <div className="guides-reference-copy">
-                      <span>먼저 보기</span>
-                      <h3>{stage.title}</h3>
-                      <p>{stage.tasks.join(" · ")}</p>
-                    </div>
-                    <span className="guides-reference-action">
-                      열기 <ArrowRight aria-hidden size={18} />
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            ) : null}
-            {selectedCategory.id !== "start" && selectedCategory.id !== "spots" ? (
+            {selectedCategory.id !== "spots" ? (
               <div className="guides-reference-list">
-                {selectedCategory.items.map((item, index) => {
+                {selectedCategoryGuides.length ? null : (
+                  <div className="guides-empty-state guides-empty-state--list">
+                    <strong>아직 공개된 가이드가 없습니다.</strong>
+                    <p>새 글을 준비 중입니다. 관리자페이지에서 공개로 저장하면 이곳에 표시됩니다.</p>
+                  </div>
+                )}
+                {selectedCategory.items.flatMap((item) => {
                   const publishedGuide = findPublishedGuide(item, selectedCategoryGuides);
+                  if (!publishedGuide) return [];
+                  const tags = displayTags(publishedGuide.tags);
                   const content = (
                     <>
-                      <span className="guides-reference-number">{String(index + 1).padStart(2, "0")}</span>
                       <div className="guides-reference-copy">
                         <span>{guidePriorityLabels[item.priority]}</span>
                         <h3>{item.title}</h3>
-                        <p>{item.topics.join(" · ")}</p>
-                        <small>
-                          {publishedGuide
-                            ? `${publishedGuide.updatedAt} · ${publishedGuide.author}`
-                            : "KSAN 콘텐츠 준비 중"}
-                        </small>
+                        {tags.length ? <p>{tags.join(" ")}</p> : null}
                       </div>
                       <span className="guides-reference-action">
-                        {publishedGuide ? "열기" : "준비 중"}
-                        {publishedGuide ? <ArrowRight aria-hidden size={18} /> : null}
+                        열기 <ArrowRight aria-hidden size={18} />
                       </span>
                     </>
                   );
 
-                  return publishedGuide ? (
+                  return [
                     <Link className="guides-reference-row" href={`/guides/${publishedGuide.slug}`} key={item.title}>
                       {content}
                     </Link>
-                  ) : (
-                    <div className="guides-reference-row is-pending" key={item.title}>{content}</div>
-                  );
+                  ];
                 })}
                 {additionalGuides.map((guide, index) => (
                   <Link className="guides-reference-row" href={`/guides/${guide.slug}`} key={guide.id}>
-                    <span className="guides-reference-number">
-                      {String(selectedCategory.items.length + index + 1).padStart(2, "0")}
-                    </span>
                     <div className="guides-reference-copy">
-                      <span>새 가이드</span>
+                      <span>{index === 0 ? "새 가이드" : "업데이트"}</span>
                       <h3>{guide.title}</h3>
-                      <p>{guide.tags.length ? guide.tags.join(" · ") : guide.summary}</p>
-                      <small>{guide.updatedAt} · {guide.author}</small>
+                      {guide.tags.length ? <p>{displayTags(guide.tags).join(" ")}</p> : null}
                     </div>
                     <span className="guides-reference-action">열기 <ArrowRight aria-hidden size={18} /></span>
                   </Link>

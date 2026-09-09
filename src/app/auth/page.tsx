@@ -1,19 +1,18 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { createBrowserSupabaseClient, getBrowserSupabaseSession, hasSupabaseConfig } from "@/lib/supabase";
 
 export default function AuthPage() {
-  const router = useRouter();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [status, setStatus] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const configured = hasSupabaseConfig();
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setStatus(null);
     if (!configured) {
       setStatus("계정 기능이 아직 준비 중입니다.");
       return;
@@ -23,22 +22,28 @@ export default function AuthPage() {
     const email = String(formData.get("email"));
     const password = String(formData.get("password"));
     const supabase = createBrowserSupabaseClient();
-    const result =
+    setSubmitting(true);
+    const result = await (
       mode === "signup"
-        ? await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              data: {
-                name: formData.get("name"),
-                full_name: formData.get("name"),
-                school: formData.get("school"),
-                major: formData.get("major"),
-                admission_year: formData.get("admissionYear")
-              }
+        ? supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              name: formData.get("name"),
+              full_name: formData.get("name"),
+              school: formData.get("school"),
+              major: formData.get("major"),
+              admission_year: formData.get("admissionYear")
             }
-          })
-        : await supabase.auth.signInWithPassword({ email, password });
+          }
+        })
+        : supabase.auth.signInWithPassword({ email, password })
+    ).catch((error: unknown) => ({
+      data: { session: null },
+      error: { message: error instanceof Error ? error.message : "로그인 요청에 실패했습니다." }
+    }));
+    setSubmitting(false);
 
     if (result.error) {
       setStatus(result.error.message);
@@ -57,28 +62,34 @@ export default function AuthPage() {
         setStatus("로그인 세션이 저장되지 않았어요. 같은 주소에서 다시 로그인해주세요.");
         return;
       }
-      router.replace(destination);
-      window.location.href = destination;
+      setStatus("로그인되었습니다. 이동 중입니다.");
+      window.location.assign(destination);
     }
   }
 
   return (
     <main className="page auth-page" id="main">
       <section className="auth-shell">
+        <aside className="auth-intro">
+          <div>
+            <p>KSAN 계정</p>
+            <h1>{mode === "signin" ? "로그인" : "회원가입"}</h1>
+            <span>
+              {mode === "signin"
+                ? "저장한 정보와 신청 내역을 확인하려면 계정으로 들어가주세요."
+                : "네덜란드 한인 학생 커뮤니티 이용을 위한 기본 정보를 입력해주세요."}
+            </span>
+          </div>
+        </aside>
         <section className="auth-card" aria-label={mode === "signin" ? "로그인" : "회원가입"}>
           <div className="auth-card-header">
-            <Image
-              alt="KSAN 네덜란드 한인 학생회"
-              className="auth-logo"
-              height={584}
-              priority
-              src="/images/ksan-logo-black.png"
-              width={1809}
-            />
             <div>
-              <p className="eyebrow">KSAN Account</p>
-              <h1>{mode === "signin" ? "로그인" : "회원가입"}</h1>
+              <span>{mode === "signin" ? "이미 계정이 있다면" : "처음 이용한다면"}</span>
+              <h2>{mode === "signin" ? "계정으로 로그인" : "새 계정 만들기"}</h2>
             </div>
+            <button className="auth-mode-link" onClick={() => setMode(mode === "signin" ? "signup" : "signin")} type="button">
+              {mode === "signin" ? "회원가입" : "로그인"}
+            </button>
           </div>
 
           <form className="auth-form" onSubmit={submit}>
@@ -113,17 +124,20 @@ export default function AuthPage() {
               </label>
               <label className="field">
                 <span>비밀번호</span>
-                <input autoComplete={mode === "signin" ? "current-password" : "new-password"} name="password" minLength={8} required type="password" />
+                <input
+                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                  minLength={mode === "signup" ? 8 : undefined}
+                  name="password"
+                  required
+                  type="password"
+                />
               </label>
             </fieldset>
-            <button className="auth-submit" type="submit">
-              {mode === "signin" ? "마이페이지로 로그인" : "계정 만들기"}
+            <button className="auth-submit" disabled={submitting} type="submit">
+              {submitting ? "확인 중" : mode === "signin" ? "로그인" : "가입 완료"}
               <ArrowRight aria-hidden size={18} />
             </button>
           </form>
-          <button className="auth-mode-link" onClick={() => setMode(mode === "signin" ? "signup" : "signin")} type="button">
-            {mode === "signin" ? "회원가입하기" : "로그인으로 돌아가기"}
-          </button>
           {status ? <p className="status auth-status">{status}</p> : null}
         </section>
       </section>

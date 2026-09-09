@@ -3,6 +3,7 @@ import { getOptionalEnv } from "@/lib/env";
 import type { GuideBlock, GuideDetail, GuideRichText, GuideSummary } from "@/lib/types";
 import { deriveSummary } from "@/lib/guideParser";
 import { resolveGuideCategory } from "@/lib/guide-structure";
+import { extractHashTagsFromBlocks, mergeGuideTags } from "@/lib/guideTags";
 
 const NOTION_VERSION = "2022-06-28";
 
@@ -61,13 +62,31 @@ function propertyText(page: NotionPage, key: string): string {
   return textFromRichText(page.properties[key]);
 }
 
+function firstProperty(page: NotionPage, keys: string[]) {
+  return keys.map((key) => page.properties[key]).find(Boolean);
+}
+
+function propertyTextFromKeys(page: NotionPage, keys: string[]): string {
+  return textFromRichText(firstProperty(page, keys));
+}
+
 function propertySelect(page: NotionPage, key: string): string {
   const value = page.properties[key] as { select?: { name?: string } } | undefined;
   return value?.select?.name ?? "";
 }
 
+function propertySelectFromKeys(page: NotionPage, keys: string[]): string {
+  const value = firstProperty(page, keys) as { select?: { name?: string } } | undefined;
+  return value?.select?.name ?? "";
+}
+
 function propertyMultiSelect(page: NotionPage, key: string): string[] {
   const value = page.properties[key] as { multi_select?: Array<{ name?: string }> } | undefined;
+  return value?.multi_select?.map((item) => item.name ?? "").filter(Boolean) ?? [];
+}
+
+function propertyMultiSelectFromKeys(page: NotionPage, keys: string[]): string[] {
+  const value = firstProperty(page, keys) as { multi_select?: Array<{ name?: string }> } | undefined;
   return value?.multi_select?.map((item) => item.name ?? "").filter(Boolean) ?? [];
 }
 
@@ -77,17 +96,17 @@ function propertyDate(page: NotionPage, key: string): string {
 }
 
 function mapPage(page: NotionPage): GuideSummary {
-  const category = resolveGuideCategory(propertySelect(page, "Category"));
+  const category = resolveGuideCategory(propertySelectFromKeys(page, ["Category", "카테고리", "분류"]));
   return {
     id: page.id,
-    slug: propertyText(page, "Slug") || page.id,
-    title: propertyText(page, "Title") || "Untitled",
+    slug: propertyTextFromKeys(page, ["Slug", "URL", "주소", "고유주소"]) || page.id,
+    title: propertyTextFromKeys(page, ["Title", "Name", "제목", "이름", "주제"]) || "Untitled",
     category: category.title,
     categoryId: category.id,
-    summary: propertyText(page, "Summary"),
+    summary: propertyTextFromKeys(page, ["Summary", "요약", "설명", "소개"]),
     updatedAt: propertyDate(page, "Updated"),
-    author: propertyText(page, "Author") || "KSAN",
-    tags: propertyMultiSelect(page, "Tags")
+    author: propertyTextFromKeys(page, ["Author", "작성자", "담당자"]) || "KSAN",
+    tags: mergeGuideTags(propertyMultiSelectFromKeys(page, ["Tags", "태그", "해시태그", "키워드"]))
   };
 }
 
@@ -109,7 +128,14 @@ async function notionFetch<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(`Notion request failed: ${response.status}`);
+    const body = await response.text();
+    if (body.includes("is a database, not a page")) {
+      throw new Error("데이터베이스 전체 링크가 아니라, 표에서 가이드 제목을 클릭해 들어간 개별 Notion 페이지 링크를 넣어주세요.");
+    }
+    if (body.includes("Could not find database") || body.includes("Could not find block")) {
+      throw new Error("Notion Integration이 이 페이지/데이터베이스에 공유되어 있는지 확인해주세요.");
+    }
+    throw new Error(`Notion request failed: ${response.status} ${body.slice(0, 240)}`);
   }
 
   return (await response.json()) as T;
@@ -179,6 +205,30 @@ function mapBlock(block: NotionBlock): GuideBlock | null {
     return { id: block.id, type: "divider", text: "" };
   }
 
+  if (block.type === "table") {
+    return {
+      id: block.id,
+      type: "table",
+      text: "",
+      rows: [],
+      tableRows: [],
+      hasColumnHeader: Boolean(blockValue?.has_column_header),
+      hasRowHeader: Boolean(blockValue?.has_row_header)
+    };
+  }
+
+  if (block.type === "table_row") {
+    const cells = Array.isArray(blockValue?.cells) ? (blockValue.cells as unknown[]) : [];
+    const tableRows = [cells.map((cell) => richTextFromValue(cell))];
+    return {
+      id: block.id,
+      type: "table",
+      text: tableRows[0].map((cell) => cell.map((segment) => segment.text).join("")).join(" ").trim(),
+      rows: tableRows.map((row) => row.map((cell) => cell.map((segment) => segment.text).join("").trim())),
+      tableRows
+    };
+  }
+
   if (block.type === "image") {
     const url = notionFileUrl(blockValue);
     if (!url) return null;
@@ -228,7 +278,14 @@ async function getBlocks(pageId: string): Promise<GuideBlock[]> {
       const mapped = mapBlock(block);
       const children = block.has_children ? await getBlocks(block.id) : [];
       if (mapped) {
-        blocks.push(children.length ? { ...mapped, children } : mapped);
+        if (block.type === "table") {
+          const rowBlocks = children.filter((child) => child.type === "table");
+          const rows = rowBlocks.flatMap((row) => row.rows ?? []);
+          const tableRows = rowBlocks.flatMap((row) => row.tableRows ?? []);
+          blocks.push({ ...mapped, rows, tableRows });
+        } else {
+          blocks.push(children.length ? { ...mapped, children } : mapped);
+        }
       } else if (children.length) {
         blocks.push(...children);
       }
@@ -245,6 +302,9 @@ function pageIdFromNotionUrl(url: string) {
   const pageId = normalized.match(/([0-9a-f]{32})(?:\?|$)/i)?.[1];
   if (!pageId) {
     throw new Error("Notion page ID could not be found in the supplied URL.");
+  }
+  if (pageId === getOptionalEnv("NOTION_GUIDES_DATABASE_ID")?.replace(/-/g, "")) {
+    throw new Error("데이터베이스 전체 링크가 아니라, 표에서 가이드 제목을 클릭해 들어간 개별 Notion 페이지 링크를 넣어주세요.");
   }
   return pageId;
 }
@@ -275,6 +335,7 @@ export async function getNotionPageFromUrl(url: string) {
     pageId,
     title,
     summary: deriveSummary(plainText),
+    tags: mergeGuideTags(propertyMultiSelectFromKeys(page, ["Tags", "태그", "해시태그", "키워드"]), extractHashTagsFromBlocks(blocks)),
     blocks
   };
 }

@@ -2,8 +2,8 @@ import { Fragment, type ReactNode } from "react";
 import { ArrowUpRight, Check, FileText, ImageIcon } from "lucide-react";
 import type { GuideBlock, GuideRichText } from "@/lib/types";
 
-export function guideHeadingId(block: GuideBlock) {
-  return `section-${block.id.replace(/[^a-zA-Z0-9가-힣_-]/g, "-")}`;
+export function guideHeadingId(block: GuideBlock, prefix = "") {
+  return `${prefix}section-${block.id.replace(/[^a-zA-Z0-9가-힣_-]/g, "-")}`;
 }
 
 export function flattenGuideBlocks(blocks: GuideBlock[]): GuideBlock[] {
@@ -35,44 +35,53 @@ function RichText({ fallback, segments }: { fallback: string; segments?: GuideRi
   });
 }
 
-function BlockChildren({ block }: { block: GuideBlock }) {
-  return block.children?.length ? <GuideNotionContent blocks={block.children} nested /> : null;
+function BlockChildren({ block, headingIdPrefix }: { block: GuideBlock; headingIdPrefix: string }) {
+  return block.children?.length ? <GuideNotionContent blocks={block.children} headingIdPrefix={headingIdPrefix} nested /> : null;
 }
 
-function renderBlock(block: GuideBlock) {
+function tableCellText(cell: GuideRichText[] | undefined, fallback: string) {
+  if (!cell?.length) return fallback;
+  return cell.map((segment) => segment.text).join("").trim() || fallback;
+}
+
+function renderTableCellContent(segments: GuideRichText[] | undefined, fallback: string) {
+  return <RichText fallback={fallback} segments={segments} />;
+}
+
+function renderBlock(block: GuideBlock, headingIdPrefix: string) {
   const text = <RichText fallback={block.text} segments={block.richText} />;
   if (block.type === "heading_1") {
-    return <h2 className="article-heading article-heading--1" id={guideHeadingId(block)} key={block.id}>{text}</h2>;
+    return <h2 className="article-heading article-heading--1" id={guideHeadingId(block, headingIdPrefix)} key={block.id}>{text}</h2>;
   }
   if (block.type === "heading_2") {
-    return <h3 className="article-heading article-heading--2" id={guideHeadingId(block)} key={block.id}>{text}</h3>;
+    return <h2 className="article-heading article-heading--2" id={guideHeadingId(block, headingIdPrefix)} key={block.id}>{text}</h2>;
   }
   if (block.type === "heading_3") {
-    return <h4 className="article-heading article-heading--3" id={guideHeadingId(block)} key={block.id}>{text}</h4>;
+    return <h3 className="article-heading article-heading--3" id={guideHeadingId(block, headingIdPrefix)} key={block.id}>{text}</h3>;
   }
   if (block.type === "paragraph") {
-    return <div className="notion-paragraph-wrap" key={block.id}><p>{text}</p><BlockChildren block={block} /></div>;
+    return <div className="notion-paragraph-wrap" key={block.id}><p>{text}</p><BlockChildren block={block} headingIdPrefix={headingIdPrefix} /></div>;
   }
   if (block.type === "quote") {
-    return <blockquote className="notion-quote" key={block.id}>{text}<BlockChildren block={block} /></blockquote>;
+    return <blockquote className="notion-quote" key={block.id}>{text}<BlockChildren block={block} headingIdPrefix={headingIdPrefix} /></blockquote>;
   }
   if (block.type === "callout") {
     return (
       <aside className={`notion-callout${safeColorClass(block.color)}`} key={block.id}>
         <span aria-hidden className="notion-callout-icon">{block.icon ?? "💡"}</span>
-        <div><p>{text}</p><BlockChildren block={block} /></div>
+        <div><p>{text}</p><BlockChildren block={block} headingIdPrefix={headingIdPrefix} /></div>
       </aside>
     );
   }
   if (block.type === "toggle") {
-    return <details className="notion-toggle" key={block.id}><summary>{text}</summary><BlockChildren block={block} /></details>;
+    return <details className="notion-toggle" key={block.id}><summary>{text}</summary><BlockChildren block={block} headingIdPrefix={headingIdPrefix} /></details>;
   }
   if (block.type === "to_do") {
     return (
       <div className={`notion-todo${block.checked ? " is-checked" : ""}`} key={block.id}>
         <span aria-hidden>{block.checked ? <Check size={14} /> : null}</span>
         <p>{text}</p>
-        <BlockChildren block={block} />
+        <BlockChildren block={block} headingIdPrefix={headingIdPrefix} />
       </div>
     );
   }
@@ -85,6 +94,58 @@ function renderBlock(block: GuideBlock) {
     );
   }
   if (block.type === "divider") return <hr className="notion-divider" key={block.id} />;
+  if (block.type === "table" && (block.tableRows?.length || block.rows?.length)) {
+    const tableRows = block.tableRows?.length
+      ? block.tableRows
+      : block.rows?.map((row) => row.map((cell) => [{ text: cell }])) ?? [];
+    const plainRows = block.rows?.length
+      ? block.rows
+      : tableRows.map((row) => row.map((cell) => tableCellText(cell, "")));
+    const headerRows = block.hasColumnHeader ? tableRows.slice(0, 1) : [];
+    const bodyRows = block.hasColumnHeader ? tableRows.slice(1) : tableRows;
+    const bodyPlainRows = block.hasColumnHeader ? plainRows.slice(1) : plainRows;
+
+    return (
+      <div className="notion-table-wrap" key={block.id}>
+        <table className="notion-table">
+          {headerRows.length ? (
+            <thead>
+              {headerRows.map((row, rowIndex) => (
+                <tr key={`head-${rowIndex}`}>
+                  {row.map((cell, cellIndex) => (
+                    <th key={`head-${rowIndex}-${cellIndex}`} scope="col">
+                      {renderTableCellContent(cell, plainRows[rowIndex]?.[cellIndex] ?? "")}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+          ) : null}
+          <tbody>
+            {bodyRows.map((row, rowIndex) => (
+              <tr key={`body-${rowIndex}`}>
+                {row.map((cell, cellIndex) => {
+                  const fallback = bodyPlainRows[rowIndex]?.[cellIndex] ?? "";
+                  if (block.hasRowHeader && cellIndex === 0) {
+                    return (
+                      <th key={`body-${rowIndex}-${cellIndex}`} scope="row">
+                        {renderTableCellContent(cell, fallback)}
+                      </th>
+                    );
+                  }
+                  return (
+                    <td key={`body-${rowIndex}-${cellIndex}`}>
+                      {renderTableCellContent(cell, fallback)}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
   if (block.type === "image" && block.url) {
     return (
       <figure className="notion-image" key={block.id}>
@@ -107,7 +168,7 @@ function renderBlock(block: GuideBlock) {
   return null;
 }
 
-export function GuideNotionContent({ blocks, nested = false }: { blocks: GuideBlock[]; nested?: boolean }) {
+export function GuideNotionContent({ blocks, headingIdPrefix = "", nested = false }: { blocks: GuideBlock[]; headingIdPrefix?: string; nested?: boolean }) {
   const nodes: ReactNode[] = [];
   for (let index = 0; index < blocks.length; index += 1) {
     const block = blocks[index];
@@ -125,14 +186,14 @@ export function GuideNotionContent({ blocks, nested = false }: { blocks: GuideBl
           {items.map((item) => (
             <li key={item.id}>
               <span><RichText fallback={item.text} segments={item.richText} /></span>
-              <BlockChildren block={item} />
+              <BlockChildren block={item} headingIdPrefix={headingIdPrefix} />
             </li>
           ))}
         </List>
       );
       continue;
     }
-    nodes.push(renderBlock(block));
+    nodes.push(renderBlock(block, headingIdPrefix));
   }
 
   return <div className={nested ? "notion-block-children" : "notion-content"}>{nodes}</div>;
