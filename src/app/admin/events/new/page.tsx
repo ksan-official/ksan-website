@@ -27,7 +27,7 @@ export default function NewEventPage() {
         startsAt: formData.get("startsAt"),
         location: formData.get("location"),
         description: formData.get("description"),
-        registrationMode: formData.get("registrationMode"),
+        registrationMode: "google_form",
         registrationTarget: formData.get("registrationTarget"),
         published: formData.get("published") === "on"
       })
@@ -45,14 +45,9 @@ export default function NewEventPage() {
         <label className="field"><span>장소</span><input name="location" /></label>
         <label className="field"><span>설명</span><textarea name="description" rows={6} required /></label>
         <label className="field">
-          <span>신청 방식</span>
-          <select name="registrationMode" defaultValue="internal_form">
-            <option value="internal_form">Internal form</option>
-            <option value="google_form">Google Form</option>
-            <option value="external_link">External link</option>
-          </select>
+          <span>Google Form 신청 링크</span>
+          <input name="registrationTarget" placeholder="https://forms.gle/..." required type="url" />
         </label>
-        <label className="field"><span>신청 링크</span><input name="registrationTarget" /></label>
         <label><input name="published" type="checkbox" /> 공개</label>
         <button className="button" type="submit">저장</button>
       </form>

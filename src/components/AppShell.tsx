@@ -62,7 +62,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <a className="skip-link" href="#main">
         본문으로 바로가기
       </a>
-      <div className="shell">
+      <div className={pathname === "/events" ? "shell events-shell" : "shell"}>
         <header className="site-header">
           {isAuth ? null : (
             <Link aria-label="KSAN 홈" className="brand brand-logo" href="/">
