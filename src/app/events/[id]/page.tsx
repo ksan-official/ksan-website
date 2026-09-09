@@ -59,7 +59,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   }
 
   const organizerName = event.organizerName ?? "KSAN";
-  const organizerLogo = event.organizerLogo ?? "/images/ksan-logo-black.png";
+  const organizerLogo = event.organizerLogo;
   const registrationTarget = await getRegistrationTarget(event.title, event.registrationTarget);
   const descriptionParagraphs = event.description.split(/\n\n+/).map((paragraph) => paragraph.trim()).filter(Boolean);
 
@@ -70,11 +70,16 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         <div
           aria-label={`${event.title} 행사 대표 이미지`}
           className="event-detail-cover"
+          data-protected-event-image
           role="img"
           style={{ backgroundImage: `url(${event.image})` }}
         />
-        <div className="event-organizer-logo">
-          <Image alt={`${organizerName} 주최자 로고`} height={120} src={organizerLogo} width={120} />
+        <div className="event-organizer-logo" data-protected-event-image>
+          {organizerLogo ? (
+            <Image alt={`${organizerName} 주최자 로고`} height={120} src={organizerLogo} width={120} />
+          ) : (
+            <span className="event-organizer-monogram">{organizerName}</span>
+          )}
         </div>
         <div className="event-detail-intro">
           <p className="event-organizer-name"><span>주최</span><strong>{organizerName}</strong></p>
@@ -127,7 +132,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
               </div>
               <a
                 aria-label={`${event.location} Google Maps에서 열기`}
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.mapQuery ?? event.location)}`}
                 rel="noreferrer"
                 target="_blank"
               >

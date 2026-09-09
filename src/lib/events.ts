@@ -6,7 +6,9 @@ export type KsanEvent = {
   date: string;
   dateLabel: string;
   time: string;
+  city: string;
   location: string;
+  mapQuery?: string;
   keywords: string[];
   status: "upcoming" | "past";
   image: string;
@@ -25,6 +27,29 @@ export type KsanEvent = {
 
 export const ksanEvents: KsanEvent[] = [
   {
+    id: "uva-freshmen-ot-2026",
+    title: "신입생 OT",
+    summary: "새로운 동기와 선배를 만나 학교와 암스테르담 생활을 알아가는 첫 자리",
+    description:
+      "안녕하세요, 암스테르담 대학교 한인학생회 우바인(UvA-IN)입니다.\n\n2026-2027학년도 암스테르담에서 새 시작을 앞둔 여러분을 환영하기 위해 신입생 오리엔테이션(OT)을 준비했습니다. 신입생 OT를 통해 새로운 동기들과 소통하고, 학교와 암스테르담 생활에 유용한 정보도 얻는 기회가 되길 바랍니다!\n\n본 행사는 크게 2부로 구성되어 있습니다.",
+    date: "2026-09-11",
+    dateLabel: "2026.09.11 (금)",
+    time: "1부 17:30–18:50 · 2부 19:00–",
+    city: "Amsterdam",
+    location: "1부: Roeterseiland Campus (자세한 장소는 추후 공지 예정)\n2부: CREA",
+    mapQuery: "Roeterseiland Campus Amsterdam",
+    keywords: ["신입생", "오리엔테이션"],
+    status: "upcoming",
+    image: "/images/events/uva-freshmen-ot-2026/cover.png",
+    organizerName: "UvA-IN",
+    registrationTarget: "https://docs.google.com/forms/d/e/1FAIpQLSemA5Fiz012BMPSEbztQo2IsNM-uwVhwORSHFfdX7xc4lPC1g/viewform",
+    audience: "2026–2027학년도 암스테르담 대학교 신입생",
+    agenda: [
+      "1부 | 인포세션: 신입생들과 함께 앉아 서로를 알아가는 시간",
+      "2부 | 네트워킹: 동기 및 선배들과 자유롭게 이야기하며 친해지는 시간"
+    ]
+  },
+  {
     id: "ksan-freshmen-networking-2026",
     title: "2026 KSAN 신입생 네트워킹",
     summary: "첫 만남의 어색함을 풀고 새로운 인연을 만드는 네트워킹",
@@ -33,6 +58,7 @@ export const ksanEvents: KsanEvent[] = [
     date: "2026-09-12",
     dateLabel: "2026.09.12",
     time: "16:00–20:00 (CEST)",
+    city: "Amsterdam",
     location: "Amstel Campuscafe, Tweede Boerhaavestraat 10, 1091 BD Amsterdam",
     keywords: ["신입생", "네트워킹"],
     status: "upcoming",
@@ -60,6 +86,7 @@ export const ksanEvents: KsanEvent[] = [
     date: "2026-05-09",
     dateLabel: "2026.05.09",
     time: "Completed",
+    city: "Netherlands",
     location: "Netherlands",
     keywords: ["체육", "커뮤니티"],
     status: "past",
@@ -74,7 +101,10 @@ export const ksanEvents: KsanEvent[] = [
     photoCount: 5,
     organizerName: "KSAN",
     organizerLogo: "/images/ksan-logo-black.png",
-    sponsors: [{ name: "LG" }, { name: "Shilla Market" }],
+    sponsors: [
+      { name: "LG", image: "/images/partners/lg.png" },
+      { name: "Shilla Market", image: "/images/partners/shilla-market.png" }
+    ],
     audience: "KSAN 체육대회 참가자",
     agenda: []
   },
@@ -87,6 +117,7 @@ export const ksanEvents: KsanEvent[] = [
     date: "2026-02-14",
     dateLabel: "2026.02.14",
     time: "Completed",
+    city: "Netherlands",
     location: "Netherlands",
     keywords: ["커리어", "네트워킹"],
     status: "past",
@@ -101,7 +132,7 @@ export const ksanEvents: KsanEvent[] = [
     photoCount: 5,
     organizerName: "KSAN",
     organizerLogo: "/images/ksan-logo-black.png",
-    sponsors: [{ name: "농심" }],
+    sponsors: [{ name: "농심", image: "/images/partners/nongshim.png" }],
     audience: "네덜란드에서 진로와 커리어를 고민하는 학생",
     agenda: []
   },
@@ -114,6 +145,7 @@ export const ksanEvents: KsanEvent[] = [
     date: "2025-09-05",
     dateLabel: "2025.09.05",
     time: "18:00–22:00",
+    city: "Amsterdam",
     location: "Amstel Campus Cafe, Tweede Boerhaavestraat 10, 1091 BD Amsterdam",
     keywords: ["신입생", "네트워킹"],
     status: "past",
@@ -131,7 +163,7 @@ export const ksanEvents: KsanEvent[] = [
     organizerName: "KSAN",
     organizerLogo: "/images/ksan-logo-black.png",
     sponsors: [
-      { name: "LG" },
+      { name: "LG", image: "/images/partners/lg.png" },
       { name: "Ofood" },
       { name: "Daesang Europe B.V." },
       { name: "@jongga_eu" },

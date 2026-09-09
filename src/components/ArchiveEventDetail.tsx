@@ -85,6 +85,7 @@ export function ArchiveEventDetail({ event }: { event: KsanEvent }) {
             <button
               aria-label={`${index + 1}번째 현장 사진 크게 보기`}
               className="archive-photo-tile"
+              data-protected-event-image
               key={image}
               onClick={() => setActivePhoto(index)}
               style={{ backgroundImage: `url(${image})` }}
@@ -103,7 +104,7 @@ export function ArchiveEventDetail({ event }: { event: KsanEvent }) {
 
           <div className="archive-detail-meta">
             <div className="archive-detail-organizer">
-              <span className="archive-detail-organizer-logo">
+              <span className="archive-detail-organizer-logo" data-protected-event-image>
                 <Image alt={`${organizerName} 로고`} height={64} src={organizerLogo} width={64} />
               </span>
               <span><small>주최</small><strong>{organizerName}</strong></span>
@@ -146,7 +147,7 @@ export function ArchiveEventDetail({ event }: { event: KsanEvent }) {
                   {[0, 1].map((group) => (
                     <div aria-hidden={group === 1} className="archive-sponsor-group" key={group}>
                       {sponsors.map((sponsor) => (
-                        <div className={`archive-sponsor-logo${sponsor.image ? "" : " archive-sponsor-wordmark"}`} key={`${group}-${sponsor.name}`}>
+                        <div className={`archive-sponsor-logo${sponsor.image ? "" : " archive-sponsor-wordmark"}`} data-protected-event-image key={`${group}-${sponsor.name}`}>
                           {sponsor.image ? (
                             <Image alt={group === 0 ? sponsor.name : ""} height={72} src={sponsor.image} width={210} />
                           ) : (
@@ -179,6 +180,7 @@ export function ArchiveEventDetail({ event }: { event: KsanEvent }) {
             <div
               aria-label={`${event.title} 현장 사진 ${activePhoto + 1}`}
               className="archive-lightbox-image"
+              data-protected-event-image
               role="img"
               style={{ backgroundImage: `url(${images[activePhoto]})` }}
             />

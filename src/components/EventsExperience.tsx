@@ -78,7 +78,7 @@ export function EventsExperience() {
     const normalizedQuery = query.trim().toLocaleLowerCase("ko-KR");
 
     return ksanEvents.filter((event) => {
-      const searchable = [event.title, event.summary, event.location, ...event.keywords]
+      const searchable = [event.title, event.summary, event.city, event.location, ...event.keywords]
         .join(" ")
         .toLocaleLowerCase("ko-KR");
       const matchesQuery = !normalizedQuery || searchable.includes(normalizedQuery);
@@ -139,6 +139,7 @@ export function EventsExperience() {
             <article
               aria-hidden={index !== activeSlide}
               className="events-hero-slide"
+              data-protected-event-image
               key={event.id}
               style={{ backgroundImage: `url(${event.image})` }}
             >
@@ -148,7 +149,7 @@ export function EventsExperience() {
                 <p className="events-hero-summary">{event.summary}</p>
                 <div className="events-hero-meta">
                   <span><CalendarDays aria-hidden size={18} />{event.dateLabel} · {event.time}</span>
-                  <span><MapPin aria-hidden size={18} />{event.location}</span>
+                  <span><MapPin aria-hidden size={18} />{event.city}</span>
                 </div>
                 <div className="events-hero-actions">
                   <Link className="events-hero-link" href={`/events/${event.id}`} tabIndex={index === activeSlide ? 0 : -1}>
@@ -237,13 +238,13 @@ export function EventsExperience() {
             <div className="events-post-grid" data-event-grid id="upcoming-events-grid">
               {visibleUpcoming.map((event) => (
                 <Link className="event-post upcoming-event-post" data-event-post href={`/events/${event.id}`} key={event.id}>
-                  <div className="event-post-image" style={{ backgroundImage: `url(${event.image})` }}>
+                  <div className="event-post-image" data-protected-event-image style={{ backgroundImage: `url(${event.image})` }}>
                     <span>{event.dateLabel}</span>
                   </div>
                   <div className="event-post-copy">
                     <p>{event.keywords.join(" · ")}</p>
                     <h4>{event.title}</h4>
-                    <div><span>{event.location}</span><ArrowRight aria-hidden size={18} /></div>
+                    <div><span>{event.city}</span><ArrowRight aria-hidden size={18} /></div>
                   </div>
                 </Link>
               ))}
@@ -273,13 +274,13 @@ export function EventsExperience() {
             <div className="events-post-grid" data-event-grid id="past-events-grid">
               {visiblePast.map((event) => (
                 <Link className="event-post past-event-post" data-event-post href={`/events/${event.id}`} key={event.id}>
-                  <div className="event-post-image" style={{ backgroundImage: `url(${event.image})` }}>
+                  <div className="event-post-image" data-protected-event-image style={{ backgroundImage: `url(${event.image})` }}>
                     <span>{event.dateLabel}</span>
                   </div>
                   <div className="event-post-copy">
                     <p>{event.keywords.join(" · ")}</p>
                     <h4>{event.title}</h4>
-                    <div><span>{event.location}</span><ArrowRight aria-hidden size={18} /></div>
+                    <div><span>{event.city}</span><ArrowRight aria-hidden size={18} /></div>
                   </div>
                 </Link>
               ))}

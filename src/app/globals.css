@@ -7822,6 +7822,17 @@ body::before {
 }
 
 /* Events page */
+[data-protected-event-image],
+[data-protected-event-image] img {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+[data-protected-event-image] img {
+  pointer-events: none;
+}
+
 .events-page,
 .event-detail-page {
   font-family: var(--font-body);
@@ -8729,6 +8740,15 @@ body::before {
   width: 100%;
 }
 
+.event-organizer-monogram {
+  color: var(--brand-carbon-ink);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+}
+
 .event-detail-intro {
   padding: 18px clamp(24px, 4vw, 48px) 0;
 }
@@ -8977,6 +8997,7 @@ body::before {
   font-size: 15px;
   line-height: 1.5;
   overflow-wrap: anywhere;
+  white-space: pre-line;
 }
 
 .event-detail-sidebar-facts small {

@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { PaletteTabs } from "@/components/PaletteTabs";
 import { CustomCursor } from "@/components/CustomCursor";
 import { SiteNav } from "@/components/SiteNav";
+import { EventImageProtection } from "@/components/EventImageProtection";
 import { createBrowserSupabaseClient, getBrowserSupabaseSession, hasSupabaseConfig } from "@/lib/supabase";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -63,6 +64,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         본문으로 바로가기
       </a>
       <div className={pathname === "/events" ? "shell events-shell" : "shell"}>
+        {pathname === "/events" || pathname.startsWith("/events/") ? <EventImageProtection /> : null}
         <header className="site-header">
           {isAuth ? null : (
             <Link aria-label="KSAN 홈" className="brand brand-logo" href="/">
