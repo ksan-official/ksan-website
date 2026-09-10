@@ -58,7 +58,7 @@ export default function NewBusinessPostPage() {
   return (
     <main className="page" id="main">
       <div className="admin-page-header">
-        <div><p className="admin-kicker">Business Hub</p><h1 className="page-title">채용 공고 등록</h1><p>공고 내용, 검색 태그, 하이라이트 배너 노출을 함께 설정합니다.</p></div>
+        <div><p className="admin-kicker">Business Hub</p><h1 className="page-title">채용 공고 등록</h1><p>공고 내용, 검색 태그, 상단 고정 여부를 함께 설정합니다.</p></div>
         <Link className="admin-button secondary" href="/admin/business">전체 공고 관리</Link>
       </div>
       <form className="form" onSubmit={submit}>
@@ -101,13 +101,13 @@ export default function NewBusinessPostPage() {
             <span>배너 컬러</span>
             <select defaultValue="orange" name="accent"><option value="orange">Dutch Orange</option><option value="blue">Ice Blue</option><option value="dark">Slate Obsidian</option></select>
           </label>
-          <label className="field"><span>배너 순서</span><input defaultValue="0" min="0" name="featuredOrder" type="number" /></label>
+          <label className="field"><span>고정 순서</span><input defaultValue="0" min="0" name="featuredOrder" type="number" /></label>
         </div>
         <div className="admin-publish-options">
           <label className="admin-check"><input name="published" type="checkbox" /> 공개 페이지에 게시</label>
-          <label className="admin-check"><input name="featured" type="checkbox" /> 하이라이트 배너로 노출</label>
+          <label className="admin-check"><input name="featured" type="checkbox" /> 상단 고정 · KSAN 승인 포스트</label>
         </div>
-        <p className="admin-note">하이라이트는 최대 3개까지 지정할 수 있습니다.</p>
+        <p className="admin-note">상단 고정 공고는 최대 3개까지 지정할 수 있으며, 목록에서 주황색 테두리와 승인 태그로 표시됩니다.</p>
         <button className="button" type="submit">공고 저장</button>
       </form>
       {status ? <p className="status">{status}</p> : null}

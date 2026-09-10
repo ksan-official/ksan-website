@@ -105,11 +105,11 @@ export default function AdminBusinessPage() {
   return (
     <main className="admin-page" id="main">
       <header className="admin-page-header">
-        <div><p className="admin-kicker">Business Hub</p><h1>채용 공고 관리</h1><p>일반 공고와 상단 하이라이트 배너를 같은 데이터에서 관리합니다.</p></div>
+        <div><p className="admin-kicker">Business Hub</p><h1>채용 공고 관리</h1><p>공개 상태와 상단 고정 공고를 같은 데이터에서 관리합니다.</p></div>
         <Link className="admin-button" href="/admin/business/new">새 공고 등록</Link>
       </header>
       <section className="admin-section">
-        <div className="admin-business-list-header"><strong>{posts.length}개 공고</strong><span>하이라이트 {posts.filter((post) => post.featured).length} / 3</span></div>
+        <div className="admin-business-list-header"><strong>{posts.length}개 공고</strong><span>상단 고정 {posts.filter((post) => post.featured).length} / 3</span></div>
         <div className="admin-business-list">
           {posts.map((post) => (
             <article className="admin-business-row" key={post.id}>
@@ -121,14 +121,14 @@ export default function AdminBusinessPage() {
                 </div>
                 <div className="admin-business-meta-edit">
                   <label><span>태그</span><input aria-label={`${post.title} 태그`} onChange={(event) => setDrafts((current) => ({ ...current, [post.id]: { ...current[post.id], tags: event.target.value } }))} value={drafts[post.id]?.tags ?? ""} /></label>
-                  <label><span>배너 순서</span><input aria-label={`${post.title} 배너 순서`} min="0" onChange={(event) => setDrafts((current) => ({ ...current, [post.id]: { ...current[post.id], featuredOrder: event.target.value } }))} type="number" value={drafts[post.id]?.featuredOrder ?? "0"} /></label>
+                  <label><span>고정 순서</span><input aria-label={`${post.title} 고정 순서`} min="0" onChange={(event) => setDrafts((current) => ({ ...current, [post.id]: { ...current[post.id], featuredOrder: event.target.value } }))} type="number" value={drafts[post.id]?.featuredOrder ?? "0"} /></label>
                   <button className="admin-text-button" onClick={() => void saveMetadata(post.id)} type="button">저장</button>
                 </div>
               </div>
               <div className="admin-business-state">
                 <Link href={`/admin/business/${post.id}/edit`}>수정</Link>
                 <label><input checked={post.published} onChange={(event) => void updatePost(post.id, { published: event.target.checked })} type="checkbox" /> 공개</label>
-                <label><input checked={post.featured} onChange={(event) => void updatePost(post.id, { featured: event.target.checked })} type="checkbox" /> 배너</label>
+                <label><input checked={post.featured} onChange={(event) => void updatePost(post.id, { featured: event.target.checked })} type="checkbox" /> 상단 고정</label>
                 <button className="admin-text-button danger" onClick={() => void removePost(post)} type="button">삭제</button>
               </div>
             </article>

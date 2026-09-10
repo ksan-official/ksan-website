@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin";
+import { businessJobs } from "@/lib/business";
 
 function accessToken(request: Request) {
   return request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? null;
@@ -21,9 +22,54 @@ async function featuredSlotAvailable(
   return (count ?? 0) < 3;
 }
 
+async function ensureDefaultBusinessPosts(serviceClient: SupabaseClient) {
+  const targets = businessJobs.map((job) => job.applyTarget);
+  const { data, error } = await serviceClient
+    .from("business_posts")
+    .select("apply_target")
+    .in("apply_target", targets);
+
+  if (error) throw error;
+  const existingTargets = new Set((data ?? []).map((row: { apply_target: string }) => row.apply_target));
+  const missingRows = businessJobs
+    .filter((job) => !existingTargets.has(job.applyTarget))
+    .map((job, index) => ({
+      accent: job.accent,
+      apply_mode: "external_link",
+      apply_target: job.applyTarget,
+      company: job.company,
+      company_intro: job.companyIntro,
+      deadline: job.deadline,
+      department: job.department,
+      description: job.description,
+      employment_type: job.type,
+      featured: Boolean(job.featured),
+      featured_order: job.featured ? 0 : index + 1,
+      location: job.location,
+      published: true,
+      requirements: job.requirements,
+      responsibilities: job.responsibilities,
+      tags: job.tags,
+      title: job.title
+    }));
+
+  if (!missingRows.length) return;
+  const { error: insertError } = await serviceClient.from("business_posts").insert(missingRows as never);
+  if (insertError) throw insertError;
+}
+
 export async function GET(request: Request) {
   const admin = await requireAdmin(accessToken(request));
   if (!admin.ok) return NextResponse.json({ error: admin.error }, { status: 401 });
+
+  try {
+    await ensureDefaultBusinessPosts(admin.serviceClient);
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "기본 채용 공고를 관리자 데이터에 저장하지 못했습니다." },
+      { status: 500 }
+    );
+  }
 
   const { data, error } = await admin.serviceClient
     .from("business_posts")
@@ -42,7 +88,7 @@ export async function POST(request: Request) {
 
   const payload = await request.json();
   if (payload.featured && !(await featuredSlotAvailable(admin.serviceClient))) {
-    return NextResponse.json({ error: "하이라이트 배너는 최대 3개까지 지정할 수 있습니다." }, { status: 400 });
+    return NextResponse.json({ error: "상단 고정 공고는 최대 3개까지 지정할 수 있습니다." }, { status: 400 });
   }
 
   const row = {
@@ -78,7 +124,7 @@ export async function PATCH(request: Request) {
   const payload = await request.json();
   if (!payload.id) return NextResponse.json({ error: "공고 ID가 필요합니다." }, { status: 400 });
   if (payload.featured === true && !(await featuredSlotAvailable(admin.serviceClient, payload.id))) {
-    return NextResponse.json({ error: "하이라이트 배너는 최대 3개까지 지정할 수 있습니다." }, { status: 400 });
+    return NextResponse.json({ error: "상단 고정 공고는 최대 3개까지 지정할 수 있습니다." }, { status: 400 });
   }
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };

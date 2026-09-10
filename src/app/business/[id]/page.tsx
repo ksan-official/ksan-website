@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowUpRight, BriefcaseBusiness, Building2, CalendarClock, MapPin } from "lucide-react";
+import { ArrowLeft, BriefcaseBusiness, Building2, CalendarClock, MapPin } from "lucide-react";
+import { BusinessDetailActions } from "@/components/BusinessDetailActions";
 import { businessJobs, resolveBusinessDetails, type BusinessJob, type JobType } from "@/lib/business";
 import { createServerSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 
@@ -49,6 +50,7 @@ function toJob(row: BusinessPostRow): BusinessJob {
     description: details.summary,
     featured: Boolean(row.featured),
     id: row.id,
+    language: details.language,
     location: row.location ?? "네덜란드",
     requirements: details.requirements,
     responsibilities: details.responsibilities,
@@ -71,10 +73,6 @@ function deadlineLabel(deadline: string | null) {
   return `마감 D-${days}`;
 }
 
-function applyLabel(target: string) {
-  return target.startsWith("mailto:") ? "이메일로 지원하기" : "지원 페이지 열기";
-}
-
 async function getBusinessJob(id: string) {
   if (hasSupabaseConfig()) {
     const supabase = createServerSupabaseClient();
@@ -83,11 +81,11 @@ async function getBusinessJob(id: string) {
       .select("id,title,company,location,employment_type,deadline,apply_mode,apply_target,description,department,tags,featured,company_intro,responsibilities,requirements,accent")
       .eq("id", id)
       .eq("published", true)
-      .single();
+      .maybeSingle();
 
     if (error) throw new Error(error.message);
     if (data) return toJob(data as BusinessPostRow);
-    return null;
+    return businessJobs.find((job) => job.id === id) ?? null;
   }
 
   return businessJobs.find((job) => job.id === id) ?? null;
@@ -101,10 +99,10 @@ export default async function BusinessDetailPage({ params }: { params: Promise<{
     notFound();
   }
 
-  const externalApply = !job.applyTarget.startsWith("mailto:");
+  const language = job.language ?? "ko";
 
   return (
-    <main className={`business-detail-page business-detail-page--${job.accent}`} id="main">
+    <main className={`business-detail-page business-detail-page--${job.accent}`} id="main" lang="ko">
       <Link className="business-detail-back" href="/business">
         <ArrowLeft aria-hidden size={18} />
         채용 공고 목록
@@ -113,9 +111,10 @@ export default async function BusinessDetailPage({ params }: { params: Promise<{
       <section className="business-detail-hero">
         <div>
           <p className="business-hub-kicker">{job.company}</p>
-          <h1>{job.title}</h1>
-          <p>{job.description}</p>
+          <h1 lang={language}>{job.title}</h1>
+          <p lang={language}>{job.description}</p>
           <div className="business-detail-tags">
+            {job.featured ? <span className="is-approved">KSAN 승인 포스트</span> : null}
             {job.tags.map((tag) => <span key={tag}>{tag}</span>)}
           </div>
         </div>
@@ -124,39 +123,31 @@ export default async function BusinessDetailPage({ params }: { params: Promise<{
       <section className="business-detail-content">
         <div className="business-detail-sections">
           <article className="business-detail-section">
-            <p className="eyebrow">01</p>
             <h2>회사 소개</h2>
-            <p>{job.companyIntro}</p>
+            <p lang={language}>{job.companyIntro}</p>
           </article>
           <article className="business-detail-section">
-            <p className="eyebrow">02</p>
             <h2>주요 업무</h2>
-            <ul>
+            <ul lang={language}>
               {sectionLines(job.responsibilities).map((line) => <li key={line}>{line}</li>)}
             </ul>
           </article>
           <article className="business-detail-section">
-            <p className="eyebrow">03</p>
             <h2>자격 요건</h2>
-            <ul>
+            <ul lang={language}>
               {sectionLines(job.requirements).map((line) => <li key={line}>{line}</li>)}
             </ul>
           </article>
-          <article className="business-detail-section business-detail-section--apply">
-            <p className="eyebrow">04</p>
-            <h2>지원하기</h2>
-            <p>관심 있는 공고라면 회사명, 포지션, 근무 지역, 마감일을 한 번 더 확인한 뒤 지원해주세요.</p>
-            <a href={job.applyTarget} rel={externalApply ? "noreferrer" : undefined} target={externalApply ? "_blank" : undefined}>
-              {applyLabel(job.applyTarget)} <ArrowUpRight aria-hidden size={18} />
-            </a>
-          </article>
         </div>
-        <aside className="business-detail-facts">
-          <div><Building2 aria-hidden size={21} /><span>회사</span><strong>{job.company}</strong></div>
-          <div><MapPin aria-hidden size={21} /><span>지역</span><strong>{job.location}</strong></div>
-          <div><BriefcaseBusiness aria-hidden size={21} /><span>고용 형태</span><strong>{job.type}</strong></div>
-          <div><CalendarClock aria-hidden size={21} /><span>마감</span><strong>{deadlineLabel(job.deadline)}</strong></div>
-        </aside>
+        <div className="business-detail-side-rail">
+          <aside className="business-detail-facts">
+            <div><Building2 aria-hidden size={21} /><span>회사</span><strong lang={language}>{job.company}</strong></div>
+            <div><MapPin aria-hidden size={21} /><span>지역</span><strong>{job.location}</strong></div>
+            <div><BriefcaseBusiness aria-hidden size={21} /><span>고용 형태</span><strong>{job.type}</strong></div>
+            <div><CalendarClock aria-hidden size={21} /><span>마감</span><strong>{deadlineLabel(job.deadline)}</strong></div>
+          </aside>
+          <BusinessDetailActions applyTarget={job.applyTarget} jobId={job.id} />
+        </div>
       </section>
     </main>
   );

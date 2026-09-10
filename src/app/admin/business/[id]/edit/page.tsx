@@ -90,11 +90,11 @@ export default function EditBusinessPostPage() {
         </div>
         <div className="admin-two-column">
           <label className="field"><span>배너 컬러</span><select defaultValue={post.accent} name="accent"><option value="orange">Dutch Orange</option><option value="blue">Ice Blue</option><option value="dark">Slate Obsidian</option></select></label>
-          <label className="field"><span>배너 순서</span><input defaultValue={post.featured_order} min="0" name="featuredOrder" type="number" /></label>
+          <label className="field"><span>고정 순서</span><input defaultValue={post.featured_order} min="0" name="featuredOrder" type="number" /></label>
         </div>
         <div className="admin-publish-options">
           <label className="admin-check"><input defaultChecked={post.published} name="published" type="checkbox" /> 공개 페이지에 게시</label>
-          <label className="admin-check"><input defaultChecked={post.featured} name="featured" type="checkbox" /> 하이라이트 배너로 노출</label>
+          <label className="admin-check"><input defaultChecked={post.featured} name="featured" type="checkbox" /> 상단 고정 · KSAN 승인 포스트</label>
         </div>
         <button className="button" type="submit">변경사항 저장</button>
       </form>

@@ -42,6 +42,7 @@ function toJob(row: BusinessPostRow): BusinessJob {
     description: details.summary,
     featured: Boolean(row.featured),
     id: row.id,
+    language: details.language,
     location: row.location ?? "네덜란드",
     requirements: details.requirements,
     responsibilities: details.responsibilities,
@@ -70,7 +71,14 @@ export async function GET() {
       return NextResponse.json({ error: error.message, jobs: [], source: "supabase" }, { status: 500 });
     }
 
-    return NextResponse.json({ jobs: ((data ?? []) as BusinessPostRow[]).map(toJob), source: "supabase" });
+    const databaseJobs = ((data ?? []) as BusinessPostRow[]).map(toJob);
+    const databaseTargets = new Set(databaseJobs.map((job) => job.applyTarget));
+    const jobs = [
+      ...databaseJobs,
+      ...businessJobs.filter((job) => !databaseTargets.has(job.applyTarget))
+    ].sort((left, right) => Number(Boolean(right.featured)) - Number(Boolean(left.featured)));
+
+    return NextResponse.json({ jobs, source: "supabase" });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Supabase business posts request failed.", jobs: [], source: "supabase" },

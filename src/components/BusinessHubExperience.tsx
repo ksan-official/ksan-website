@@ -8,6 +8,7 @@ import {
   Bookmark,
   BriefcaseBusiness,
   CalendarClock,
+  ChevronDown,
   MapPin,
   Search,
   SlidersHorizontal
@@ -17,6 +18,16 @@ import { businessJobs, type BusinessJob, type JobType } from "@/lib/business";
 import { createBrowserSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 
 const jobTypes: Array<"전체" | JobType> = ["전체", "풀타임", "워킹 스튜던트", "파트타임", "인턴", "계약직"];
+const initialJobCount = 10;
+
+function orderJobs(items: BusinessJob[]) {
+  return [...items].sort((left, right) => {
+    const leftApproved = left.company === "Samyang Foods Europe" && left.title === "Social Media Specialist (EU)";
+    const rightApproved = right.company === "Samyang Foods Europe" && right.title === "Social Media Specialist (EU)";
+    if (leftApproved !== rightApproved) return rightApproved ? 1 : -1;
+    return Number(Boolean(right.featured)) - Number(Boolean(left.featured));
+  });
+}
 
 function daysUntil(deadline: string | null) {
   if (!deadline) return null;
@@ -42,11 +53,14 @@ function JobCard({
   onSave: (job: BusinessJob) => void;
 }) {
   return (
-    <article className={`business-job-card business-job-card--${job.accent}`} data-job-card>
+    <article className={`business-job-card business-job-card--${job.accent}${job.featured ? " is-approved" : ""}`} data-job-card>
       <div className="business-job-card-top">
-        <span className="business-company-mark" aria-hidden>{job.company.slice(0, 1)}</span>
+        <div className="business-job-identity">
+          <span className="business-company-mark" aria-hidden>{job.company.slice(0, 1)}</span>
+          {job.featured ? <span className="business-approved-badge">KSAN 승인 포스트</span> : null}
+        </div>
         <div className="business-job-actions">
-          <span className="business-job-type">{job.type}</span>
+          <span className="business-job-type" data-job-type={job.type}>{job.type}</span>
           <button
             aria-label={isSaved ? `${job.title} 저장 취소` : `${job.title} 저장`}
             aria-pressed={isSaved}
@@ -79,7 +93,7 @@ function JobCard({
 
 export function BusinessHubExperience() {
   const router = useRouter();
-  const [jobs, setJobs] = useState<BusinessJob[]>(businessJobs);
+  const [jobs, setJobs] = useState<BusinessJob[]>(() => orderJobs(businessJobs));
   const [query, setQuery] = useState("");
   const [jobType, setJobType] = useState<(typeof jobTypes)[number]>("전체");
   const [location, setLocation] = useState("전체 지역");
@@ -87,6 +101,7 @@ export function BusinessHubExperience() {
   const [userId, setUserId] = useState<string | null>(null);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const [loadNotice, setLoadNotice] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   const locations = useMemo(() => ["전체 지역", ...Array.from(new Set(jobs.map((job) => job.location)))], [jobs]);
   useEffect(() => {
@@ -103,7 +118,7 @@ export function BusinessHubExperience() {
           setLoadNotice(result.error ?? "채용 공고를 불러오지 못했습니다.");
           return;
         }
-        setJobs(result.jobs ?? []);
+        setJobs(orderJobs(result.jobs ?? []));
         setLoadNotice(null);
       })
       .catch(() => {
@@ -134,12 +149,13 @@ export function BusinessHubExperience() {
   const filteredJobs = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return jobs.filter((job) => {
-      const matchesQuery = !normalizedQuery || `${job.title} ${job.company} ${job.department} ${job.tags.join(" ")}`.toLowerCase().includes(normalizedQuery);
+      const matchesQuery = !normalizedQuery || `${job.title} ${job.company} ${job.department} ${job.location} ${job.tags.join(" ")}`.toLowerCase().includes(normalizedQuery);
       const matchesType = jobType === "전체" || job.type === jobType;
       const matchesLocation = location === "전체 지역" || job.location === location;
       return matchesQuery && matchesType && matchesLocation;
     });
   }, [jobType, jobs, location, query]);
+  const visibleJobs = expanded ? filteredJobs : filteredJobs.slice(0, initialJobCount);
 
   async function toggleSave(job: BusinessJob) {
     if (!hasSupabaseConfig() || !userId) {
@@ -198,19 +214,21 @@ export function BusinessHubExperience() {
           <label className="business-search-field">
             <Search aria-hidden size={19} />
             <span>직무 또는 회사 검색</span>
-            <input aria-label="직무 또는 회사 검색" onChange={(event) => setQuery(event.target.value)} placeholder="예: Marketing, Data, Northstar" type="search" value={query} />
+            <input aria-label="직무 또는 회사 검색" onChange={(event) => { setQuery(event.target.value); setExpanded(false); }} placeholder="예: Talent Acquisition, Picnic" type="search" value={query} />
           </label>
-          <label>
+          <label className="business-select-field">
             <BriefcaseBusiness aria-hidden size={18} />
             <span>고용 형태</span>
-            <select aria-label="고용 형태" onChange={(event) => setJobType(event.target.value as (typeof jobTypes)[number])} value={jobType}>
+            <strong aria-hidden>{jobType}</strong>
+            <select aria-label="고용 형태" onChange={(event) => { setJobType(event.target.value as (typeof jobTypes)[number]); setExpanded(false); }} value={jobType}>
               {jobTypes.map((type) => <option key={type}>{type}</option>)}
             </select>
           </label>
-          <label>
+          <label className="business-select-field">
             <MapPin aria-hidden size={18} />
             <span>근무 지역</span>
-            <select aria-label="근무 지역" onChange={(event) => setLocation(event.target.value)} value={location}>
+            <strong aria-hidden>{location}</strong>
+            <select aria-label="근무 지역" onChange={(event) => { setLocation(event.target.value); setExpanded(false); }} value={location}>
               {locations.map((item) => <option key={item}>{item}</option>)}
             </select>
           </label>
@@ -221,7 +239,7 @@ export function BusinessHubExperience() {
           <section className="business-roles">
             {filteredJobs.length ? (
               <div className="business-jobs-grid">
-                {filteredJobs.map((job) => (
+                {visibleJobs.map((job) => (
                   <JobCard isSaved={savedJobIds.has(job.id)} job={job} key={job.id} onSave={toggleSave} />
                 ))}
               </div>
@@ -232,6 +250,15 @@ export function BusinessHubExperience() {
                 <p>{loadNotice ?? "검색어나 필터를 바꿔 다시 살펴보세요."}</p>
               </div>
             )}
+            {filteredJobs.length > initialJobCount ? (
+              <div className="business-jobs-expander">
+                <button aria-expanded={expanded} onClick={() => setExpanded((current) => !current)} type="button">
+                  <span>{expanded ? "공고 접기" : "공고 더 보기"}</span>
+                  <small>{expanded ? `처음 ${initialJobCount}개만 보기` : `${filteredJobs.length - initialJobCount}개 더 보기`}</small>
+                  <ChevronDown aria-hidden className={expanded ? "is-expanded" : ""} size={18} />
+                </button>
+              </div>
+            ) : null}
             {saveNotice ? <div className="business-save-notice" role="status">{saveNotice}</div> : null}
           </section>
 

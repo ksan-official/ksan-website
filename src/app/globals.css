@@ -10349,6 +10349,7 @@ body::before {
 
 .business-detail-page {
   --job-accent: var(--brand-dutch-orange);
+  font-family: var(--font-guide-body);
   margin-inline: auto;
   max-width: 1120px;
   padding: clamp(26px, 4vw, 46px) 22px clamp(82px, 10vw, 130px);
@@ -10378,11 +10379,12 @@ body::before {
 }
 
 .business-detail-hero {
-  border-bottom: 1px solid rgba(29, 29, 31, 0.12);
+  border-bottom: 0;
   padding-bottom: clamp(28px, 4vw, 42px);
 }
 
 .business-detail-hero h1 {
+  font-family: "Satoshi", var(--font-guide-body);
   font-size: clamp(34px, 4.8vw, 58px);
   letter-spacing: -0.045em;
   line-height: 1.05;
@@ -10415,6 +10417,73 @@ body::before {
   font-size: 12px;
   font-weight: 780;
   padding: 8px 11px;
+}
+
+.business-detail-primary-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 0;
+  max-width: none;
+}
+
+.business-detail-primary-actions button,
+.business-detail-primary-actions a {
+  align-items: center;
+  border-radius: 14px;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  gap: 10px;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 12px 17px;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+  width: 100%;
+}
+
+.business-detail-primary-actions button {
+  background: #ffffff;
+  border: 1px solid rgba(29, 29, 31, 0.18);
+  color: var(--brand-slate-obsidian);
+  text-align: left;
+}
+
+.business-detail-primary-actions button:hover:not(:disabled) {
+  border-color: var(--job-accent);
+  transform: translateY(-1px);
+}
+
+.business-detail-primary-actions button[aria-pressed="true"] {
+  background: var(--brand-slate-obsidian);
+  border-color: var(--brand-slate-obsidian);
+  color: #ffffff;
+}
+
+.business-detail-primary-actions button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.business-detail-primary-actions a {
+  background: var(--brand-dutch-orange);
+  border: 1px solid var(--brand-dutch-orange);
+  color: var(--brand-slate-obsidian);
+}
+
+.business-detail-primary-actions a:hover {
+  background: #ff7f3d;
+  border-color: #ff7f3d;
+  transform: translateY(-1px);
+}
+
+.business-detail-primary-actions > p {
+  color: #6d6d73;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+  margin: 2px 0 0;
 }
 
 .business-detail-apply-card {
@@ -10483,24 +10552,34 @@ body::before {
 }
 
 .business-detail-section {
-  border-top: 1px solid rgba(29, 29, 31, 0.12);
-  padding: clamp(26px, 4vw, 40px) 0;
+  border-top: 0;
+  padding: clamp(34px, 5vw, 58px) 0;
+}
+
+.business-detail-section:first-child {
+  padding-top: 0;
+}
+
+.business-detail-section + .business-detail-section:not(.business-detail-section--apply) {
+  margin-top: clamp(18px, 3vw, 32px);
 }
 
 .business-detail-section h2 {
-  font-size: clamp(24px, 3vw, 34px);
-  letter-spacing: -0.035em;
-  line-height: 1.18;
+  font-family: "Satoshi", var(--font-guide-body);
+  font-size: clamp(27px, 3vw, 38px);
+  font-weight: 760;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
   margin: 0;
 }
 
 .business-detail-section > p:not(.eyebrow) {
-  color: #5f5c64;
-  font-size: 16px;
-  font-weight: 520;
-  line-height: 1.85;
-  margin: 18px 0 0;
-  max-width: 760px;
+  color: #4c4f57;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.9;
+  margin: 20px 0 0;
+  max-width: 62ch;
 }
 
 .business-detail-section ul {
@@ -10512,10 +10591,10 @@ body::before {
 }
 
 .business-detail-section li {
-  color: #514e55;
-  font-size: 16px;
-  font-weight: 520;
-  line-height: 1.75;
+  color: #4c4f57;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.9;
   padding-left: 20px;
   position: relative;
 }
@@ -10531,35 +10610,6 @@ body::before {
   width: 6px;
 }
 
-.business-detail-section--apply {
-  background: #fffaf4;
-  border: 1px solid rgba(29, 29, 31, 0.1);
-  border-radius: 18px;
-  margin-top: 12px;
-  padding: 26px;
-}
-
-.business-detail-section--apply a {
-  align-items: center;
-  background: var(--brand-slate-obsidian);
-  border-radius: 999px;
-  color: white;
-  display: inline-flex;
-  font-size: 15px;
-  font-weight: 850;
-  gap: 10px;
-  justify-content: center;
-  margin-top: 20px;
-  min-height: 48px;
-  padding: 12px 20px;
-  transition: background 220ms ease, transform 220ms ease;
-}
-
-.business-detail-section--apply a:hover {
-  background: var(--brand-dutch-orange);
-  transform: translateY(-2px);
-}
-
 .business-detail-facts {
   background: #ffffff;
   border: 1px solid rgba(29, 29, 31, 0.12);
@@ -10568,8 +10618,20 @@ body::before {
   display: grid;
   gap: 0;
   overflow: hidden;
+  position: static;
+}
+
+.business-detail-side-rail {
+  display: grid;
+  gap: 12px;
   position: sticky;
   top: 108px;
+}
+
+.business-detail-tags .is-approved {
+  background: var(--brand-dutch-orange);
+  border-color: var(--brand-dutch-orange);
+  color: #ffffff;
 }
 
 .business-detail-facts div {
@@ -10832,6 +10894,10 @@ body::before {
   .business-detail-facts {
     position: static;
   }
+
+  .business-detail-side-rail {
+    position: static;
+  }
 }
 
 @media (max-width: 620px) {
@@ -11012,6 +11078,38 @@ body::before {
   padding: 14px 20px;
 }
 
+.business-board-layout .business-select-field {
+  cursor: pointer;
+  position: relative;
+}
+
+.business-board-layout .business-select-field > strong {
+  color: var(--brand-slate-obsidian);
+  font-family: var(--font-guide-body);
+  font-size: 15px;
+  font-weight: 650;
+  grid-column: 2;
+  line-height: 1.25;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.business-board-layout .business-select-field select {
+  cursor: pointer;
+  height: 100%;
+  inset: 0;
+  opacity: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.business-board-layout .business-select-field:focus-within,
+.business-board-layout .business-select-field:hover {
+  background: rgba(243, 108, 33, 0.045);
+}
+
 .business-board-layout .business-filter-panel input,
 .business-board-layout .business-filter-panel select {
   font-family: var(--font-guide-body);
@@ -11041,11 +11139,11 @@ body::before {
 
 .business-board-layout .business-job-card {
   background: rgba(255, 255, 255, 0.94);
-  border-radius: 22px;
+  border-radius: 20px;
   box-shadow: 0 12px 30px rgba(29, 29, 31, 0.035);
   grid-column: auto;
-  min-height: 218px;
-  padding: 22px 24px;
+  min-height: 194px;
+  padding: 18px 20px;
 }
 
 .business-board-layout .business-job-card:hover {
@@ -11053,36 +11151,87 @@ body::before {
   transform: translateY(-4px);
 }
 
+.business-board-layout .business-job-card.is-approved {
+  border: 2px solid var(--brand-dutch-orange);
+  box-shadow: 0 16px 42px rgba(243, 108, 33, 0.13);
+}
+
+.business-job-identity {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.business-approved-badge {
+  align-items: center;
+  background: var(--brand-dutch-orange);
+  border-radius: 999px;
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+  min-height: 28px;
+  padding: 6px 10px;
+}
+
 .business-board-layout .business-company-mark {
-  border-radius: 12px;
-  height: 42px;
-  width: 42px;
+  border-radius: 11px;
+  height: 38px;
+  width: 38px;
 }
 
 .business-job-type {
-  background: color-mix(in srgb, var(--job-accent) 9%, white);
+  background: #f1f1ef;
   border-radius: 999px;
-  color: var(--job-accent);
+  color: #55565b;
   font-size: 11px;
   font-weight: 800;
-  padding: 7px 10px;
+  padding: 6px 9px;
+}
+
+.business-job-type[data-job-type="풀타임"] {
+  background: #fff0e7;
+  color: #ed6421;
+}
+
+.business-job-type[data-job-type="워킹 스튜던트"] {
+  background: #edf2f9;
+  color: #5574a1;
+}
+
+.business-job-type[data-job-type="인턴"] {
+  background: #eaf5ee;
+  color: #397251;
+}
+
+.business-job-type[data-job-type="파트타임"] {
+  background: #f3eef9;
+  color: #795b99;
+}
+
+.business-job-type[data-job-type="계약직"] {
+  background: #efefef;
+  color: #414247;
 }
 
 .business-board-layout .business-job-heading {
-  margin-top: 18px;
+  margin-top: 14px;
 }
 
 .business-board-layout .business-job-heading p {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .business-board-layout .business-job-heading h3 {
-  font-size: clamp(22px, 2.2vw, 28px);
+  font-size: clamp(21px, 2vw, 26px);
+  line-height: 1.1;
   max-width: none;
 }
 
 .business-board-layout .business-job-tags {
-  margin-top: 14px;
+  margin-top: 11px;
 }
 
 .business-job-footer {
@@ -11090,7 +11239,7 @@ body::before {
   display: flex;
   justify-content: space-between;
   margin-top: auto;
-  padding-top: 16px;
+  padding-top: 12px;
 }
 
 .business-board-layout .business-deadline {
@@ -11103,14 +11252,14 @@ body::before {
   align-items: center;
   background: var(--brand-slate-obsidian);
   border: 1px solid var(--brand-slate-obsidian);
-  border-radius: 12px;
+  border-radius: 11px;
   color: white;
   display: inline-flex;
   font-size: 12px;
   font-weight: 800;
   gap: 8px;
-  min-height: 42px;
-  padding: 9px 13px 9px 15px;
+  min-height: 38px;
+  padding: 8px 12px 8px 14px;
   transition: background 220ms ease, border-color 220ms ease, gap 240ms ease, transform 220ms ease;
 }
 
@@ -11119,6 +11268,55 @@ body::before {
   border-color: var(--brand-dutch-orange);
   gap: 11px;
   transform: translateY(-2px);
+}
+
+.business-jobs-expander {
+  display: flex;
+  justify-content: center;
+  padding-top: 22px;
+}
+
+.business-jobs-expander button {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid rgba(29, 29, 31, 0.14);
+  border-radius: 14px;
+  color: var(--brand-slate-obsidian);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 3px 14px;
+  grid-template-columns: auto auto;
+  min-height: 50px;
+  padding: 10px 16px 10px 18px;
+  transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+}
+
+.business-jobs-expander button:hover {
+  border-color: var(--brand-dutch-orange);
+  box-shadow: 0 10px 24px rgba(92, 65, 46, 0.08);
+  transform: translateY(-2px);
+}
+
+.business-jobs-expander button > span {
+  font-size: 13px;
+  font-weight: 820;
+}
+
+.business-jobs-expander button > small {
+  color: var(--muted);
+  font-size: 10px;
+  grid-column: 1;
+}
+
+.business-jobs-expander button > svg {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  transition: transform 240ms ease;
+}
+
+.business-jobs-expander button > svg.is-expanded {
+  transform: rotate(180deg);
 }
 
 .business-board-sidebar {
@@ -11287,8 +11485,8 @@ body::before {
   }
 
   .business-board-layout .business-job-card {
-    min-height: 246px;
-    padding: 20px;
+    min-height: 216px;
+    padding: 18px;
   }
 
   .business-board-sidebar {
@@ -16953,5 +17151,112 @@ a.guides-reference-row:hover {
 @media (prefers-reduced-motion: reduce) {
   .archive-photo-tile {
     transition: none;
+  }
+}
+
+/* Keep business detail reading rhythm aligned with settlement guide articles. */
+.business-detail-page .business-detail-section > p:not(.eyebrow),
+.business-detail-page .business-detail-section li {
+  color: #4c4f57;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.9;
+  max-width: 62ch;
+}
+
+@media (max-width: 620px) {
+  .business-detail-page .business-detail-section > p:not(.eyebrow),
+  .business-detail-page .business-detail-section li {
+    font-size: 16px;
+    line-height: 1.82;
+  }
+}
+
+/* Compact inquiry panel: the complete action path fits into a desktop viewport. */
+@media (min-width: 901px) {
+  .about-contact {
+    grid-template-columns: minmax(300px, 0.78fr) minmax(0, 1.22fr);
+  }
+
+  .about-contact-copy,
+  .about-contact-form-panel {
+    min-height: 560px;
+    padding: 28px;
+  }
+
+  .about-contact-copy h2 {
+    font-size: clamp(38px, 3.6vw, 52px);
+    line-height: 1.02;
+    max-width: 9ch;
+  }
+
+  .about-contact-copy > p:last-of-type {
+    font-size: 15px;
+    line-height: 1.58;
+    margin-top: 20px;
+  }
+
+  .about-contact-topics {
+    gap: 8px;
+    margin-top: 24px;
+  }
+
+  .about-contact-topics span {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+
+  .about-contact-form-heading span {
+    margin-bottom: 8px;
+  }
+
+  .about-contact-form-heading h3 {
+    font-size: 32px;
+    line-height: 1.08;
+  }
+
+  .about-contact-form-heading p {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 8px 0 14px;
+  }
+
+  .about-contact-form {
+    gap: 8px;
+  }
+
+  .about-contact-field {
+    gap: 5px;
+  }
+
+  .about-contact-field > span {
+    font-size: 12px;
+  }
+
+  .about-contact-field input,
+  .about-contact-field select,
+  .about-contact-field textarea {
+    border-radius: 12px;
+    font-size: 14px;
+    min-height: 44px;
+    padding-inline: 14px;
+  }
+
+  .about-contact-field textarea {
+    min-height: 76px;
+    padding-top: 11px;
+  }
+
+  .about-contact-submit {
+    border-radius: 12px;
+    font-size: 15px;
+    margin-top: 0;
+    min-height: 48px;
+    padding-inline: 18px;
+  }
+
+  .about-contact-status {
+    font-size: 11px;
+    min-height: 0;
   }
 }
