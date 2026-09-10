@@ -11137,10 +11137,9 @@ body::before {
 }
 
 .business-partnership-card {
-  background:
-    radial-gradient(circle at 110% 110%, rgba(243, 108, 33, 0.24) 0 27%, transparent 28%),
-    var(--brand-slate-obsidian);
-  color: white;
+  background: #fffdfa;
+  border: 1px solid rgba(29, 29, 31, 0.1);
+  color: var(--brand-slate-obsidian);
 }
 
 .business-partnership-card > p,
@@ -11169,7 +11168,7 @@ body::before {
 }
 
 .business-partnership-card > span {
-  color: rgba(255, 255, 255, 0.66);
+  color: var(--muted);
 }
 
 .business-partnership-card ul {
@@ -11198,6 +11197,41 @@ body::before {
 
 .business-partnership-card a {
   align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--brand-dutch-orange);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 10px;
+  justify-content: flex-start;
+  min-height: 0;
+  padding: 0;
+  transition: color 220ms ease, gap 240ms ease;
+}
+
+.business-partnership-card a:hover {
+  color: var(--brand-slate-obsidian);
+  gap: 14px;
+}
+
+.business-guideline-card {
+  background:
+    radial-gradient(circle at 110% 110%, rgba(243, 108, 33, 0.26) 0 27%, transparent 28%),
+    var(--brand-slate-obsidian);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  min-height: 300px;
+}
+
+.business-guideline-card > span {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.business-guideline-card a {
+  align-items: center;
   background: var(--brand-dutch-orange);
   border: 1px solid var(--brand-dutch-orange);
   border-radius: 12px;
@@ -11205,43 +11239,19 @@ body::before {
   display: flex;
   font-size: 13px;
   font-weight: 800;
-  gap: 10px;
+  gap: 9px;
   justify-content: center;
+  margin-top: auto;
   min-height: 48px;
   padding: 12px 16px;
   transition: background 220ms ease, border-color 220ms ease, color 220ms ease, transform 220ms ease;
 }
 
-.business-partnership-card a:hover {
+.business-guideline-card a:hover {
   background: white;
   border-color: white;
   color: var(--brand-slate-obsidian);
   transform: translateY(-2px);
-}
-
-.business-guideline-card {
-  background: #fffdfa;
-  border: 1px solid rgba(29, 29, 31, 0.1);
-}
-
-.business-guideline-card > span {
-  color: var(--muted);
-}
-
-.business-guideline-card a {
-  align-items: center;
-  color: var(--brand-dutch-orange);
-  display: inline-flex;
-  font-size: 13px;
-  font-weight: 800;
-  gap: 9px;
-  margin-top: 22px;
-  transition: color 220ms ease, gap 240ms ease;
-}
-
-.business-guideline-card a:hover {
-  color: var(--brand-slate-obsidian);
-  gap: 13px;
 }
 
 @media (max-width: 760px) {

@@ -236,6 +236,13 @@ export function BusinessHubExperience() {
           </section>
 
           <aside className="business-board-sidebar" aria-label="기업 파트너 안내" data-business-sidebar>
+            <section className="business-guideline-card">
+              <p>Post an opportunity</p>
+              <h2>채용·커리어 행사 등록</h2>
+              <span>귀사의 채용 기회와 커리어 행사를 KSAN의 한인 학생·청년 커뮤니티와 공유해주세요.</span>
+              <a href="/about#contact">문의하러 가기 <ArrowRight aria-hidden size={15} /></a>
+            </section>
+
             <section className="business-partnership-card">
               <p>For companies</p>
               <h2>기업 파트너십</h2>
@@ -246,13 +253,6 @@ export function BusinessHubExperience() {
                 <li>지식 교류 프로그램</li>
               </ul>
               <a href="/about#contact">자세히 알아보기 <ArrowUpRight aria-hidden size={16} /></a>
-            </section>
-
-            <section className="business-guideline-card">
-              <p>Post an opportunity</p>
-              <h2>채용·커리어 행사 등록</h2>
-              <span>채용 공고 또는 커리어 행사를 알리고 싶다면 소개 페이지의 문의 창구를 이용해주세요.</span>
-              <a href="/about#contact">신청폼 · 연락폼 바로 가기 <ArrowRight aria-hidden size={15} /></a>
             </section>
           </aside>
         </div>
