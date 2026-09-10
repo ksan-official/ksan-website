@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
@@ -17,6 +18,35 @@ import {
 import { ksanEvents, upcomingEvents } from "@/lib/events";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
+
+const citySearchAliases = [
+  { matches: ["amsterdam"], terms: ["암스테르담", "암스텔담"] },
+  { matches: ["rotterdam"], terms: ["로테르담"] },
+  { matches: ["utrecht"], terms: ["위트레흐트"] },
+  { matches: ["eindhoven"], terms: ["아인트호벤", "에인트호번"] },
+  { matches: ["den haag", "the hague"], terms: ["덴하흐", "헤이그"] },
+  { matches: ["groningen"], terms: ["흐로닝언", "그로닝겐"] },
+  { matches: ["maastricht"], terms: ["마스트리흐트"] },
+  { matches: ["leiden"], terms: ["레이던", "라이덴"] },
+  { matches: ["delft"], terms: ["델프트"] },
+  { matches: ["tilburg"], terms: ["틸뷔르흐", "틸버그"] },
+  { matches: ["breda"], terms: ["브레다"] },
+  { matches: ["nijmegen"], terms: ["네이메헌", "나이메헌"] },
+  { matches: ["arnhem"], terms: ["아른험", "아른헴"] },
+  { matches: ["haarlem"], terms: ["하를럼", "하를렘"] },
+  { matches: ["amstelveen"], terms: ["암스텔베인"] },
+  { matches: ["enschede"], terms: ["엔스헤데"] },
+  { matches: ["wageningen"], terms: ["바헤닝언", "와게닝겐"] },
+  { matches: ["netherlands", "nederland"], terms: ["네덜란드", "홀란드"] }
+];
+
+function getLocationSearchAliases(city: string, location: string) {
+  const eventLocation = `${city} ${location}`.toLocaleLowerCase("en");
+
+  return citySearchAliases.flatMap(({ matches, terms }) =>
+    matches.some((name) => eventLocation.includes(name)) ? terms : []
+  );
+}
 
 export function EventsExperience() {
   const [activeSlide, setActiveSlide] = useState(0);
@@ -78,7 +108,14 @@ export function EventsExperience() {
     const normalizedQuery = query.trim().toLocaleLowerCase("ko-KR");
 
     return ksanEvents.filter((event) => {
-      const searchable = [event.title, event.summary, event.city, event.location, ...event.keywords]
+      const searchable = [
+        event.title,
+        event.summary,
+        event.city,
+        event.location,
+        ...getLocationSearchAliases(event.city, event.location),
+        ...event.keywords
+      ]
         .join(" ")
         .toLocaleLowerCase("ko-KR");
       const matchesQuery = !normalizedQuery || searchable.includes(normalizedQuery);
@@ -190,7 +227,7 @@ export function EventsExperience() {
       <section className="events-archive">
         <header className="events-archive-heading">
           <div>
-            <p className="eyebrow">KSAN Events</p>
+            <p className="eyebrow">Upcoming Events</p>
             <h2>다가오는 행사들을<br />확인해 보세요!</h2>
           </div>
           <p>참여하고 싶은 행사를 찾아보고, 지난 행사의 즐거웠던 모습도 함께 둘러보세요!</p>
@@ -240,6 +277,13 @@ export function EventsExperience() {
                 <Link className="event-post upcoming-event-post" data-event-post href={`/events/${event.id}`} key={event.id}>
                   <div className="event-post-image" data-protected-event-image style={{ backgroundImage: `url(${event.image})` }}>
                     <span>{event.dateLabel}</span>
+                    <div aria-label={`주최 ${event.organizerName ?? "KSAN"}`} className="event-post-organizer">
+                      {event.organizerLogo ? (
+                        <Image alt="" height={48} src={event.organizerLogo} width={48} />
+                      ) : (
+                        <span aria-hidden>{event.organizerName ?? "KSAN"}</span>
+                      )}
+                    </div>
                   </div>
                   <div className="event-post-copy">
                     <p>{event.keywords.join(" · ")}</p>
@@ -268,7 +312,7 @@ export function EventsExperience() {
         {filteredPast.length > 0 ? (
           <section className="events-post-section events-history-section" id="event-archive">
             <div className="events-post-section-heading">
-              <h3>지난 행사</h3>
+              <h3>KSAN의 지난 행사</h3>
               <span>{filteredPast.length}</span>
             </div>
             <div className="events-post-grid" data-event-grid id="past-events-grid">

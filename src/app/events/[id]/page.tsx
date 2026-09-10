@@ -124,6 +124,17 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
           <div className="event-detail-sidebar-card">
             <p className="event-detail-sidebar-title">행사 정보</p>
             <div className="event-detail-sidebar-facts">
+              <div className="event-detail-sidebar-organizer">
+                <span className="event-detail-sidebar-organizer-avatar" data-protected-event-image>
+                  {organizerLogo ? (
+                    <Image alt="" height={38} src={organizerLogo} width={38} />
+                  ) : (
+                    <span aria-hidden>{organizerName}</span>
+                  )}
+                </span>
+                <span>주최자</span>
+                <strong>{organizerName}</strong>
+              </div>
               <div>
                 <CalendarDays aria-hidden size={19} />
                 <span>일시</span>

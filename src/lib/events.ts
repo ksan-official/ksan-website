@@ -42,6 +42,7 @@ export const ksanEvents: KsanEvent[] = [
     status: "upcoming",
     image: "/images/events/uva-freshmen-ot-2026/cover.png",
     organizerName: "UvA-IN",
+    organizerLogo: "/images/organizations/uva-in.jpg",
     registrationTarget: "https://docs.google.com/forms/d/e/1FAIpQLSemA5Fiz012BMPSEbztQo2IsNM-uwVhwORSHFfdX7xc4lPC1g/viewform",
     audience: "2026–2027학년도 암스테르담 대학교 신입생",
     agenda: [
@@ -164,14 +165,14 @@ export const ksanEvents: KsanEvent[] = [
     organizerLogo: "/images/ksan-logo-black.png",
     sponsors: [
       { name: "LG", image: "/images/partners/lg.png" },
-      { name: "Ofood" },
-      { name: "Daesang Europe B.V." },
-      { name: "@jongga_eu" },
+      { name: "Ofood", image: "/images/partners/ofood.png" },
+      { name: "Daesang Europe B.V.", image: "/images/partners/daesang-europe.png" },
+      { name: "@jongga_eu", image: "/images/partners/jongga.png" },
       { name: "Bunq", image: "/images/partners/bunq.png" },
       { name: "Boko International", image: "/images/partners/boko.png" },
-      { name: "@nl.esimmu" },
+      { name: "@nl.esimmu", image: "/images/partners/esimmu.png" },
       { name: "NordVPN", image: "/images/partners/nordvpn.png" },
-      { name: "네덜란드 한인회" }
+      { name: "네덜란드 한인회", image: "/images/partners/korean-society-netherlands.png" }
     ],
     audience: "신입생·재학생·교환학생·워홀러 및 네트워킹을 원하는 모든 분",
     agenda: []

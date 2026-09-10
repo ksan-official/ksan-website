@@ -20,11 +20,12 @@ export function ArchiveEventDetail({ event }: { event: KsanEvent }) {
   const organizerName = event.organizerName ?? "KSAN";
   const organizerLogo = event.organizerLogo ?? "/images/ksan-logo-black.png";
   const sponsors = event.sponsors ?? [];
+  const shouldAnimateSponsors = sponsors.length > 3;
   const descriptionPreview = event.description.replace(/\s+/g, " ").trim();
 
   useGSAP(
     () => {
-      if (!marqueeRef.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      if (!shouldAnimateSponsors || !marqueeRef.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
       const marquee = gsap.to(marqueeRef.current, {
         duration: 26,
@@ -35,7 +36,7 @@ export function ArchiveEventDetail({ event }: { event: KsanEvent }) {
 
       return () => marquee.kill();
     },
-    { scope: pageRef }
+    { dependencies: [shouldAnimateSponsors], scope: pageRef }
   );
 
   useEffect(() => {
@@ -142,23 +143,37 @@ export function ArchiveEventDetail({ event }: { event: KsanEvent }) {
                 <small>With our partners</small>
                 <h2 id="archive-summary-sponsors-title">함께한 후원사</h2>
               </header>
-              <div className="archive-sponsor-marquee">
-                <div className="archive-sponsor-track" ref={marqueeRef}>
-                  {[0, 1].map((group) => (
-                    <div aria-hidden={group === 1} className="archive-sponsor-group" key={group}>
-                      {sponsors.map((sponsor) => (
-                        <div className={`archive-sponsor-logo${sponsor.image ? "" : " archive-sponsor-wordmark"}`} data-protected-event-image key={`${group}-${sponsor.name}`}>
-                          {sponsor.image ? (
-                            <Image alt={group === 0 ? sponsor.name : ""} height={72} src={sponsor.image} width={210} />
-                          ) : (
-                            <span aria-hidden={group === 1}>{sponsor.name}</span>
-                          )}
-                        </div>
-                      ))}
+              {shouldAnimateSponsors ? (
+                <div className="archive-sponsor-marquee">
+                  <div className="archive-sponsor-track" ref={marqueeRef}>
+                    {[0, 1].map((group) => (
+                      <div aria-hidden={group === 1} className="archive-sponsor-group" key={group}>
+                        {sponsors.map((sponsor) => (
+                          <div className={`archive-sponsor-logo${sponsor.image ? "" : " archive-sponsor-wordmark"}`} data-protected-event-image key={`${group}-${sponsor.name}`}>
+                            {sponsor.image ? (
+                              <Image alt={group === 0 ? sponsor.name : ""} height={72} src={sponsor.image} width={210} />
+                            ) : (
+                              <span aria-hidden={group === 1}>{sponsor.name}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="archive-sponsor-static">
+                  {sponsors.map((sponsor) => (
+                    <div className={`archive-sponsor-logo${sponsor.image ? "" : " archive-sponsor-wordmark"}`} data-protected-event-image key={sponsor.name}>
+                      {sponsor.image ? (
+                        <Image alt={sponsor.name} height={72} src={sponsor.image} width={210} />
+                      ) : (
+                        <span>{sponsor.name}</span>
+                      )}
                     </div>
                   ))}
                 </div>
-              </div>
+              )}
             </section>
           ) : null}
 

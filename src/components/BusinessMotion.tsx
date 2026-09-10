@@ -20,12 +20,6 @@ export function BusinessMotion() {
         y: 28
       });
 
-      gsap.fromTo("[data-featured-rail]", { scale: 0.96 }, {
-        ease: "none",
-        scale: 1,
-        scrollTrigger: { end: "center 58%", scrub: 0.6, start: "top 90%", trigger: "[data-featured-rail]" }
-      });
-
       gsap.utils.toArray<HTMLElement>("[data-job-card]").forEach((card, index) => {
         gsap.from(card, {
           autoAlpha: 0,
@@ -35,6 +29,23 @@ export function BusinessMotion() {
           scrollTrigger: { start: "top 91%", trigger: card },
           y: 34
         });
+      });
+
+      gsap.from("[data-business-filter]", {
+        autoAlpha: 0,
+        duration: 0.8,
+        ease: "power3.out",
+        scrollTrigger: { start: "top 90%", trigger: "[data-business-filter]" },
+        x: -24
+      });
+
+      gsap.from("[data-business-sidebar] > *", {
+        autoAlpha: 0,
+        duration: 0.8,
+        ease: "power3.out",
+        scrollTrigger: { start: "top 88%", trigger: "[data-business-sidebar]" },
+        stagger: 0.12,
+        x: 24
       });
 
     }, page);
