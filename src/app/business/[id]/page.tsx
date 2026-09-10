@@ -75,17 +75,19 @@ function deadlineLabel(deadline: string | null) {
 
 async function getBusinessJob(id: string) {
   if (hasSupabaseConfig()) {
-    const supabase = createServerSupabaseClient();
-    const { data, error } = await supabase
-      .from("business_posts")
-      .select("id,title,company,location,employment_type,deadline,apply_mode,apply_target,description,department,tags,featured,company_intro,responsibilities,requirements,accent")
-      .eq("id", id)
-      .eq("published", true)
-      .maybeSingle();
+    try {
+      const supabase = createServerSupabaseClient();
+      const { data, error } = await supabase
+        .from("business_posts")
+        .select("id,title,company,location,employment_type,deadline,apply_mode,apply_target,description,department,tags,featured,company_intro,responsibilities,requirements,accent")
+        .eq("id", id)
+        .eq("published", true)
+        .maybeSingle();
 
-    if (error) throw new Error(error.message);
-    if (data) return toJob(data as BusinessPostRow);
-    return businessJobs.find((job) => job.id === id) ?? null;
+      if (!error && data) return toJob(data as BusinessPostRow);
+    } catch (error) {
+      console.error("Failed to load business post from Supabase", error);
+    }
   }
 
   return businessJobs.find((job) => job.id === id) ?? null;

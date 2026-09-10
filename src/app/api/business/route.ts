@@ -68,7 +68,8 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      return NextResponse.json({ error: error.message, jobs: [], source: "supabase" }, { status: 500 });
+      console.error("Failed to query business posts from Supabase", error);
+      return NextResponse.json({ jobs: businessJobs, source: "fallback" });
     }
 
     const databaseJobs = ((data ?? []) as BusinessPostRow[]).map(toJob);
@@ -80,9 +81,7 @@ export async function GET() {
 
     return NextResponse.json({ jobs, source: "supabase" });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Supabase business posts request failed.", jobs: [], source: "supabase" },
-      { status: 500 }
-    );
+    console.error("Failed to load business posts from Supabase", error);
+    return NextResponse.json({ jobs: businessJobs, source: "fallback" });
   }
 }
