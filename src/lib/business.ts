@@ -1,4 +1,4 @@
-export type JobType = "풀타임" | "워킹 스튜던트" | "파트타임" | "인턴" | "계약직";
+export type JobType = "풀타임" | "워킹 스튜던트" | "파트타임" | "인턴" | "계약직" | "공고 확인";
 
 export type BusinessJob = {
   accent: "orange" | "blue" | "dark";
@@ -8,12 +8,16 @@ export type BusinessJob = {
   department: string;
   description: string;
   companyIntro: string;
+  body?: string;
   responsibilities: string;
   requirements: string;
   featured?: boolean;
   id: string;
+  imageUrl?: string | null;
+  imageUrls?: string[];
   language?: "en" | "ko" | "nl";
   location: string;
+  logoUrl?: string | null;
   tags: string[];
   title: string;
   type: JobType;
@@ -57,10 +61,25 @@ function present(value: string | null | undefined) {
   return value?.trim() ?? "";
 }
 
+function plainText(value: string | null | undefined) {
+  return present(value)
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|h2|h3|li|blockquote)>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&lt;\/?[a-z][^&]*?&gt;/gi, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function detailLanguage(input: BusinessDetailInput) {
   if (input.language) return input.language;
   const sourceText = [input.description, input.companyIntro, input.responsibilities, input.requirements]
-    .map(present)
+    .map(plainText)
     .join(" ");
   return /[가-힣]/.test(sourceText) ? "ko" : "en";
 }
@@ -88,7 +107,7 @@ export function resolveBusinessDetails(input: BusinessDetailInput): ParsedBusine
     language,
     requirements: "",
     responsibilities: "",
-    summary: present(input.description)
+    summary: plainText(input.description)
   };
   let active: "companyIntro" | "requirements" | "responsibilities" | "summary" = "summary";
   const summaryLines: string[] = [];
@@ -98,7 +117,7 @@ export function resolveBusinessDetails(input: BusinessDetailInput): ParsedBusine
     responsibilities: [] as string[]
   };
 
-  present(input.description).split(/\n/).forEach((rawLine) => {
+  plainText(input.description).split(/\n/).forEach((rawLine) => {
     const line = rawLine.trim();
     const normalized = line.replace(/[:：]+$/, "");
     if (normalized === headings.companyIntro) {

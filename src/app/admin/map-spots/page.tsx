@@ -70,21 +70,26 @@ export default function AdminMapSpotsPage() {
     return () => window.clearTimeout(timeout);
   }, [loadSpots]);
 
-  async function updateSpot(id: string, patch: Partial<Pick<AdminMapSpot, "published">>) {
-    setStatus("변경사항을 저장하는 중입니다.");
+  async function updateSpot(spot: AdminMapSpot, published: boolean) {
+    const nextStateLabel = published ? "공개" : "비공개";
+    if (!window.confirm(`‘${spot.name}’ 장소를 ${nextStateLabel}로 전환할까요?`)) return;
+
+    setSpots((current) => current.map((item) => item.id === spot.id ? { ...item, published } : item));
+    setStatus(`${nextStateLabel}로 변경하는 중입니다.`);
     const response = await request("", {
-      body: JSON.stringify({ id, ...patch }),
+      body: JSON.stringify({ id: spot.id, published }),
       headers: { "Content-Type": "application/json" },
       method: "PATCH"
     });
     const result = await response.json();
 
     if (!response.ok) {
+      setSpots((current) => current.map((item) => item.id === spot.id ? { ...item, published: spot.published } : item));
       setStatus(result.error);
       return;
     }
 
-    await loadSpots();
+    setStatus(`${nextStateLabel}로 변경했습니다.`);
   }
 
   async function removeSpot(spot: AdminMapSpot) {
@@ -210,7 +215,7 @@ export default function AdminMapSpotsPage() {
                       <label>
                         <input
                           checked={spot.published}
-                          onChange={(event) => void updateSpot(spot.id, { published: event.target.checked })}
+                          onChange={(event) => void updateSpot(spot, event.target.checked)}
                           type="checkbox"
                         />
                         공개

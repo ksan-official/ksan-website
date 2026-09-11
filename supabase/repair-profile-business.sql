@@ -11,6 +11,9 @@ alter table public.business_posts add column if not exists accent text not null 
 alter table public.business_posts add column if not exists company_intro text;
 alter table public.business_posts add column if not exists responsibilities text;
 alter table public.business_posts add column if not exists requirements text;
+alter table public.business_posts add column if not exists image_url text;
+alter table public.business_posts add column if not exists image_urls text[] not null default '{}';
+alter table public.business_posts add column if not exists logo_url text;
 
 create index if not exists business_posts_public_order_idx
   on public.business_posts (published, featured desc, featured_order asc, created_at desc);
@@ -21,6 +24,10 @@ on conflict (id) do update set public = excluded.public;
 
 insert into storage.buckets (id, name, public)
 values ('about-images', 'about-images', true)
+on conflict (id) do update set public = excluded.public;
+
+insert into storage.buckets (id, name, public)
+values ('business-post-images', 'business-post-images', true)
 on conflict (id) do update set public = excluded.public;
 
 create or replace function public.is_admin()
@@ -120,6 +127,34 @@ drop policy if exists "Admins can delete about images" on storage.objects;
 create policy "Admins can delete about images" on storage.objects
   for delete using (
     bucket_id = 'about-images'
+    and public.is_admin()
+  );
+
+drop policy if exists "Anyone can view business post images" on storage.objects;
+create policy "Anyone can view business post images" on storage.objects
+  for select using (bucket_id = 'business-post-images');
+
+drop policy if exists "Admins can upload business post images" on storage.objects;
+create policy "Admins can upload business post images" on storage.objects
+  for insert with check (
+    bucket_id = 'business-post-images'
+    and public.is_admin()
+  );
+
+drop policy if exists "Admins can update business post images" on storage.objects;
+create policy "Admins can update business post images" on storage.objects
+  for update using (
+    bucket_id = 'business-post-images'
+    and public.is_admin()
+  ) with check (
+    bucket_id = 'business-post-images'
+    and public.is_admin()
+  );
+
+drop policy if exists "Admins can delete business post images" on storage.objects;
+create policy "Admins can delete business post images" on storage.objects
+  for delete using (
+    bucket_id = 'business-post-images'
     and public.is_admin()
   );
 

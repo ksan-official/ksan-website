@@ -99,8 +99,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link href="/guides">정착가이드</Link>
                 <Link href="/business">비즈니스 허브</Link>
                 <Link href="/events">행사</Link>
-                <Link href="/pass-it-on">Pass it On</Link>
-                <Link href="/community">Community</Link>
+                <Link href="/pass-it-on">중고거래</Link>
+                <Link href="/community">케이숲</Link>
                 <Link href="/about">소개</Link>
               </nav>
               <div className="footer-account">

@@ -14,19 +14,14 @@ import {
   SlidersHorizontal
 } from "lucide-react";
 import { BusinessMotion } from "@/components/BusinessMotion";
-import { businessJobs, type BusinessJob, type JobType } from "@/lib/business";
+import { type BusinessJob, type JobType } from "@/lib/business";
 import { createBrowserSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 
-const jobTypes: Array<"전체" | JobType> = ["전체", "풀타임", "워킹 스튜던트", "파트타임", "인턴", "계약직"];
+const jobTypes: Array<"전체" | JobType> = ["전체", "풀타임", "워킹 스튜던트", "파트타임", "인턴", "계약직", "공고 확인"];
 const initialJobCount = 10;
 
 function orderJobs(items: BusinessJob[]) {
-  return [...items].sort((left, right) => {
-    const leftApproved = left.company === "Samyang Foods Europe" && left.title === "Social Media Specialist (EU)";
-    const rightApproved = right.company === "Samyang Foods Europe" && right.title === "Social Media Specialist (EU)";
-    if (leftApproved !== rightApproved) return rightApproved ? 1 : -1;
-    return Number(Boolean(right.featured)) - Number(Boolean(left.featured));
-  });
+  return [...items];
 }
 
 function daysUntil(deadline: string | null) {
@@ -53,11 +48,16 @@ function JobCard({
   onSave: (job: BusinessJob) => void;
 }) {
   return (
-    <article className={`business-job-card business-job-card--${job.accent}${job.featured ? " is-approved" : ""}`} data-job-card>
+    <article className={`business-job-card business-job-card--${job.accent}`} data-job-card>
       <div className="business-job-card-top">
         <div className="business-job-identity">
-          <span className="business-company-mark" aria-hidden>{job.company.slice(0, 1)}</span>
-          {job.featured ? <span className="business-approved-badge">KSAN 승인 포스트</span> : null}
+          <span
+            className={`business-company-mark${job.logoUrl ? " has-logo" : ""}`}
+            style={job.logoUrl ? { backgroundImage: `url(${job.logoUrl})` } : undefined}
+            aria-hidden
+          >
+            {job.logoUrl ? null : job.company.slice(0, 1)}
+          </span>
         </div>
         <div className="business-job-actions">
           <span className="business-job-type" data-job-type={job.type}>{job.type}</span>
@@ -80,7 +80,6 @@ function JobCard({
         <div className="business-job-tags">
           <span><MapPin aria-hidden size={13} />{job.location}</span>
           <span><BriefcaseBusiness aria-hidden size={13} />{job.department}</span>
-          {(job.tags.length ? job.tags : [job.department]).slice(0, 2).map((tag) => <span key={tag}>{tag}</span>)}
         </div>
         <div className="business-job-footer">
           <span className="business-deadline"><CalendarClock aria-hidden size={14} />{deadlineLabel(job.deadline)}</span>
@@ -93,7 +92,7 @@ function JobCard({
 
 export function BusinessHubExperience() {
   const router = useRouter();
-  const [jobs, setJobs] = useState<BusinessJob[]>(() => orderJobs(businessJobs));
+  const [jobs, setJobs] = useState<BusinessJob[]>([]);
   const [query, setQuery] = useState("");
   const [jobType, setJobType] = useState<(typeof jobTypes)[number]>("전체");
   const [location, setLocation] = useState("전체 지역");
@@ -101,6 +100,7 @@ export function BusinessHubExperience() {
   const [userId, setUserId] = useState<string | null>(null);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const [loadNotice, setLoadNotice] = useState<string | null>(null);
+  const [loadingJobs, setLoadingJobs] = useState(true);
   const [expanded, setExpanded] = useState(false);
 
   const locations = useMemo(() => ["전체 지역", ...Array.from(new Set(jobs.map((job) => job.location)))], [jobs]);
@@ -125,6 +125,9 @@ export function BusinessHubExperience() {
         if (!active) return;
         setJobs([]);
         setLoadNotice("채용 공고를 불러오지 못했습니다.");
+      })
+      .finally(() => {
+        if (active) setLoadingJobs(false);
       });
     return () => { active = false; };
   }, []);
@@ -237,7 +240,13 @@ export function BusinessHubExperience() {
 
         <div className="business-board-columns">
           <section className="business-roles">
-            {filteredJobs.length ? (
+            {loadingJobs ? (
+              <div className="business-empty-state">
+                <Search aria-hidden size={24} />
+                <strong>채용 공고를 불러오는 중이에요.</strong>
+                <p>잠시만 기다려주세요.</p>
+              </div>
+            ) : filteredJobs.length ? (
               <div className="business-jobs-grid">
                 {visibleJobs.map((job) => (
                   <JobCard isSaved={savedJobIds.has(job.id)} job={job} key={job.id} onSave={toggleSave} />

@@ -2,12 +2,12 @@ import type { BusinessPost, EventPost, GuideDetail, GuideSummary } from "@/lib/t
 
 export const comingSoonSections = [
   {
-    title: "Pass it On",
+    title: "중고거래",
     description: "나눔과 중고거래 기능은 추후 오픈 예정입니다."
   },
   {
-    title: "Community",
-    description: "익명 커뮤니티 기능은 추후 오픈 예정입니다."
+    title: "케이숲",
+    description: "커뮤니티 기능은 추후 오픈 예정입니다."
   }
 ];
 

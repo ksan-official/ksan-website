@@ -42,13 +42,13 @@ const homeSections = [
     Icon: Repeat2,
     href: "/pass-it-on",
     description: "필요 없어진 물건을 나누고 필요한 물건을 이어받는 공간입니다.",
-    title: "Pass it On"
+    title: "중고거래"
   },
   {
     Icon: MessageCircle,
     href: "/community",
-    description: "질문, 고민, 정보 공유가 자연스럽게 오가는 커뮤니티입니다.",
-    title: "Community"
+    description: "질문, 고민, 정보 공유가 자연스럽게 오가는 KSAN 커뮤니티입니다.",
+    title: "케이숲"
   },
   {
     Icon: MapPinned,

@@ -15,7 +15,7 @@ import {
   MapPin,
   Search
 } from "lucide-react";
-import { ksanEvents, upcomingEvents } from "@/lib/events";
+import { getEventStatusLabel, type KsanEvent } from "@/lib/events";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
@@ -48,27 +48,50 @@ function getLocationSearchAliases(city: string, location: string) {
   );
 }
 
-export function EventsExperience() {
+export function EventsExperience({ initialEvents = [] }: { initialEvents?: KsanEvent[] }) {
   const [activeSlide, setActiveSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [query, setQuery] = useState("");
   const [keyword, setKeyword] = useState("all");
+  const [events, setEvents] = useState<KsanEvent[]>(initialEvents);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const [showAllPast, setShowAllPast] = useState(false);
   const pointerStart = useRef<number | null>(null);
   const pageRef = useRef<HTMLElement>(null);
+  const upcomingEventList = useMemo(() => events.filter((event) => event.status === "upcoming"), [events]);
 
   useEffect(() => {
-    if (isPaused || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (isPaused || upcomingEventList.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       return;
     }
 
     const timer = window.setInterval(() => {
-      setActiveSlide((current) => (current + 1) % upcomingEvents.length);
+      setActiveSlide((current) => (current + 1) % upcomingEventList.length);
     }, 5600);
 
     return () => window.clearInterval(timer);
-  }, [isPaused]);
+  }, [isPaused, upcomingEventList.length]);
+
+  useEffect(() => {
+    let active = true;
+
+    fetch("/api/events")
+      .then(async (response) => {
+        const result = (await response.json()) as { events?: KsanEvent[] };
+        return { ok: response.ok, result };
+      })
+      .then(({ ok, result }) => {
+        if (!active || !ok) return;
+        setEvents(result.events ?? []);
+      })
+      .catch(() => {
+        if (active) setEvents((current) => current.length ? current : []);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useGSAP(
     () => {
@@ -100,14 +123,14 @@ export function EventsExperience() {
   );
 
   const keywords = useMemo(
-    () => Array.from(new Set(ksanEvents.flatMap((event) => event.keywords))).sort(),
-    []
+    () => Array.from(new Set(events.flatMap((event) => event.keywords))).sort(),
+    [events]
   );
 
   const filteredEvents = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("ko-KR");
 
-    return ksanEvents.filter((event) => {
+    return events.filter((event) => {
       const searchable = [
         event.title,
         event.summary,
@@ -123,19 +146,22 @@ export function EventsExperience() {
 
       return matchesQuery && matchesKeyword;
     });
-  }, [keyword, query]);
+  }, [events, keyword, query]);
 
   const filteredUpcoming = filteredEvents.filter((event) => event.status === "upcoming");
   const filteredPast = filteredEvents.filter((event) => event.status === "past");
   const visibleUpcoming = showAllUpcoming ? filteredUpcoming : filteredUpcoming.slice(0, 6);
   const visiblePast = showAllPast ? filteredPast : filteredPast.slice(0, 6);
+  const safeActiveSlide = Math.min(activeSlide, Math.max(upcomingEventList.length - 1, 0));
 
   function showPrevious() {
-    setActiveSlide((current) => (current - 1 + upcomingEvents.length) % upcomingEvents.length);
+    if (!upcomingEventList.length) return;
+    setActiveSlide((current) => (current - 1 + upcomingEventList.length) % upcomingEventList.length);
   }
 
   function showNext() {
-    setActiveSlide((current) => (current + 1) % upcomingEvents.length);
+    if (!upcomingEventList.length) return;
+    setActiveSlide((current) => (current + 1) % upcomingEventList.length);
   }
 
   function finishSwipe(clientX: number) {
@@ -170,11 +196,11 @@ export function EventsExperience() {
       >
         <div
           className="events-carousel-track"
-          style={{ transform: `translateX(-${activeSlide * 100}%)` }}
+          style={{ transform: `translateX(-${safeActiveSlide * 100}%)` }}
         >
-          {upcomingEvents.map((event, index) => (
+          {upcomingEventList.map((event, index) => (
             <article
-              aria-hidden={index !== activeSlide}
+              aria-hidden={index !== safeActiveSlide}
               className="events-hero-slide"
               data-protected-event-image
               key={event.id}
@@ -189,10 +215,10 @@ export function EventsExperience() {
                   <span><MapPin aria-hidden size={18} />{event.city}</span>
                 </div>
                 <div className="events-hero-actions">
-                  <Link className="events-hero-link" href={`/events/${event.id}`} tabIndex={index === activeSlide ? 0 : -1}>
+                  <Link className="events-hero-link" href={`/events/${event.id}`} tabIndex={index === safeActiveSlide ? 0 : -1}>
                     행사 자세히 보기 <ArrowRight aria-hidden size={19} />
                   </Link>
-                  <a className="events-archive-jump" href="#event-archive" tabIndex={index === activeSlide ? 0 : -1}>
+                  <a className="events-archive-jump" href="#event-archive" tabIndex={index === safeActiveSlide ? 0 : -1}>
                     지난 행사 아카이브
                   </a>
                 </div>
@@ -201,14 +227,14 @@ export function EventsExperience() {
           ))}
         </div>
 
-        {upcomingEvents.length > 1 ? (
+        {upcomingEventList.length > 1 ? (
           <div className="events-carousel-controls">
             <div className="events-carousel-dots" role="tablist" aria-label="행사 배너 선택">
-              {upcomingEvents.map((event, index) => (
+              {upcomingEventList.map((event, index) => (
                 <button
                   aria-label={`${event.title} 배너 보기`}
-                  aria-selected={index === activeSlide}
-                  className={index === activeSlide ? "is-active" : ""}
+                  aria-selected={index === safeActiveSlide}
+                  className={index === safeActiveSlide ? "is-active" : ""}
                   key={event.id}
                   onClick={() => setActiveSlide(index)}
                   role="tab"
@@ -277,6 +303,7 @@ export function EventsExperience() {
                 <Link className="event-post upcoming-event-post" data-event-post href={`/events/${event.id}`} key={event.id}>
                   <div className="event-post-image" data-protected-event-image style={{ backgroundImage: `url(${event.image})` }}>
                     <span>{event.dateLabel}</span>
+                    <small className="event-post-status-badge">{getEventStatusLabel(event.status)}</small>
                     <div aria-label={`주최 ${event.organizerName ?? "KSAN"}`} className="event-post-organizer">
                       {event.organizerLogo ? (
                         <Image alt="" height={48} src={event.organizerLogo} width={48} />
@@ -320,6 +347,7 @@ export function EventsExperience() {
                 <Link className="event-post past-event-post" data-event-post href={`/events/${event.id}`} key={event.id}>
                   <div className="event-post-image" data-protected-event-image style={{ backgroundImage: `url(${event.image})` }}>
                     <span>{event.dateLabel}</span>
+                    <small className="event-post-status-badge">{getEventStatusLabel(event.status)}</small>
                   </div>
                   <div className="event-post-copy">
                     <p>{event.keywords.join(" · ")}</p>

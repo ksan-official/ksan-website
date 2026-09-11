@@ -9,6 +9,7 @@ export type KsanEvent = {
   city: string;
   location: string;
   mapQuery?: string;
+  applicationDeadline?: string;
   keywords: string[];
   status: "upcoming" | "past";
   image: string;
@@ -16,6 +17,7 @@ export type KsanEvent = {
   photoCount?: number;
   organizerName?: string;
   organizerLogo?: string;
+  price?: string;
   registrationTarget?: string;
   sponsors?: Array<{
     name: string;
@@ -25,7 +27,187 @@ export type KsanEvent = {
   agenda: string[];
 };
 
-export const ksanEvents: KsanEvent[] = [
+export type EventTableRow = {
+  description: string | null;
+  id: string;
+  image_url?: string | null;
+  image_urls?: string[] | null;
+  location: string | null;
+  published?: boolean | null;
+  registration_target: string | null;
+  source_id?: string | null;
+  sponsors?: unknown;
+  starts_at: string;
+  title: string;
+};
+
+const eventDateFormatter = new Intl.DateTimeFormat("ko-KR", {
+  day: "2-digit",
+  month: "2-digit",
+  weekday: "short",
+  year: "numeric"
+});
+
+const eventTimeFormatter = new Intl.DateTimeFormat("ko-KR", {
+  hour: "2-digit",
+  hour12: false,
+  minute: "2-digit"
+});
+
+function safeEventDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? new Date() : date;
+}
+
+function firstSentence(value: string) {
+  return value
+    .split(/\r?\n\s*\r?\n+/)
+    .map((item) => item.trim())
+    .filter((item) => !isDefaultKsanGreeting(item))
+    .find(Boolean) ?? "KSAN에서 준비한 행사입니다.";
+}
+
+export function isDefaultKsanGreeting(value: string) {
+  return /^안녕하세요,\s*네덜란드\s+한국\s+학생회\s*\[KSAN\]\s*입니다\.?$/.test(value.trim());
+}
+
+function cityFromLocation(location: string) {
+  const firstPart = location.split(/[,\n]/)[0]?.trim();
+  return firstPart || "Netherlands";
+}
+
+function formatDateLabel(date: Date) {
+  return eventDateFormatter.format(date).replace(/\.\s?/g, ".").replace(/\s+/g, " ").trim();
+}
+
+export function getEventStatusByDate(value: string | Date): KsanEvent["status"] {
+  const date = typeof value === "string" ? safeEventDate(value) : value;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return date.getTime() >= today.getTime() ? "upcoming" : "past";
+}
+
+export function getEventStatusLabel(status: KsanEvent["status"]) {
+  return status === "upcoming" ? "진행 예정" : "지난 행사";
+}
+
+function toIsoDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+export function parseEventMediaDescription(value: string) {
+  const markerMatch = value.match(/\s*<!--ksan-event-media:([^>]*)-->\s*$/);
+  if (!markerMatch) {
+    return {
+      agenda: [] as string[],
+      applicationDeadline: null as string | null,
+      audience: null as string | null,
+      deleted: false,
+      description: value,
+      imageUrls: [] as string[],
+      organizerLogo: null as string | null,
+      organizerName: null as string | null,
+      price: null as string | null,
+      sourceId: null as string | null,
+      sponsors: [] as Array<{ image?: string; name: string }>
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(decodeURIComponent(markerMatch[1] ?? "")) as {
+      agenda?: unknown;
+      applicationDeadline?: unknown;
+      audience?: unknown;
+      deleted?: unknown;
+      imageUrls?: unknown;
+      organizerLogo?: unknown;
+      organizerName?: unknown;
+      price?: unknown;
+      sourceId?: unknown;
+      sponsors?: unknown;
+    };
+
+    return {
+      agenda: parseAgenda(parsed.agenda),
+      applicationDeadline: typeof parsed.applicationDeadline === "string" && parsed.applicationDeadline.trim() ? parsed.applicationDeadline.trim() : null,
+      audience: typeof parsed.audience === "string" && parsed.audience.trim() ? parsed.audience.trim() : null,
+      deleted: parsed.deleted === true,
+      description: value.slice(0, markerMatch.index).trim(),
+      imageUrls: parseImageUrlList(parsed.imageUrls),
+      organizerLogo: typeof parsed.organizerLogo === "string" && parsed.organizerLogo.trim() ? parsed.organizerLogo.trim() : null,
+      organizerName: typeof parsed.organizerName === "string" && parsed.organizerName.trim() ? parsed.organizerName.trim() : null,
+      price: typeof parsed.price === "string" && parsed.price.trim() ? parsed.price.trim() : null,
+      sourceId: typeof parsed.sourceId === "string" ? parsed.sourceId : null,
+      sponsors: sponsorsFromRow(parsed.sponsors)
+    };
+  } catch {
+    return {
+      agenda: [],
+      applicationDeadline: null,
+      audience: null,
+      deleted: false,
+      description: value.replace(markerMatch[0], "").trim(),
+      imageUrls: [],
+      organizerLogo: null,
+      organizerName: null,
+      price: null,
+      sourceId: null,
+      sponsors: []
+    };
+  }
+}
+
+export function isDeletedEventRow(row: EventTableRow) {
+  return parseEventMediaDescription(row.description ?? "").deleted;
+}
+
+function parseImageUrlList(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.map((url) => typeof url === "string" ? url.trim() : "").filter(Boolean);
+}
+
+function parseAgenda(value: unknown) {
+  if (Array.isArray(value)) return value.map((item) => typeof item === "string" ? item.trim() : "").filter(Boolean);
+  if (typeof value !== "string") return [];
+  return value.split(/\n+/).map((item) => item.trim()).filter(Boolean);
+}
+
+function imageUrlsFromRow(row: EventTableRow) {
+  const urls = [
+    ...parseImageUrlList(row.image_urls),
+    row.image_url
+  ].map((url) => typeof url === "string" ? url.trim() : "").filter(Boolean);
+
+  return Array.from(new Set(urls));
+}
+
+function sponsorsFromRow(value: unknown) {
+  const rawSponsors = typeof value === "string"
+    ? (() => {
+        try {
+          return JSON.parse(value) as unknown;
+        } catch {
+          return [];
+        }
+      })()
+    : value;
+
+  if (!Array.isArray(rawSponsors)) return [];
+
+  const sponsors: Array<{ image?: string; name: string }> = [];
+
+  rawSponsors.forEach((sponsor, index) => {
+    if (!sponsor || typeof sponsor !== "object") return;
+    const item = sponsor as { image?: unknown; name?: unknown };
+    const image = typeof item.image === "string" ? item.image.trim() : "";
+    const name = typeof item.name === "string" && item.name.trim() ? item.name.trim() : `후원사 ${index + 1}`;
+    if (image || name) sponsors.push({ image: image || undefined, name });
+  });
+
+  return sponsors;
+}
+
+export const ksanEvents: KsanEvent[] = ([
   {
     id: "uva-freshmen-ot-2026",
     title: "신입생 OT",
@@ -177,10 +359,50 @@ export const ksanEvents: KsanEvent[] = [
     audience: "신입생·재학생·교환학생·워홀러 및 네트워킹을 원하는 모든 분",
     agenda: []
   }
-];
+] satisfies KsanEvent[]).map((event) => ({
+  ...event,
+  status: getEventStatusByDate(event.date)
+}));
 
 export const upcomingEvents = ksanEvents.filter((event) => event.status === "upcoming");
 
 export function getKsanEvent(id: string) {
   return ksanEvents.find((event) => event.id === id);
+}
+
+export function toKsanEventFromRow(row: EventTableRow): KsanEvent {
+  const startsAt = safeEventDate(row.starts_at);
+  const location = row.location?.trim() || "장소 추후 공지";
+  const mediaDescription = parseEventMediaDescription(row.description?.trim() || "행사 설명을 준비 중입니다.");
+  const description = mediaDescription.description || "행사 설명을 준비 중입니다.";
+  const rowImageUrls = imageUrlsFromRow(row);
+  const rowSponsors = sponsorsFromRow(row.sponsors);
+  const imageUrls = rowImageUrls.length ? rowImageUrls : mediaDescription.imageUrls;
+  const sponsors = rowSponsors.length ? rowSponsors : mediaDescription.sponsors;
+
+  return {
+    city: cityFromLocation(location),
+    date: toIsoDate(startsAt),
+    dateLabel: formatDateLabel(startsAt),
+    description,
+    id: row.source_id ?? mediaDescription.sourceId ?? row.id,
+    image: imageUrls[0] ?? "/images/home-events/ksan-event-1.png",
+    keywords: ["행사"],
+    location,
+    mapQuery: location,
+    organizerLogo: mediaDescription.organizerLogo ?? "/images/ksan-logo-black.png",
+    organizerName: mediaDescription.organizerName ?? "KSAN",
+    photoCount: imageUrls.length || undefined,
+    price: mediaDescription.price ?? undefined,
+    recapImages: imageUrls.length > 1 ? imageUrls : undefined,
+    registrationTarget: row.registration_target ?? undefined,
+    sponsors: sponsors.length ? sponsors : undefined,
+    status: getEventStatusByDate(startsAt),
+    summary: firstSentence(description),
+    time: eventTimeFormatter.format(startsAt),
+    applicationDeadline: mediaDescription.applicationDeadline ?? undefined,
+    audience: mediaDescription.audience ?? "KSAN 커뮤니티",
+    agenda: mediaDescription.agenda,
+    title: row.title
+  };
 }

@@ -92,8 +92,8 @@ const titles: Record<MyPageSection, string> = {
   business: "채용 활동",
   events: "신청한 이벤트",
   guides: "저장한 가이드",
-  community: "커뮤니티 기록",
-  "pass-it-on": "Pass it On 기록"
+  community: "케이숲 기록",
+  "pass-it-on": "중고거래 기록"
 };
 
 const navigation: Array<{ section: MyPageSection; label: string; Icon: typeof Briefcase }> = [
@@ -101,8 +101,8 @@ const navigation: Array<{ section: MyPageSection; label: string; Icon: typeof Br
   { section: "events", label: "신청한 이벤트", Icon: CalendarCheck },
   { section: "guides", label: "저장한 가이드", Icon: Bookmark },
   { section: "profile", label: "프로필", Icon: UserRound },
-  { section: "community", label: "커뮤니티 기록", Icon: MessageCircle },
-  { section: "pass-it-on", label: "Pass it On 기록", Icon: Settings }
+  { section: "community", label: "케이숲 기록", Icon: MessageCircle },
+  { section: "pass-it-on", label: "중고거래 기록", Icon: Settings }
 ];
 
 function displayName(profile: Profile | null) {
@@ -584,8 +584,8 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
               </div>
             </div>
           ) : null}
-          {section === "community" ? <div className="mypage-detail-block"><div className="mypage-panel-heading"><div><span>Community</span><h2>커뮤니티 기록</h2></div></div><p className="muted">커뮤니티 글/댓글 기능이 열리면 이곳에 작성 기록이 표시됩니다.</p></div> : null}
-          {section === "pass-it-on" ? <div className="mypage-detail-block"><div className="mypage-panel-heading"><div><span>Pass it On</span><h2>Pass it On 기록</h2></div></div><p className="muted">중고거래/나눔 기능이 열리면 이곳에 저장 및 작성 기록이 표시됩니다.</p></div> : null}
+          {section === "community" ? <div className="mypage-detail-block"><div className="mypage-panel-heading"><div><span>케이숲</span><h2>케이숲 기록</h2></div></div><p className="muted">케이숲 글/댓글 기능이 열리면 이곳에 작성 기록이 표시됩니다.</p></div> : null}
+          {section === "pass-it-on" ? <div className="mypage-detail-block"><div className="mypage-panel-heading"><div><span>중고거래</span><h2>중고거래 기록</h2></div></div><p className="muted">중고거래/나눔 기능이 열리면 이곳에 저장 및 작성 기록이 표시됩니다.</p></div> : null}
         </section>
       </section>
     </main>

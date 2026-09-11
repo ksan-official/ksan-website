@@ -1,12 +1,15 @@
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowUpRight, CalendarDays, Clock3, MapPin, Users } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Clock3, MapPin, Ticket, Users } from "lucide-react";
 import { ArchiveEventDetail } from "@/components/ArchiveEventDetail";
-import { getKsanEvent, ksanEvents } from "@/lib/events";
-import { createServerSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
+import { EventDetailGallery } from "@/components/EventDetailGallery";
+import { getKsanEvent, isDefaultKsanGreeting, isDeletedEventRow, ksanEvents, parseEventMediaDescription, toKsanEventFromRow, type EventTableRow, type KsanEvent } from "@/lib/events";
+import { createServerSupabaseClient, createServiceSupabaseClient, getSupabaseServerSecretKey, hasSupabaseConfig } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
+
+const eventSelectWithMedia = "id,title,starts_at,location,description,registration_target,published,image_url,image_urls,sponsors,source_id";
+const eventSelectFallback = "id,title,starts_at,location,description,registration_target,published";
 
 function validExternalUrl(value: string | null | undefined) {
   if (!value) return null;
@@ -17,6 +20,14 @@ function validExternalUrl(value: string | null | undefined) {
   } catch {
     return null;
   }
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function defaultSourceId(row: EventTableRow) {
+  return row.source_id ?? parseEventMediaDescription(row.description ?? "").sourceId;
 }
 
 async function getRegistrationTarget(title: string, fallback?: string) {
@@ -42,13 +53,63 @@ async function getRegistrationTarget(title: string, fallback?: string) {
   }
 }
 
+async function getEvent(id: string): Promise<KsanEvent | null> {
+  if (hasSupabaseConfig()) {
+    try {
+      const supabase = getSupabaseServerSecretKey() ? createServiceSupabaseClient() : createServerSupabaseClient();
+      const eventIdFilter = isUuid(id) ? `id.eq.${id},source_id.eq.${id}` : `source_id.eq.${id}`;
+      let result: any = await supabase
+        .from("events")
+        .select(eventSelectWithMedia)
+        .or(eventIdFilter)
+        .maybeSingle();
+
+      if (result.error && /(image_url|image_urls|sponsors)/i.test(result.error.message)) {
+        result = isUuid(id)
+          ? await supabase
+              .from("events")
+              .select(eventSelectFallback)
+              .eq("id", id)
+              .maybeSingle()
+          : await supabase
+              .from("events")
+              .select(eventSelectFallback)
+              .order("updated_at", { ascending: false })
+              .limit(50);
+      }
+
+      const { data, error } = result;
+
+      if (!isUuid(id) && Array.isArray(data)) {
+        const rows = data as EventTableRow[];
+        if (rows.some((row) => defaultSourceId(row) === id && (isDeletedEventRow(row) || row.published === false))) return null;
+        return rows
+          .filter((row) => row.published !== false)
+          .map((row) => toKsanEventFromRow(row as EventTableRow))
+          .find((event) => event.id === id) ?? getKsanEvent(id) ?? null;
+      }
+
+      if (!error && data) {
+        const row = data as EventTableRow;
+        if (isDeletedEventRow(row) || row.published === false) return null;
+        return toKsanEventFromRow(row);
+      }
+    } catch (error) {
+      console.error("Failed to load event from Supabase", error);
+      return null;
+    }
+  }
+
+  return getKsanEvent(id) ?? null;
+}
+
 export function generateStaticParams() {
   return ksanEvents.map((event) => ({ id: event.id }));
 }
 
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const event = getKsanEvent(id);
+  const event = await getEvent(id);
 
   if (!event) {
     notFound();
@@ -58,43 +119,25 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
     return <ArchiveEventDetail event={event} />;
   }
 
-  const organizerName = event.organizerName ?? "KSAN";
   const organizerLogo = event.organizerLogo;
   const registrationTarget = await getRegistrationTarget(event.title, event.registrationTarget);
-  const descriptionParagraphs = event.description.split(/\n\n+/).map((paragraph) => paragraph.trim()).filter(Boolean);
+  const descriptionParagraphs = event.description
+    .split(/\r?\n\s*\r?\n+/)
+    .map((paragraph) => paragraph.trim())
+    .filter((paragraph) => paragraph && !isDefaultKsanGreeting(paragraph));
+  const galleryImages = event.recapImages?.length ? event.recapImages : [event.image];
 
   return (
     <main className="event-detail-page" id="main">
-      <Link className="event-detail-back" href="/events"><ArrowLeft aria-hidden size={18} />행사 목록</Link>
       <section className="event-detail-profile">
-        <div
-          aria-label={`${event.title} 행사 대표 이미지`}
-          className="event-detail-cover"
-          data-protected-event-image
-          role="img"
-          style={{ backgroundImage: `url(${event.image})` }}
-        />
-        <div className="event-organizer-logo" data-protected-event-image>
-          {organizerLogo ? (
-            <Image alt={`${organizerName} 주최자 로고`} height={120} src={organizerLogo} width={120} />
-          ) : (
-            <span className="event-organizer-monogram">{organizerName}</span>
-          )}
-        </div>
+        <EventDetailGallery images={galleryImages} title={event.title} />
         <div className="event-detail-intro">
-          <p className="event-organizer-name"><span>주최</span><strong>{organizerName}</strong></p>
-          <p className="eyebrow">{event.keywords.join(" · ")}</p>
           <h1>{event.title}</h1>
-          <p className="event-detail-summary">{event.summary}</p>
         </div>
       </section>
 
       <section className="event-detail-content" id="event-details">
         <article className="event-detail-article">
-          <header className="event-detail-section-heading">
-            <p className="eyebrow">Event information</p>
-            <h2>행사 세부 안내</h2>
-          </header>
           <div className="event-detail-description">
             {descriptionParagraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
           </div>
@@ -120,20 +163,20 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
           ) : null}
         </article>
 
-        <aside aria-label="행사 정보 및 신청" className="event-detail-sidebar">
+        <aside aria-label="정보 및 신청" className="event-detail-sidebar">
           <div className="event-detail-sidebar-card">
-            <p className="event-detail-sidebar-title">행사 정보</p>
+            <p className="event-detail-sidebar-title">정보</p>
             <div className="event-detail-sidebar-facts">
               <div className="event-detail-sidebar-organizer">
                 <span className="event-detail-sidebar-organizer-avatar" data-protected-event-image>
                   {organizerLogo ? (
                     <Image alt="" height={38} src={organizerLogo} width={38} />
                   ) : (
-                    <span aria-hidden>{organizerName}</span>
+                    <span aria-hidden>{event.organizerName ?? "KSAN"}</span>
                   )}
                 </span>
                 <span>주최자</span>
-                <strong>{organizerName}</strong>
+                <strong>{event.organizerName ?? "KSAN"}</strong>
               </div>
               <div>
                 <CalendarDays aria-hidden size={19} />
@@ -141,6 +184,20 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
                 <strong>{event.dateLabel}</strong>
                 <small><Clock3 aria-hidden size={14} />{event.time}</small>
               </div>
+              {event.applicationDeadline ? (
+                <div>
+                  <CalendarDays aria-hidden size={19} />
+                  <span>신청 마감</span>
+                  <strong>{event.applicationDeadline}</strong>
+                </div>
+              ) : null}
+              {event.price ? (
+                <div>
+                  <Ticket aria-hidden size={19} />
+                  <span>가격</span>
+                  <strong>{event.price}</strong>
+                </div>
+              ) : null}
               <a
                 aria-label={`${event.location} Google Maps에서 열기`}
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.mapQuery ?? event.location)}`}
@@ -169,9 +226,6 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
                 <span>신청 링크 준비 중</span>
               </span>
             )}
-            <small className="event-detail-apply-note">
-              {registrationTarget ? "새 창에서 Google Form이 열립니다." : "관리자 페이지에 Google Form을 등록하면 버튼이 활성화됩니다."}
-            </small>
           </div>
         </aside>
       </section>

@@ -69,15 +69,15 @@ const myPageItems: Array<{
     countKey: "profile"
   },
   {
-    title: "커뮤니티 기록",
-    description: "익명 커뮤니티 오픈 시 작성글과 댓글을 연결합니다.",
+    title: "케이숲 기록",
+    description: "케이숲 오픈 시 작성글과 댓글을 연결합니다.",
     Icon: MessageCircle,
     state: "pending",
     href: "/mypage/community",
     countKey: null
   },
   {
-    title: "Pass it On 기록",
+    title: "중고거래 기록",
     description: "중고거래/나눔 기능 오픈 시 저장·작성 기록을 연결합니다.",
     Icon: Settings,
     state: "pending",

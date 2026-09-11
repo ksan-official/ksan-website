@@ -46,6 +46,9 @@ create table if not exists public.business_posts (
   apply_mode text not null default 'email' check (apply_mode in ('email', 'external_link', 'internal_form')),
   apply_target text not null,
   description text not null,
+  image_url text,
+  image_urls text[] not null default '{}',
+  logo_url text,
   company_intro text,
   responsibilities text,
   requirements text,
@@ -68,6 +71,9 @@ alter table public.business_posts add column if not exists accent text not null 
 alter table public.business_posts add column if not exists company_intro text;
 alter table public.business_posts add column if not exists responsibilities text;
 alter table public.business_posts add column if not exists requirements text;
+alter table public.business_posts add column if not exists image_url text;
+alter table public.business_posts add column if not exists image_urls text[] not null default '{}';
+alter table public.business_posts add column if not exists logo_url text;
 alter table public.about_entries add column if not exists sponsor_kind text not null default 'sponsor';
 alter table public.about_entries add column if not exists benefits text;
 alter table public.about_entries add column if not exists usage_guide text;
@@ -83,12 +89,22 @@ create table if not exists public.events (
   starts_at timestamptz not null,
   location text,
   description text not null,
+  image_url text,
+  image_urls text[] not null default '{}',
   registration_mode text not null default 'internal_form' check (registration_mode in ('google_form', 'external_link', 'internal_form')),
   registration_target text,
+  source_id text,
+  sponsors jsonb not null default '[]'::jsonb,
   published boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.events add column if not exists image_url text;
+alter table public.events add column if not exists image_urls text[] not null default '{}';
+alter table public.events add column if not exists source_id text;
+alter table public.events add column if not exists sponsors jsonb not null default '[]'::jsonb;
+create unique index if not exists events_source_id_unique_idx on public.events (source_id) where source_id is not null;
 
 create table if not exists public.applications (
   id uuid primary key default gen_random_uuid(),
@@ -176,6 +192,14 @@ on conflict (id) do update set public = excluded.public;
 
 insert into storage.buckets (id, name, public)
 values ('about-images', 'about-images', true)
+on conflict (id) do update set public = excluded.public;
+
+insert into storage.buckets (id, name, public)
+values ('business-post-images', 'business-post-images', true)
+on conflict (id) do update set public = excluded.public;
+
+insert into storage.buckets (id, name, public)
+values ('event-images', 'event-images', true)
 on conflict (id) do update set public = excluded.public;
 
 create or replace function public.is_admin()
@@ -295,6 +319,62 @@ drop policy if exists "Admins can delete about images" on storage.objects;
 create policy "Admins can delete about images" on storage.objects
   for delete using (
     bucket_id = 'about-images'
+    and public.is_admin()
+  );
+
+drop policy if exists "Anyone can view business post images" on storage.objects;
+create policy "Anyone can view business post images" on storage.objects
+  for select using (bucket_id = 'business-post-images');
+
+drop policy if exists "Admins can upload business post images" on storage.objects;
+create policy "Admins can upload business post images" on storage.objects
+  for insert with check (
+    bucket_id = 'business-post-images'
+    and public.is_admin()
+  );
+
+drop policy if exists "Admins can update business post images" on storage.objects;
+create policy "Admins can update business post images" on storage.objects
+  for update using (
+    bucket_id = 'business-post-images'
+    and public.is_admin()
+  ) with check (
+    bucket_id = 'business-post-images'
+    and public.is_admin()
+  );
+
+drop policy if exists "Admins can delete business post images" on storage.objects;
+create policy "Admins can delete business post images" on storage.objects
+  for delete using (
+    bucket_id = 'business-post-images'
+    and public.is_admin()
+  );
+
+drop policy if exists "Anyone can view event images" on storage.objects;
+create policy "Anyone can view event images" on storage.objects
+  for select using (bucket_id = 'event-images');
+
+drop policy if exists "Admins can upload event images" on storage.objects;
+create policy "Admins can upload event images" on storage.objects
+  for insert with check (
+    bucket_id = 'event-images'
+    and public.is_admin()
+  );
+
+drop policy if exists "Admins can update event images" on storage.objects;
+create policy "Admins can update event images" on storage.objects
+  for update using (
+    bucket_id = 'event-images'
+    and public.is_admin()
+  ) with check (
+    bucket_id = 'event-images'
+    and public.is_admin()
+  );
+
+drop policy if exists "Admins can delete event images" on storage.objects;
+create policy "Admins can delete event images" on storage.objects
+  for delete using (
+    bucket_id = 'event-images'
     and public.is_admin()
   );
 

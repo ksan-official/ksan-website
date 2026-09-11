@@ -1,15 +1,15 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { ArrowLeft, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, MapPin, X } from "lucide-react";
-import type { KsanEvent } from "@/lib/events";
+import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, MapPin, X } from "lucide-react";
+import { isDefaultKsanGreeting, type KsanEvent } from "@/lib/events";
 
 export function ArchiveEventDetail({ event }: { event: KsanEvent }) {
   const [activePhoto, setActivePhoto] = useState<number | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState(0);
   const pageRef = useRef<HTMLElement>(null);
   const marqueeRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -18,10 +18,12 @@ export function ArchiveEventDetail({ event }: { event: KsanEvent }) {
     [event.image, event.recapImages]
   );
   const organizerName = event.organizerName ?? "KSAN";
-  const organizerLogo = event.organizerLogo ?? "/images/ksan-logo-black.png";
   const sponsors = event.sponsors ?? [];
   const shouldAnimateSponsors = sponsors.length > 3;
-  const descriptionPreview = event.description.replace(/\s+/g, " ").trim();
+  const descriptionParagraphs = event.description
+    .split(/\r?\n\s*\r?\n+/)
+    .map((paragraph) => paragraph.trim())
+    .filter((paragraph) => paragraph && !isDefaultKsanGreeting(paragraph));
 
   useGSAP(
     () => {
@@ -81,33 +83,49 @@ export function ArchiveEventDetail({ event }: { event: KsanEvent }) {
       <Link className="event-detail-back" href="/events#event-archive"><ArrowLeft aria-hidden size={18} />지난 행사</Link>
 
       <section className="archive-detail-hero">
-        <div className="archive-photo-grid" aria-label={`${event.title} 현장 사진`}>
-          {images.slice(0, 3).map((image, index) => (
-            <button
-              aria-label={`${index + 1}번째 현장 사진 크게 보기`}
-              className="archive-photo-tile"
-              data-protected-event-image
-              key={image}
-              onClick={() => setActivePhoto(index)}
-              style={{ backgroundImage: `url(${image})` }}
-              type="button"
-            >
-              <span>{String(index + 1).padStart(2, "0")}</span>
-            </button>
-          ))}
-          <span className="archive-photo-total">대표 사진 {images.length}장 · 전체 {event.photoCount ?? images.length}장</span>
+        <div className="archive-photo-gallery" aria-label={`${event.title} 현장 사진`}>
+          <button
+            aria-label={`${event.title} 대표 사진 크게 보기`}
+            className="archive-photo-main"
+            data-protected-event-image
+            onClick={() => setActivePhoto(selectedPhoto)}
+            type="button"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img alt={`${event.title} 대표 사진`} src={images[selectedPhoto] ?? images[0]} />
+            {images.length > 1 ? (
+              <span className="archive-photo-total">{selectedPhoto + 1} / {event.photoCount ?? images.length}</span>
+            ) : null}
+          </button>
+          {images.length > 1 ? (
+            <div className="archive-photo-thumbnails">
+              {images.map((image, index) => (
+                <button
+                  aria-label={`${index + 1}번째 현장 사진 보기`}
+                  aria-pressed={selectedPhoto === index}
+                  className={selectedPhoto === index ? "is-active" : undefined}
+                  key={`${image}-${index}`}
+                  onClick={() => setSelectedPhoto(index)}
+                  type="button"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img alt="" src={image} />
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <section className="archive-photo-story">
+            <div>
+              {descriptionParagraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+            </div>
+          </section>
         </div>
 
         <aside className="archive-detail-summary">
-          <p className="eyebrow">Event archive</p>
           <h1>{event.title}</h1>
-          <p className="archive-detail-lead">{event.summary}</p>
 
           <div className="archive-detail-meta">
             <div className="archive-detail-organizer">
-              <span className="archive-detail-organizer-logo" data-protected-event-image>
-                <Image alt={`${organizerName} 로고`} height={64} src={organizerLogo} width={64} />
-              </span>
               <span><small>주최</small><strong>{organizerName}</strong></span>
             </div>
             <div>
@@ -125,18 +143,6 @@ export function ArchiveEventDetail({ event }: { event: KsanEvent }) {
             </a>
           </div>
 
-          <details className="archive-summary-description">
-            <summary>
-              <span className="archive-description-preview">{descriptionPreview}</span>
-              <span className="archive-description-toggle">
-                <span className="archive-description-open-label">더 읽기</span>
-                <span className="archive-description-close-label">접기</span>
-                <ChevronDown aria-hidden size={18} />
-              </span>
-            </summary>
-            <p>{event.description}</p>
-          </details>
-
           {sponsors.length ? (
             <section className="archive-summary-sponsors" aria-labelledby="archive-summary-sponsors-title">
               <header>
@@ -151,7 +157,10 @@ export function ArchiveEventDetail({ event }: { event: KsanEvent }) {
                         {sponsors.map((sponsor) => (
                           <div className={`archive-sponsor-logo${sponsor.image ? "" : " archive-sponsor-wordmark"}`} data-protected-event-image key={`${group}-${sponsor.name}`}>
                             {sponsor.image ? (
-                              <Image alt={group === 0 ? sponsor.name : ""} height={72} src={sponsor.image} width={210} />
+                              <>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img alt={group === 0 ? sponsor.name : ""} src={sponsor.image} />
+                              </>
                             ) : (
                               <span aria-hidden={group === 1}>{sponsor.name}</span>
                             )}
@@ -166,7 +175,10 @@ export function ArchiveEventDetail({ event }: { event: KsanEvent }) {
                   {sponsors.map((sponsor) => (
                     <div className={`archive-sponsor-logo${sponsor.image ? "" : " archive-sponsor-wordmark"}`} data-protected-event-image key={sponsor.name}>
                       {sponsor.image ? (
-                        <Image alt={sponsor.name} height={72} src={sponsor.image} width={210} />
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img alt={sponsor.name} src={sponsor.image} />
+                        </>
                       ) : (
                         <span>{sponsor.name}</span>
                       )}

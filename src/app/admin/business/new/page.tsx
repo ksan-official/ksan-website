@@ -1,16 +1,83 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Eye, X } from "lucide-react";
+import { AdminFormattedTextarea } from "@/components/AdminFormattedTextarea";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
+
+type ImageItem = {
+  file: File;
+  id: string;
+  url: string;
+};
 
 export default function NewBusinessPostPage() {
   const [status, setStatus] = useState<string | null>(null);
+  const [imageItems, setImageItems] = useState<ImageItem[]>([]);
+  const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
+  const [draggedImageId, setDraggedImageId] = useState<string | null>(null);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!status || status.includes("중입니다")) return;
+    const timeout = window.setTimeout(() => setStatus(null), 1500);
+    return () => window.clearTimeout(timeout);
+  }, [status]);
+
+  function handlePhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.currentTarget.files ?? []);
+    setImageItems((current) => [
+      ...current,
+      ...files.map((file) => ({
+        file,
+        id: crypto.randomUUID(),
+        url: URL.createObjectURL(file)
+      }))
+    ]);
+    event.currentTarget.value = "";
+  }
+
+  function handleLogoChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    setLogoPreviewUrl(file ? URL.createObjectURL(file) : null);
+  }
+
+  function moveImage(draggedId: string, targetId: string) {
+    if (draggedId === targetId) return;
+    setImageItems((current) => {
+      const fromIndex = current.findIndex((item) => item.id === draggedId);
+      const targetIndex = current.findIndex((item) => item.id === targetId);
+      if (fromIndex < 0 || targetIndex < 0) return current;
+      const next = current.filter((item) => item.id !== draggedId);
+      next.splice(targetIndex, 0, current[fromIndex]);
+      return next;
+    });
+  }
+
+  function handleDragStart(event: React.DragEvent<HTMLButtonElement>, itemId: string) {
+    event.dataTransfer.setData("text/plain", itemId);
+    event.dataTransfer.effectAllowed = "move";
+    setDraggedImageId(itemId);
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLDivElement>, targetId: string) {
+    event.preventDefault();
+    const draggedId = event.dataTransfer.getData("text/plain") || draggedImageId;
+    if (!draggedId) return;
+    moveImage(draggedId, targetId);
+    setDraggedImageId(null);
+  }
+
+  function removeImage(id: string) {
+    setImageItems((current) => current.filter((item) => item.id !== id));
+  }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus("저장 중입니다.");
     const form = event.currentTarget;
+    document.dispatchEvent(new Event("ksan:sync-rich-text"));
     const formData = new FormData(form);
 
     try {
@@ -20,36 +87,33 @@ export default function NewBusinessPostPage() {
         setStatus("저장 실패: 관리자 계정으로 먼저 로그인해야 합니다.");
         return;
       }
+      formData.set("accent", "orange");
+      formData.set("companyIntro", "");
+      formData.set("featured", "false");
+      formData.set("featuredOrder", "0");
+      formData.set("imageUrls", "[]");
+      formData.set("logoUrl", "");
+      formData.set("imageOrder", JSON.stringify(imageItems.map((item) => ({ field: `photo-${item.id}`, kind: "upload" }))));
+      formData.delete("photos");
+      imageItems.forEach((item) => formData.append(`photo-${item.id}`, item.file));
+      formData.set("published", String(formData.get("published") === "on"));
+      formData.set("requirements", "");
+      formData.set("responsibilities", "");
 
       const response = await fetch("/api/admin/business", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${data.session.access_token}`
         },
-        body: JSON.stringify({
-          accent: formData.get("accent"),
-          applyMode: formData.get("applyMode"),
-          applyTarget: formData.get("applyTarget"),
-          company: formData.get("company"),
-          companyIntro: formData.get("companyIntro"),
-          deadline: formData.get("deadline"),
-          department: formData.get("department"),
-          description: formData.get("description"),
-          employmentType: formData.get("employmentType"),
-          featured: formData.get("featured") === "on",
-          featuredOrder: formData.get("featuredOrder"),
-          location: formData.get("location"),
-          published: formData.get("published") === "on",
-          requirements: formData.get("requirements"),
-          responsibilities: formData.get("responsibilities"),
-          tags: String(formData.get("tags") ?? "").split(","),
-          title: formData.get("title")
-        })
+        body: formData
       });
       const result = await response.json();
       setStatus(response.ok ? "공고가 저장되었습니다. 공개 페이지에 반영됩니다." : `저장 실패: ${result.error}`);
-      if (response.ok) form.reset();
+      if (response.ok) {
+        form.reset();
+        setImageItems([]);
+        setLogoPreviewUrl(null);
+      }
     } catch (error) {
       setStatus(`저장 실패: ${error instanceof Error ? error.message : "Supabase 설정을 확인해주세요."}`);
     }
@@ -58,35 +122,79 @@ export default function NewBusinessPostPage() {
   return (
     <main className="page" id="main">
       <div className="admin-page-header">
-        <div><p className="admin-kicker">Business Hub</p><h1 className="page-title">채용 공고 등록</h1><p>공고 내용, 검색 태그, 상단 고정 여부를 함께 설정합니다.</p></div>
+        <div><p className="admin-kicker">Business Hub</p><h1 className="page-title">채용 공고 등록</h1></div>
         <Link className="admin-button secondary" href="/admin/business">전체 공고 관리</Link>
       </div>
       <form className="form" onSubmit={submit}>
         <div className="admin-two-column">
-          <label className="field"><span>직무명</span><input name="title" required /></label>
+          <label className="field"><span>공고 제목</span><input name="title" placeholder="예: 2026년 하반기 신입사원 채용" required /></label>
           <label className="field"><span>기업명</span><input name="company" required /></label>
-          <label className="field"><span>직무 분야</span><input name="department" placeholder="Marketing, Product, Design" required /></label>
-          <label className="field"><span>지역</span><input name="location" placeholder="Amsterdam, Remote" required /></label>
+          <label className="field admin-business-logo-field">
+            <span>기업 로고</span>
+            <div className="admin-business-logo-upload">
+              <div
+                className="admin-business-logo-preview"
+                style={logoPreviewUrl ? { backgroundImage: `url(${logoPreviewUrl})` } : undefined}
+              >
+                {logoPreviewUrl ? null : "Logo"}
+              </div>
+              <input accept="image/*" name="logo" onChange={handleLogoChange} type="file" />
+            </div>
+          </label>
+          <label className="field"><span>분야/직군</span><input name="department" placeholder="예: 마케팅 / 운영 / 경영지원" /></label>
+          <label className="field"><span>근무 지역</span><input name="location" placeholder="비어 있으면 공고 확인으로 표시됩니다." /></label>
           <label className="field">
             <span>고용 형태</span>
-            <select defaultValue="인턴" name="employmentType">
-              <option>풀타임</option><option>워킹 스튜던트</option><option>파트타임</option><option>인턴</option><option>계약직</option>
+            <select defaultValue="공고 확인" name="employmentType">
+              <option>공고 확인</option><option>풀타임</option><option>워킹 스튜던트</option><option>파트타임</option><option>인턴</option><option>계약직</option>
             </select>
           </label>
           <label className="field"><span>마감일</span><input name="deadline" type="date" /></label>
         </div>
-        <label className="field"><span>공고 요약</span><textarea name="description" placeholder="목록 카드와 상단 소개에 짧게 보일 설명을 적어주세요." rows={3} required /></label>
-        <label className="field"><span>검색 태그</span><input name="tags" placeholder="영어 가능, 학생 우대, 브랜딩" /></label>
-        <p className="admin-note">쉼표로 구분해 최대 8개까지 등록할 수 있습니다. 검색과 공고 카드의 태그에 사용됩니다.</p>
-        <section className="admin-form-section">
-          <div>
-            <p className="admin-kicker">Detail Sections</p>
-            <h2>상세 페이지 구성</h2>
+        <label className="field">
+          <span>공고 본문</span>
+          <AdminFormattedTextarea
+            name="description"
+            required
+            rows={14}
+          />
+        </label>
+        <label className="field admin-about-upload-field">
+          <span>공고 이미지</span>
+          <div className="admin-business-upload-panel">
+            <div className="admin-business-upload-preview-grid">
+              {imageItems.length ? imageItems.map((item, index) => (
+                <div
+                  className={`admin-business-upload-item${draggedImageId === item.id ? " is-dragging" : ""}`}
+                  key={item.id}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={(event) => handleDrop(event, item.id)}
+                >
+                  <button
+                    className="admin-business-upload-thumb"
+                    draggable
+                    onDragEnd={() => setDraggedImageId(null)}
+                    onDragStart={(event) => handleDragStart(event, item.id)}
+                    onClick={() => setActiveImageUrl(item.url)}
+                    style={{ backgroundImage: `url(${item.url})` }}
+                    type="button"
+                  >
+                    <span>{index + 1}</span>
+                  </button>
+                  <div className="admin-business-upload-actions">
+                    <button aria-label="이미지 크게 보기" onClick={() => setActiveImageUrl(item.url)} type="button"><Eye aria-hidden size={15} /></button>
+                    <button aria-label="이미지 삭제" onClick={() => removeImage(item.id)} type="button"><X aria-hidden size={15} /></button>
+                  </div>
+                </div>
+              )) : (
+                <div className="admin-business-upload-empty">이미지를 추가하면 순서를 정할 수 있어요.</div>
+              )}
+            </div>
+            <div className="admin-business-file-row">
+              <input accept="image/*" multiple name="photos" onChange={handlePhotoChange} type="file" />
+            </div>
           </div>
-          <label className="field"><span>회사 소개</span><textarea name="companyIntro" placeholder="회사가 어떤 곳인지, 어떤 팀에서 일하게 되는지 적어주세요." rows={4} /></label>
-          <label className="field"><span>주요 업무</span><textarea name="responsibilities" placeholder={"한 줄에 하나씩 적어주세요.\n예: 브랜드 캠페인 리서치\n예: SNS 콘텐츠 캘린더 운영"} rows={6} /></label>
-          <label className="field"><span>자격 요건</span><textarea name="requirements" placeholder={"한 줄에 하나씩 적어주세요.\n예: 영어 커뮤니케이션 가능\n예: 관련 전공 또는 프로젝트 경험 우대"} rows={6} /></label>
-        </section>
+        </label>
         <div className="admin-two-column">
           <label className="field">
             <span>지원 방식</span>
@@ -96,21 +204,23 @@ export default function NewBusinessPostPage() {
           </label>
           <label className="field"><span>지원 이메일 또는 링크</span><input name="applyTarget" required /></label>
         </div>
-        <div className="admin-two-column">
-          <label className="field">
-            <span>배너 컬러</span>
-            <select defaultValue="orange" name="accent"><option value="orange">Dutch Orange</option><option value="blue">Ice Blue</option><option value="dark">Slate Obsidian</option></select>
-          </label>
-          <label className="field"><span>고정 순서</span><input defaultValue="0" min="0" name="featuredOrder" type="number" /></label>
-        </div>
         <div className="admin-publish-options">
           <label className="admin-check"><input name="published" type="checkbox" /> 공개 페이지에 게시</label>
-          <label className="admin-check"><input name="featured" type="checkbox" /> 상단 고정 · KSAN 승인 포스트</label>
         </div>
-        <p className="admin-note">상단 고정 공고는 최대 3개까지 지정할 수 있으며, 목록에서 주황색 테두리와 승인 태그로 표시됩니다.</p>
         <button className="button" type="submit">공고 저장</button>
       </form>
-      {status ? <p className="status">{status}</p> : null}
+      {activeImageUrl ? (
+        <div className="admin-image-lightbox" role="dialog" aria-modal="true" aria-label="공고 이미지 크게 보기">
+          <button aria-label="닫기" onClick={() => setActiveImageUrl(null)} type="button"><X aria-hidden /></button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img alt="선택한 공고 이미지" src={activeImageUrl} />
+        </div>
+      ) : null}
+      {status ? (
+        <p aria-live="polite" className={`admin-toast${status.includes("중입니다") ? " is-loading" : ""}`}>
+          {status}
+        </p>
+      ) : null}
     </main>
   );
 }

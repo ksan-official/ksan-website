@@ -10,8 +10,8 @@ const navItems = [
   ["정착가이드", "/guides"],
   ["비즈니스 허브", "/business"],
   ["행사", "/events"],
-  ["Pass it On", "/pass-it-on"],
-  ["Community", "/community"]
+  ["중고거래", "/pass-it-on"],
+  ["케이숲", "/community"]
 ];
 
 const aboutItems = [
@@ -20,6 +20,7 @@ const aboutItems = [
 ];
 
 function isActive(pathname: string, href: string) {
+  if (href === "/events" && pathname.startsWith("/events/")) return false;
   return href === "/" ? pathname === href : pathname.startsWith(href);
 }
 
@@ -42,6 +43,9 @@ export function SiteNav() {
 
   const accountLink = signedIn === false ? "/auth" : "/mypage";
   const accountLabel = signedIn === false ? "로그인" : "마이페이지";
+  const visibleNavItems = pathname.startsWith("/events/")
+    ? navItems.filter(([, href]) => href !== "/events")
+    : navItems;
 
   async function signOut() {
     if (!hasSupabaseConfig()) return;
@@ -54,7 +58,7 @@ export function SiteNav() {
 
   return (
     <nav className="nav" aria-label="Primary navigation">
-      {navItems.map(([label, href]) => (
+      {visibleNavItems.map(([label, href]) => (
         <Link
           className={[isActive(pathname, href) ? "active" : "", href === "/auth" ? "login-cta" : ""]
             .filter(Boolean)
@@ -62,7 +66,13 @@ export function SiteNav() {
           key={href}
           href={href}
         >
-          {label}
+          {label === "케이숲" ? (
+            <>
+              케이<span className="nav-forest-green">숲</span>
+            </>
+          ) : (
+            label
+          )}
         </Link>
       ))}
       <div className={["nav-dropdown", isActive(pathname, "/about") ? "active" : ""].filter(Boolean).join(" ")}>

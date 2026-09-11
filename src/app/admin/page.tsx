@@ -11,14 +11,7 @@ type AdminSystemStatus = {
   businessPostCount: number;
   eventCount: number;
   memberCount: number;
-  recentGuideCount?: number;
-  recentBusinessPostCount?: number;
-  recentEventCount?: number;
   recentMemberCount?: number;
-  pendingGuideCount?: number;
-  pendingBusinessPostCount?: number;
-  pendingEventCount?: number;
-  recentUpdates?: Array<{ href: string; id: string; title: string; type: string; updatedAt: string }>;
   upcomingEvents?: Array<{ href: string; id: string; published: boolean; startsAt: string; title: string }>;
   urgentBusinessPosts?: Array<{ company: string; deadline: string; href: string; id: string; published: boolean; title: string }>;
   newMembers?: Array<{ createdAt: string; email: string; id: string; name: string; school: string }>;
@@ -28,6 +21,19 @@ type AdminSystemStatus = {
 function shortDate(value?: string) {
   if (!value) return "";
   return value.slice(0, 10);
+}
+
+function deadlineLabel(value?: string) {
+  if (!value) return "마감일 없음";
+
+  const target = new Date(`${value.slice(0, 10)}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dayDiff = Math.ceil((target.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+
+  if (dayDiff < 0) return "마감 지남";
+  if (dayDiff === 0) return "오늘 마감";
+  return `D-${dayDiff}`;
 }
 
 export default function AdminPage() {
@@ -57,13 +63,8 @@ export default function AdminPage() {
   const dashboardCards = [
     { label: "채용 공고", value: systemStatus?.businessPostCount ?? 0, href: "/admin/business" },
     { label: "정착가이드", value: systemStatus?.guideCount ?? 0, href: "/admin/guides" },
-    { label: "행사", value: systemStatus?.eventCount ?? 0, href: "/admin/events/new" },
+    { label: "행사", value: systemStatus?.eventCount ?? 0, href: "/admin/events" },
     { label: "회원", value: systemStatus?.memberCount ?? 0, delta: systemStatus?.recentMemberCount ?? 0, showDelta: true, href: "/admin/members" }
-  ];
-  const pendingItems = [
-    { label: "가이드", value: systemStatus?.pendingGuideCount ?? 0, href: "/admin/guides" },
-    { label: "채용", value: systemStatus?.pendingBusinessPostCount ?? 0, href: "/admin/business" },
-    { label: "행사", value: systemStatus?.pendingEventCount ?? 0, href: "/admin/events/new" }
   ];
   const quickActions = [
     { label: "새 가이드", href: "/admin/guides/new" },
@@ -87,45 +88,16 @@ export default function AdminPage() {
           {dashboardCards.map((card) => (
             <Link className="admin-dashboard-card" href={card.href} key={card.label}>
               <span>{card.label}</span>
-              <strong>{card.value}</strong>
-              {card.showDelta ? <em>최근 7일 +{card.delta ?? 0}</em> : null}
+              <div className="admin-dashboard-card-value">
+                <strong>{card.value}</strong>
+                {card.showDelta ? <em>최근 7일 +{card.delta ?? 0}</em> : null}
+              </div>
             </Link>
           ))}
         </div>
       </section>
 
       <section className="admin-dashboard-layout">
-        <div className="admin-dashboard-panel admin-dashboard-panel--attention">
-          <div className="admin-panel-heading">
-            <span>확인 필요</span>
-            <h2>공개 대기</h2>
-          </div>
-          <div className="admin-pending-grid">
-            {pendingItems.map((item) => (
-              <Link href={item.href} key={item.label}>
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <div className="admin-dashboard-panel">
-          <div className="admin-panel-heading">
-            <span>최근 변경</span>
-            <h2>수정/추가된 항목</h2>
-          </div>
-          <div className="admin-dashboard-list">
-            {systemStatus?.recentUpdates?.length ? systemStatus.recentUpdates.map((item) => (
-              <Link href={item.href} key={`${item.type}-${item.id}`}>
-                <span>{item.type}</span>
-                <strong>{item.title}</strong>
-                <small>{shortDate(item.updatedAt)}</small>
-              </Link>
-            )) : <p>최근 변경된 항목이 없습니다.</p>}
-          </div>
-        </div>
-
         <div className="admin-dashboard-panel">
           <div className="admin-panel-heading">
             <span>일정</span>
@@ -150,7 +122,7 @@ export default function AdminPage() {
           <div className="admin-dashboard-list">
             {systemStatus?.urgentBusinessPosts?.length ? systemStatus.urgentBusinessPosts.map((post) => (
               <Link href={post.href} key={post.id}>
-                <span>{post.published ? "공개" : "비공개"}</span>
+                <span className="admin-deadline-pill">{deadlineLabel(post.deadline)}</span>
                 <strong>{post.title}</strong>
                 <small>{post.company ? `${post.company} · ` : ""}{shortDate(post.deadline)}</small>
               </Link>

@@ -14,7 +14,10 @@ type BusinessPostRow = {
   employment_type: string | null;
   featured: boolean | null;
   id: string;
+  image_url: string | null;
+  image_urls: string[] | null;
   location: string | null;
+  logo_url: string | null;
   requirements: string | null;
   responsibilities: string | null;
   tags: string[] | null;
@@ -35,20 +38,24 @@ function toJob(row: BusinessPostRow): BusinessJob {
   return {
     accent: row.accent ?? "orange",
     applyTarget,
+    body: row.description,
     company: row.company,
     companyIntro: details.companyIntro,
     deadline: row.deadline,
-    department: row.department ?? "General",
+    department: row.department ?? "공고 확인",
     description: details.summary,
     featured: Boolean(row.featured),
     id: row.id,
+    imageUrl: row.image_url,
+    imageUrls: row.image_urls?.length ? row.image_urls : row.image_url ? [row.image_url] : [],
     language: details.language,
-    location: row.location ?? "네덜란드",
+    location: row.location ?? "공고 확인",
+    logoUrl: row.logo_url,
     requirements: details.requirements,
     responsibilities: details.responsibilities,
     tags: row.tags ?? [],
     title: row.title,
-    type: (row.employment_type ?? "풀타임") as JobType
+    type: (row.employment_type ?? "공고 확인") as JobType
   };
 }
 
@@ -61,27 +68,22 @@ export async function GET() {
     const supabase = createServerSupabaseClient();
     const { data, error } = await supabase
       .from("business_posts")
-      .select("id,title,company,location,employment_type,deadline,apply_mode,apply_target,description,department,tags,featured,company_intro,responsibilities,requirements,accent")
+      .select("id,title,company,location,employment_type,deadline,apply_mode,apply_target,description,department,tags,featured,company_intro,responsibilities,requirements,accent,image_url,image_urls,logo_url")
       .eq("published", true)
-      .order("featured", { ascending: false })
-      .order("featured_order", { ascending: true })
       .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Failed to query business posts from Supabase", error);
-      return NextResponse.json({ jobs: businessJobs, source: "fallback" });
+      return NextResponse.json({ jobs: [], source: "supabase", error: "채용 공고를 불러오지 못했습니다." }, { status: 500 });
     }
 
     const databaseJobs = ((data ?? []) as BusinessPostRow[]).map(toJob);
-    const databaseTargets = new Set(databaseJobs.map((job) => job.applyTarget));
-    const jobs = [
-      ...databaseJobs,
-      ...businessJobs.filter((job) => !databaseTargets.has(job.applyTarget))
-    ].sort((left, right) => Number(Boolean(right.featured)) - Number(Boolean(left.featured)));
-
-    return NextResponse.json({ jobs, source: "supabase" });
+    return NextResponse.json({
+      jobs: databaseJobs,
+      source: "supabase"
+    });
   } catch (error) {
     console.error("Failed to load business posts from Supabase", error);
-    return NextResponse.json({ jobs: businessJobs, source: "fallback" });
+    return NextResponse.json({ jobs: [], source: "supabase", error: "채용 공고를 불러오지 못했습니다." }, { status: 500 });
   }
 }

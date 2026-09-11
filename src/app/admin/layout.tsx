@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { ExternalLink, LogOut } from "lucide-react";
@@ -10,7 +11,7 @@ const adminLinks = [
   { href: "/admin", label: "현황" },
   { href: "/admin/guides", label: "정착가이드" },
   { href: "/admin/business", label: "채용" },
-  { href: "/admin/events/new", label: "행사" },
+  { href: "/admin/events", label: "행사" },
   { href: "/admin/map-spots", label: "지도" },
   { href: "/admin/members", label: "회원" },
   { href: "/admin/about/new", label: "소개" },
@@ -149,7 +150,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <header className="admin-sidebar">
         <div className="admin-topbar">
           <Link className="admin-brand" href="/admin">
-            KSAN Admin
+            <Image
+              alt="KSAN"
+              height={584}
+              priority
+              src="/images/ksan-logo-black.png"
+              width={1809}
+            />
+            <span>관리자 페이지</span>
           </Link>
           <div className="admin-sidebar-foot">
             <Link className="admin-utility-link" href="/">

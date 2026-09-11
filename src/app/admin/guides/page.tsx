@@ -100,20 +100,24 @@ export default function AdminGuidesPage() {
     [categoryTabs, visibleGuides]
   );
 
-  async function updateGuide(id: string, published: boolean) {
-    setStatus("공개 상태를 저장하는 중입니다.");
+  async function updateGuide(guide: AdminGuide, published: boolean) {
+    const nextStateLabel = published ? "공개" : "비공개";
+    if (!window.confirm(`‘${guide.title}’ 가이드를 ${nextStateLabel}로 전환할까요?`)) return;
+
+    setGuides((current) => current.map((item) => item.id === guide.id ? { ...item, published } : item));
+    setStatus(`${nextStateLabel}로 변경하는 중입니다.`);
     const response = await request({
-      body: JSON.stringify({ id, published }),
+      body: JSON.stringify({ id: guide.id, published }),
       headers: { "Content-Type": "application/json" },
       method: "PATCH"
     });
     const result = await response.json();
     if (!response.ok) {
+      setGuides((current) => current.map((item) => item.id === guide.id ? { ...item, published: guide.published } : item));
       setStatus(result.error);
       return;
     }
-    await loadGuides();
-    setStatus(published ? "가이드를 공개했습니다." : "가이드를 비공개로 전환했습니다.");
+    setStatus(`${nextStateLabel}로 변경했습니다.`);
   }
 
   async function removeGuide(guide: AdminGuide) {
@@ -193,7 +197,7 @@ export default function AdminGuidesPage() {
                         </Link>
                         <button
                           className="admin-text-button"
-                          onClick={() => void updateGuide(guide.id, !guide.published)}
+                          onClick={() => void updateGuide(guide, !guide.published)}
                           type="button"
                         >
                           {guide.published ? <EyeOff aria-hidden size={15} /> : <Eye aria-hidden size={15} />}

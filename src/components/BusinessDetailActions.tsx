@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUpRight, Bookmark, Check } from "lucide-react";
+import { ArrowUpRight, Bookmark } from "lucide-react";
 import { createBrowserSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 
 type BusinessDetailActionsProps = {
@@ -78,14 +78,14 @@ export function BusinessDetailActions({ applyTarget, jobId }: BusinessDetailActi
 
   return (
     <div className="business-detail-primary-actions">
-      <button aria-pressed={saved} disabled={saving} onClick={toggleSaved} type="button">
-        {saved ? <Check aria-hidden size={18} /> : <Bookmark aria-hidden size={18} />}
-        <span>{saved ? "저장됨" : "저장하기"}</span>
-      </button>
       <a href={applyTarget} rel={externalApply ? "noreferrer" : undefined} target={externalApply ? "_blank" : undefined}>
         <span>지원하기</span>
         <ArrowUpRight aria-hidden size={18} />
       </a>
+      <button aria-label={saved ? "저장 취소" : "저장하기"} aria-pressed={saved} disabled={saving} onClick={toggleSaved} type="button">
+        <Bookmark aria-hidden fill={saved ? "currentColor" : "none"} size={20} />
+        <span className="sr-only">{saved ? "저장됨" : "저장하기"}</span>
+      </button>
       {notice ? <p aria-live="polite">{notice}</p> : null}
     </div>
   );
