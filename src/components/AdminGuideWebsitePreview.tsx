@@ -133,7 +133,7 @@ export function AdminGuideWebsitePreview({
           <nav aria-label="하단 주요 메뉴" className="footer-sitemap">
             <span className="footer-label">Navigation</span>
             <Link href="/guides">정착가이드</Link>
-            <Link href="/business">비즈니스 허브</Link>
+            <Link href="/business">커리어 허브</Link>
             <Link href="/events">행사</Link>
             <Link href="/pass-it-on">중고거래</Link>
             <Link href="/community">케이숲</Link>

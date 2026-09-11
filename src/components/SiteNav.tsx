@@ -8,7 +8,7 @@ import { createBrowserSupabaseClient, getBrowserSupabaseSession, hasSupabaseConf
 
 const navItems = [
   ["정착가이드", "/guides"],
-  ["비즈니스 허브", "/business"],
+  ["커리어 허브", "/business"],
   ["행사", "/events"],
   ["중고거래", "/pass-it-on"],
   ["케이숲", "/community"]

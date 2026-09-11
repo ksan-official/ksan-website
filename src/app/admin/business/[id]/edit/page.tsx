@@ -164,7 +164,7 @@ export default function EditBusinessPostPage() {
 
   return (
     <main className="page" id="main">
-      <div className="admin-page-header"><div><p className="admin-kicker">Business Hub</p><h1 className="page-title">공고 수정</h1><p>{post.company} · {post.title}</p></div><Link className="admin-button secondary" href="/admin/business">목록으로</Link></div>
+      <div className="admin-page-header"><div><p className="admin-kicker">Career Hub</p><h1 className="page-title">공고 수정</h1><p>{post.company} · {post.title}</p></div><Link className="admin-button secondary" href="/admin/business">목록으로</Link></div>
       <form className="form" onSubmit={submit}>
         <div className="admin-two-column">
           <label className="field"><span>공고 제목</span><input defaultValue={post.title} name="title" required /></label>

@@ -204,7 +204,7 @@ export function BusinessHubExperience() {
 
       <section className="business-hub-hero" data-business-hero>
         <div>
-          <p className="business-hub-kicker">KSAN Business Hub</p>
+          <p className="business-hub-kicker">KSAN Career Hub</p>
           <h1>네덜란드에서 시작하는<br />나의 다음 커리어</h1>
         </div>
         <div className="business-hero-copy">

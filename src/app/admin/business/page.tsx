@@ -115,7 +115,7 @@ export default function AdminBusinessPage() {
   return (
     <main className="admin-page" id="main">
       <header className="admin-page-header">
-        <div><p className="admin-kicker">Business Hub</p><h1>채용 공고 관리</h1></div>
+        <div><p className="admin-kicker">Career Hub</p><h1>채용 공고 관리</h1></div>
         <Link className="admin-button" href="/admin/business/new">새 공고 등록</Link>
       </header>
       <section className="admin-section">

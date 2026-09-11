@@ -3,15 +3,9 @@ import Image from "next/image";
 import {
   ArrowDown,
   ArrowRight,
-  BookOpen,
-  BriefcaseBusiness,
-  CalendarDays,
   Facebook,
   Instagram,
-  Linkedin,
-  MapPinned,
-  MessageCircle,
-  Repeat2
+  Linkedin
 } from "lucide-react";
 import { HomeMotion } from "@/components/HomeMotion";
 import type { SponsorEntry } from "@/components/SponsorShowcase";
@@ -21,37 +15,37 @@ export const dynamic = "force-dynamic";
 
 const homeSections = [
   {
-    Icon: BookOpen,
+    emoji: "🏠",
     href: "/guides",
     description: "도착 준비부터 행정, 집, 보험까지 필요한 정보를 모았습니다.",
     title: "정착가이드"
   },
   {
-    Icon: BriefcaseBusiness,
+    emoji: "💼",
     href: "/business",
     description: "채용, 인턴십, 기업 소식과 네트워킹 기회를 확인하세요.",
-    title: "비즈니스 허브"
+    title: "커리어 허브"
   },
   {
-    Icon: CalendarDays,
+    emoji: "📅",
     href: "/events",
     description: "KSAN 행사와 네덜란드 한인 학생 모임을 한곳에서 봅니다.",
     title: "행사"
   },
   {
-    Icon: Repeat2,
+    emoji: "🔄",
     href: "/pass-it-on",
     description: "필요 없어진 물건을 나누고 필요한 물건을 이어받는 공간입니다.",
     title: "중고거래"
   },
   {
-    Icon: MessageCircle,
+    emoji: "💬",
     href: "/community",
     description: "질문, 고민, 정보 공유가 자연스럽게 오가는 KSAN 커뮤니티입니다.",
     title: "케이숲"
   },
   {
-    Icon: MapPinned,
+    emoji: "📍",
     href: "/guides#netherlands-spots",
     description: "공부하기 좋은 곳, 카페, 맛집을 지도에서 찾아보세요.",
     title: "네덜란드 스팟 지도"
@@ -219,6 +213,27 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <section className="home-services-section" data-motion-section id="home-sections">
+        <div className="home-services-heading">
+          <h2>유학 생활에 필요한 연결을 한곳에.</h2>
+          <p>도착 준비부터 일상, 커리어와 커뮤니티까지 필요한 순간에 바로 찾아보세요.</p>
+        </div>
+        <div className="home-block-grid">
+          {homeSections.map(({ description, emoji, href, title }) => (
+            <Link className="home-section-block" data-motion-card href={href} key={title}>
+              <span aria-hidden="true" className="home-section-icon">{emoji}</span>
+              <span className="home-section-text">
+                <strong>{title}</strong>
+                <span>{description}</span>
+              </span>
+              <span className="home-section-cta">
+                바로가기 <ArrowRight aria-hidden size={17} strokeWidth={2} />
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       <section className="home-network-section" data-motion-section>
         <div className="home-network-copy">
           <p className="eyebrow">KSAN 소개</p>
@@ -280,22 +295,6 @@ export default async function HomePage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section className="section home-section-blocks" data-motion-section id="home-sections">
-        <div className="home-block-grid">
-          {homeSections.map(({ Icon, description, href, title }) => (
-            <Link className="home-section-block" data-motion-card href={href} key={title}>
-              <span className="home-section-icon">
-                <Icon aria-hidden size={24} strokeWidth={1.8} />
-              </span>
-              <span className="home-section-text">
-                <strong>{title}</strong>
-                <span>{description}</span>
-              </span>
-            </Link>
-          ))}
         </div>
       </section>
 

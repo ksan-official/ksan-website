@@ -122,7 +122,7 @@ export default function NewBusinessPostPage() {
   return (
     <main className="page" id="main">
       <div className="admin-page-header">
-        <div><p className="admin-kicker">Business Hub</p><h1 className="page-title">채용 공고 등록</h1></div>
+        <div><p className="admin-kicker">Career Hub</p><h1 className="page-title">채용 공고 등록</h1></div>
         <Link className="admin-button secondary" href="/admin/business">전체 공고 관리</Link>
       </div>
       <form className="form" onSubmit={submit}>
