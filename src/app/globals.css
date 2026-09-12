@@ -5741,9 +5741,9 @@ body::before {
 
 .home-page {
   max-width: 1240px;
-  overflow: clip;
+  overflow: visible;
   padding-bottom: 140px;
-  padding-top: clamp(24px, 4vw, 42px);
+  padding-top: 0;
 }
 
 .hero-panel {
@@ -5753,10 +5753,14 @@ body::before {
   box-shadow: none;
   display: grid;
   isolation: isolate;
+  left: 50%;
+  margin-left: -50vw;
+  max-width: none;
   min-height: clamp(520px, 66svh, 680px);
   overflow: hidden;
-  padding: clamp(34px, 5vw, 64px);
+  padding: clamp(34px, 5vw, 64px) 0;
   position: relative;
+  width: 100vw;
 }
 
 .hero-panel::after {
@@ -5766,6 +5770,12 @@ body::before {
 .hero-panel > :not(.hero-art):not(.home-hero-photo) {
   position: relative;
   z-index: 2;
+}
+
+.home-page .hero-panel > [data-hero-copy] {
+  margin-inline: auto;
+  padding-inline: clamp(34px, 5vw, 64px);
+  width: min(calc(100% - 40px), 1200px);
 }
 
 .home-hero-photo {
@@ -7487,7 +7497,7 @@ body::before {
   }
 
   .home-page {
-    padding-top: 36px;
+    padding-top: 0;
   }
 
   .hero-panel {
@@ -18392,7 +18402,7 @@ a.guides-reference-row:hover {
 
 .home-page .hero-panel {
   min-height: clamp(520px, 66svh, 680px);
-  padding: clamp(34px, 5vw, 64px);
+  padding: clamp(34px, 5vw, 64px) 0;
 }
 
 .home-page .hero-panel .page-title {
