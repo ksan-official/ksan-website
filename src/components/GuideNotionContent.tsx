@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from "react";
-import { ArrowUpRight, Check, FileText, ImageIcon } from "lucide-react";
+import { ArrowUpRight, Check, FileText, ImageIcon, Lightbulb } from "lucide-react";
 import type { GuideBlock, GuideRichText } from "@/lib/types";
 
 export function guideHeadingId(block: GuideBlock, prefix = "") {
@@ -68,7 +68,9 @@ function renderBlock(block: GuideBlock, headingIdPrefix: string) {
   if (block.type === "callout") {
     return (
       <aside className={`notion-callout${safeColorClass(block.color)}`} key={block.id}>
-        <span aria-hidden className="notion-callout-icon">{block.icon ?? "💡"}</span>
+        <span aria-hidden className="notion-callout-icon">
+          <Lightbulb size={18} strokeWidth={1.9} />
+        </span>
         <div><p>{text}</p><BlockChildren block={block} headingIdPrefix={headingIdPrefix} /></div>
       </aside>
     );

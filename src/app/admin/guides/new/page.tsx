@@ -186,7 +186,7 @@ export default function NewGuidePage() {
             <span>카테고리</span>
             <select name="category" onChange={(event) => setCategory(event.target.value)} value={category}>
               {guideCategories.map((category) => (
-                <option key={category.id} value={category.id}>{category.emoji} {category.title}</option>
+                <option key={category.id} value={category.id}>{category.title}</option>
               ))}
             </select>
           </label>
@@ -200,7 +200,7 @@ export default function NewGuidePage() {
               <span>연관 가이드 카테고리</span>
               <select onChange={(event) => setRelatedCategory(event.target.value)} value={relatedCategory}>
                 {guideCategories.map((category) => (
-                  <option key={category.id} value={category.id}>{category.emoji} {category.title}</option>
+                  <option key={category.id} value={category.id}>{category.title}</option>
                 ))}
               </select>
             </label>

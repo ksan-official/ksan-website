@@ -192,7 +192,7 @@ export default function EditGuidePage() {
             <label className="field">
               <span>카테고리</span>
               <select onChange={(event) => setCategory(event.target.value)} value={category}>
-                {guideCategories.map((item) => <option key={item.id} value={item.id}>{item.emoji} {item.title}</option>)}
+                {guideCategories.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
               </select>
             </label>
             <label className="admin-check">
@@ -205,7 +205,7 @@ export default function EditGuidePage() {
                 <span>연관 가이드 카테고리</span>
                 <select onChange={(event) => setRelatedCategory(event.target.value)} value={relatedCategory}>
                   {guideCategories.map((category) => (
-                    <option key={category.id} value={category.id}>{category.emoji} {category.title}</option>
+                    <option key={category.id} value={category.id}>{category.title}</option>
                   ))}
                 </select>
               </label>

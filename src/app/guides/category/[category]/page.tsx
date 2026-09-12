@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { GuideCategoryIcon } from "@/components/GuideCategoryIcon";
 import {
   getGuideCategory,
   guideCategories,
@@ -70,7 +71,9 @@ export default async function GuideCategoryPage({ params }: { params: Promise<{ 
           <ArrowLeft aria-hidden size={18} /> 전체 가이드
         </Link>
         <div className="guide-category-hero-copy">
-          <span aria-hidden>{category.emoji}</span>
+          <span aria-hidden>
+            <GuideCategoryIcon name={category.emoji} size={30} />
+          </span>
           <div>
             <p>KSAN Settlement Guide</p>
             <h1>{category.title}</h1>

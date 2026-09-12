@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { PaletteTabs } from "@/components/PaletteTabs";
 import { SiteNav } from "@/components/SiteNav";
+import { GuideCategoryIcon } from "@/components/GuideCategoryIcon";
 import { GuideNotionContent, guideHeadingId } from "@/components/GuideNotionContent";
 import { GuideArticleSidebar } from "@/components/GuideArticleSidebar";
 import { buildGuideTocHeadings } from "@/lib/guideToc";
@@ -97,7 +98,7 @@ export function AdminGuideWebsitePreview({
           <header className="guide-article-header">
             <div className="guide-article-category-row">
               <span className="guide-article-category">
-                {categoryEmoji ? <i aria-hidden>{categoryEmoji}</i> : null}
+                {categoryEmoji ? <GuideCategoryIcon name={categoryEmoji} size={16} /> : null}
                 {categoryTitle}
               </span>
             </div>

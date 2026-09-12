@@ -15,6 +15,7 @@ export type BusinessJob = {
   id: string;
   imageUrl?: string | null;
   imageUrls?: string[];
+  isPreviewOnly?: boolean;
   language?: "en" | "ko" | "nl";
   location: string;
   logoUrl?: string | null;
@@ -151,6 +152,82 @@ export function resolveBusinessDetails(input: BusinessDetailInput): ParsedBusine
   );
   return parsed;
 }
+
+export const businessPreviewJobs: BusinessJob[] = [
+  {
+    accent: "orange",
+    applyTarget: "#",
+    company: "bunq",
+    companyIntro: "bunq는 암스테르담 기반의 핀테크 기업으로, 모바일 중심의 국제 금융 서비스를 만들고 있습니다.",
+    deadline: null,
+    department: "커뮤니티·그로스",
+    description: "학생 커뮤니티 캠페인, 현지 파트너십, 국제 사용자 피드백 수집을 함께 지원하는 인턴 포지션입니다.",
+    id: "preview-bunq-community-growth-intern",
+    isPreviewOnly: true,
+    language: "ko",
+    location: "Amsterdam",
+    logoUrl: "/images/partners/bunq.png",
+    requirements: "국제 학생 관점, 영어 커뮤니케이션, 핀테크와 커뮤니티/그로스 마케팅에 대한 관심이 있으면 좋습니다.",
+    responsibilities: "학생 커뮤니티 캠페인 지원\n현지 파트너십 아이디어 정리\n국제 사용자 피드백 수집",
+    tags: ["핀테크", "커뮤니티", "그로스"],
+    title: "커뮤니티·그로스 인턴",
+    type: "인턴"
+  },
+  {
+    accent: "blue",
+    applyTarget: "#",
+    company: "ASML",
+    companyIntro: "ASML은 네덜란드에 본사를 둔 글로벌 반도체 장비 기업입니다.",
+    deadline: null,
+    department: "고객 기술지원",
+    description: "반도체 장비, 문제 해결, 고객-facing 기술 업무에 관심 있는 학생에게 어울리는 엔지니어링 포지션입니다.",
+    id: "preview-asml-customer-support-engineer",
+    isPreviewOnly: true,
+    language: "ko",
+    location: "Veldhoven",
+    requirements: "공학, 물리, 메카트로닉스 등 관련 전공과 분석적 문제 해결 역량이 있으면 좋습니다.",
+    responsibilities: "기술 이슈 분석 지원\n고객 안내 자료 정리\n장비 성능 관련 엔지니어 협업",
+    tags: ["엔지니어링", "반도체", "신입"],
+    title: "고객 기술지원 엔지니어",
+    type: "풀타임"
+  },
+  {
+    accent: "dark",
+    applyTarget: "#",
+    company: "Adyen",
+    companyIntro: "Adyen은 암스테르담 기반의 글로벌 결제 플랫폼 기업입니다.",
+    deadline: null,
+    department: "운영",
+    description: "결제 운영, 내부 툴 관리, 반복 업무 개선을 지원하는 워킹 스튜던트 포지션입니다.",
+    id: "preview-adyen-operations-working-student",
+    isPreviewOnly: true,
+    language: "ko",
+    location: "Amsterdam",
+    requirements: "경영, 경제, 데이터, 기술 관련 전공과 꼼꼼한 업무 처리 능력, 명확한 커뮤니케이션이 있으면 좋습니다.",
+    responsibilities: "운영 업무 흐름 지원\n가맹점 요청 및 내부 데이터 정리\n반복 프로세스 개선 보조",
+    tags: ["결제", "운영", "워킹 스튜던트"],
+    title: "운영 워킹 스튜던트",
+    type: "워킹 스튜던트"
+  },
+  {
+    accent: "orange",
+    applyTarget: "#",
+    company: "Booking.com",
+    companyIntro: "Booking.com은 암스테르담에 본사를 둔 글로벌 여행 테크 기업입니다.",
+    deadline: null,
+    department: "데이터·프로덕트",
+    description: "사용자 행동, 실험 결과, 제품 지표를 분석해 프로덕트 팀의 의사결정을 돕는 인턴 포지션입니다.",
+    id: "preview-booking-product-data-intern",
+    isPreviewOnly: true,
+    language: "ko",
+    location: "Amsterdam",
+    requirements: "데이터 사이언스, 계량경제, 비즈니스 분석 등 관련 전공과 SQL 또는 스프레드시트 경험이 있으면 좋습니다.",
+    responsibilities: "제품 및 실험 데이터 분석\n대시보드와 인사이트 노트 정리\n프로덕트 팀 의사결정 지원",
+    tags: ["데이터", "프로덕트", "분석"],
+    title: "프로덕트 데이터 분석 인턴",
+    type: "인턴"
+  }
+];
 
 export const businessJobs: BusinessJob[] = [
   {

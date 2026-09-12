@@ -10,6 +10,7 @@ export type GuideSummary = {
   updatedAt: string;
   author: string;
   tags: string[];
+  isDemoLocked?: boolean;
   relatedIds?: string[];
 };
 

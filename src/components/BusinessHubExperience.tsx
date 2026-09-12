@@ -47,8 +47,29 @@ function JobCard({
   job: BusinessJob;
   onSave: (job: BusinessJob) => void;
 }) {
+  const previewOnly = Boolean(job.isPreviewOnly);
+  const cardBody = (
+    <>
+      <div className="business-job-heading">
+        <p>{job.company}</p>
+        <h3>{job.title}</h3>
+      </div>
+      <div className="business-job-tags">
+        <span><MapPin aria-hidden size={13} />{job.location}</span>
+        <span><BriefcaseBusiness aria-hidden size={13} />{job.department}</span>
+      </div>
+      <div className="business-job-footer">
+        <span className="business-deadline"><CalendarClock aria-hidden size={14} />{deadlineLabel(job.deadline)}</span>
+        <span className="business-job-open">
+          {previewOnly ? "준비 중" : "공고 보기"}
+          {previewOnly ? null : <ArrowUpRight aria-hidden size={16} />}
+        </span>
+      </div>
+    </>
+  );
+
   return (
-    <article className={`business-job-card business-job-card--${job.accent}`} data-job-card>
+    <article className={`business-job-card business-job-card--${job.accent}${previewOnly ? " is-preview-only" : ""}`} data-job-card>
       <div className="business-job-card-top">
         <div className="business-job-identity">
           <span
@@ -61,31 +82,28 @@ function JobCard({
         </div>
         <div className="business-job-actions">
           <span className="business-job-type" data-job-type={job.type}>{job.type}</span>
-          <button
-            aria-label={isSaved ? `${job.title} 저장 취소` : `${job.title} 저장`}
-            aria-pressed={isSaved}
-            className="business-save-button"
-            onClick={() => onSave(job)}
-            type="button"
-          >
-            <Bookmark aria-hidden fill={isSaved ? "currentColor" : "none"} size={16} />
-          </button>
+          {previewOnly ? null : (
+            <button
+              aria-label={isSaved ? `${job.title} 저장 취소` : `${job.title} 저장`}
+              aria-pressed={isSaved}
+              className="business-save-button"
+              onClick={() => onSave(job)}
+              type="button"
+            >
+              <Bookmark aria-hidden fill={isSaved ? "currentColor" : "none"} size={16} />
+            </button>
+          )}
         </div>
       </div>
-      <a aria-label={`${job.company} ${job.title} 공고 자세히 보기`} className="business-job-main-link" href={`/business/${job.id}`} rel="noreferrer" target="_blank">
-        <div className="business-job-heading">
-          <p>{job.company}</p>
-          <h3>{job.title}</h3>
+      {previewOnly ? (
+        <div aria-label={`${job.company} ${job.title} 공고 미리보기`} className="business-job-main-link" role="group">
+          {cardBody}
         </div>
-        <div className="business-job-tags">
-          <span><MapPin aria-hidden size={13} />{job.location}</span>
-          <span><BriefcaseBusiness aria-hidden size={13} />{job.department}</span>
-        </div>
-        <div className="business-job-footer">
-          <span className="business-deadline"><CalendarClock aria-hidden size={14} />{deadlineLabel(job.deadline)}</span>
-          <span className="business-job-open">공고 보기 <ArrowUpRight aria-hidden size={16} /></span>
-        </div>
-      </a>
+      ) : (
+        <a aria-label={`${job.company} ${job.title} 공고 자세히 보기`} className="business-job-main-link" href={`/business/${job.id}`} rel="noreferrer" target="_blank">
+          {cardBody}
+        </a>
+      )}
     </article>
   );
 }

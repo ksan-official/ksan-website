@@ -67,6 +67,28 @@ function sanitizeRichHtml(value: string) {
     .replace(/(<br\s*\/?>\s*){3,}/gi, "<br><br>");
 }
 
+function htmlToPlainBody(value: string) {
+  return value
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|h[1-6]|li|blockquote)>/gi, "\n")
+    .replace(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi, (_match, attrs: string, label: string) => {
+      const href = String(attrs).match(/\bhref=["']([^"']+)["']/i)?.[1] ?? "";
+      const cleanLabel = stripTags(label);
+      const safeHref = href.startsWith("http://") || href.startsWith("https://") || href.startsWith("mailto:") ? href : "";
+      return safeHref ? `${cleanLabel} (${safeHref})` : cleanLabel;
+    })
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function renderInline(text: string): ReactNode[] {
   const nodes: ReactNode[] = [];
   const pattern = /(\*\*[^*]+\*\*|~~[^~]+~~|<u>.*?<\/u>|\[[^\]]+\]\([^)]+\)|\*[^*]+\*)/g;
@@ -103,20 +125,41 @@ function isOrderedItem(line: string) {
   return /^\d+\.\s+/.test(line);
 }
 
-export function BusinessFormattedBody({ body, language }: BusinessFormattedBodyProps) {
-  const normalizedBody = body.includes("&lt;") ? decodeEscapedTags(body) : body;
+function isChecklistItem(line: string) {
+  return /^[□☐◻]\s*/.test(line);
+}
 
-  if (looksLikeHtml(normalizedBody)) {
-    return (
-      <div
-        className="business-detail-body"
-        lang={language}
-        dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(normalizedBody) }}
-      />
-    );
-  }
+function isCircledNumberItem(line: string) {
+  return /^[①②③④⑤⑥⑦⑧⑨⑩]\s*/.test(line);
+}
 
-  const lines = normalizedBody.split("\n");
+function isNoteLine(line: string) {
+  return /^[※*]\s+/.test(line) || line.startsWith("※");
+}
+
+function isSoftHeading(line: string) {
+  const cleanedLine = line.replace(/[:：]+$/, "");
+  return line.endsWith(":") && cleanedLine.length <= 32;
+}
+
+function stripChecklistMarker(line: string) {
+  return line.replace(/^[□☐◻]\s*/, "");
+}
+
+function stripCircledNumber(line: string) {
+  return line.replace(/^[①②③④⑤⑥⑦⑧⑨⑩]\s*/, "");
+}
+
+function stripNoteMarker(line: string) {
+  return line.replace(/^※\s*/, "").replace(/^\*\s+/, "");
+}
+
+function hasStructuredJobMarkers(value: string) {
+  return /(^|\n)\s*([□☐◻①②③④⑤⑥⑦⑧⑨⑩]|※)/.test(value);
+}
+
+function renderPlainBody(body: string) {
+  const lines = body.split("\n");
   const elements: ReactNode[] = [];
   let listItems: string[] = [];
   let listType: "ul" | "ol" | null = null;
@@ -166,6 +209,28 @@ export function BusinessFormattedBody({ body, language }: BusinessFormattedBodyP
       elements.push(<h2 key={`h2-${index}`}>{renderInline(line.slice(3))}</h2>);
     } else if (line.startsWith("### ")) {
       elements.push(<h3 key={`h3-${index}`}>{renderInline(line.slice(4))}</h3>);
+    } else if (isChecklistItem(line)) {
+      elements.push(
+        <div className="business-detail-check-row" key={`check-${index}`}>
+          <span aria-hidden="true" />
+          <p>{renderInline(stripChecklistMarker(line))}</p>
+        </div>
+      );
+    } else if (isCircledNumberItem(line)) {
+      elements.push(
+        <div className="business-detail-step-row" key={`step-${index}`}>
+          <span aria-hidden="true">{line.charAt(0)}</span>
+          <p>{renderInline(stripCircledNumber(line))}</p>
+        </div>
+      );
+    } else if (isNoteLine(line)) {
+      elements.push(
+        <p className="business-detail-note" key={`note-${index}`}>
+          {renderInline(stripNoteMarker(line))}
+        </p>
+      );
+    } else if (isSoftHeading(line)) {
+      elements.push(<h3 key={`soft-h3-${index}`}>{renderInline(line.replace(/[:：]+$/, ""))}</h3>);
     } else if (line.startsWith("> ")) {
       elements.push(<blockquote key={`quote-${index}`}>{renderInline(line.slice(2))}</blockquote>);
     } else {
@@ -174,5 +239,26 @@ export function BusinessFormattedBody({ body, language }: BusinessFormattedBodyP
   });
   flushList();
 
-  return <div className="business-detail-body" lang={language}>{elements}</div>;
+  return elements;
+}
+
+export function BusinessFormattedBody({ body, language }: BusinessFormattedBodyProps) {
+  const normalizedBody = body.includes("&lt;") ? decodeEscapedTags(body) : body;
+
+  if (looksLikeHtml(normalizedBody)) {
+    const plainBody = htmlToPlainBody(normalizedBody);
+    if (hasStructuredJobMarkers(plainBody)) {
+      return <div className="business-detail-body" lang={language}>{renderPlainBody(plainBody)}</div>;
+    }
+
+    return (
+      <div
+        className="business-detail-body"
+        lang={language}
+        dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(normalizedBody) }}
+      />
+    );
+  }
+
+  return <div className="business-detail-body" lang={language}>{renderPlainBody(normalizedBody)}</div>;
 }

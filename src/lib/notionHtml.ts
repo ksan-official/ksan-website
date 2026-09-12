@@ -198,8 +198,8 @@ function renderTableRow(value: { cells?: NotionRichText[][] }) {
 }
 
 function iconMarkup(icon: unknown) {
-  const value = icon as { emoji?: string; type?: string } | undefined;
-  return value?.type === "emoji" && value.emoji ? `<span>${escapeHtml(value.emoji)}</span>` : "";
+  void icon;
+  return "";
 }
 
 function notionColorToStyle(color: string) {

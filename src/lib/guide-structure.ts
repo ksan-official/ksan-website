@@ -18,7 +18,7 @@ export const guideCategories: GuideCategory[] = [
   {
     id: "start",
     title: "처음 정착하기",
-    emoji: "🧭",
+    emoji: "compass",
     description: "도착 전부터 첫 3개월까지, 해야 할 일을 시간 순서대로 확인해요.",
     items: [
       {
@@ -31,7 +31,7 @@ export const guideCategories: GuideCategory[] = [
   {
     id: "housing",
     title: "주거",
-    emoji: "🏠",
+    emoji: "home",
     description: "집 찾기부터 계약, 세금과 생활비까지 주거의 기본을 모았어요.",
     items: [
       {
@@ -49,7 +49,7 @@ export const guideCategories: GuideCategory[] = [
   {
     id: "residency",
     title: "행정·체류",
-    emoji: "🪪",
+    emoji: "residency",
     description: "비자, 거주허가, BSN과 DigiD처럼 꼭 필요한 행정 절차를 정리했어요.",
     items: [
       {
@@ -67,7 +67,7 @@ export const guideCategories: GuideCategory[] = [
   {
     id: "finance",
     title: "금융·지원",
-    emoji: "💳",
+    emoji: "finance",
     description: "은행 계좌를 만들고 받을 수 있는 보조금을 빠짐없이 확인해요.",
     items: [
       {
@@ -85,7 +85,7 @@ export const guideCategories: GuideCategory[] = [
   {
     id: "health",
     title: "의료·안전",
-    emoji: "🏥",
+    emoji: "health",
     description: "보험과 병원 이용법, 긴급한 순간에 필요한 연락처를 찾을 수 있어요.",
     items: [
       {
@@ -103,7 +103,7 @@ export const guideCategories: GuideCategory[] = [
   {
     id: "transport",
     title: "교통",
-    emoji: "🚲",
+    emoji: "transport",
     description: "대중교통, 자전거, 운전면허까지 네덜란드 이동 생활을 준비해요.",
     items: [
       {
@@ -126,7 +126,7 @@ export const guideCategories: GuideCategory[] = [
   {
     id: "living",
     title: "생활",
-    emoji: "🛒",
+    emoji: "living",
     description: "통신, 날씨, 장보기와 택배 등 매일 마주치는 생활 정보를 모았어요.",
     items: [
       {
@@ -164,7 +164,7 @@ export const guideCategories: GuideCategory[] = [
   {
     id: "culture",
     title: "문화·여가",
-    emoji: "🎟️",
+    emoji: "culture",
     description: "맛집, 박물관, 축제와 여행으로 네덜란드 생활의 즐거움을 넓혀요.",
     items: [
       {

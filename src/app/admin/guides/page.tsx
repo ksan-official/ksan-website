@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bookmark, Eye, EyeOff, Pencil, Plus, Trash2 } from "lucide-react";
+import { GuideCategoryIcon } from "@/components/GuideCategoryIcon";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
 import { guideCategories, resolveGuideCategory } from "@/lib/guide-structure";
 import { formatGuideTagsInput } from "@/lib/guideTags";
@@ -24,7 +25,7 @@ type AdminGuide = {
 };
 
 const allCategory = {
-  emoji: "•",
+  emoji: "compass",
   id: "all",
   title: "전체"
 };
@@ -157,7 +158,7 @@ export default function AdminGuidesPage() {
               onClick={() => setActiveCategory(category.id)}
               type="button"
             >
-              <span aria-hidden>{category.emoji}</span> {category.title} <small>{countsByCategory.get(category.id) ?? 0}</small>
+              <span aria-hidden><GuideCategoryIcon name={category.emoji} size={15} /></span> {category.title} <small>{countsByCategory.get(category.id) ?? 0}</small>
             </button>
           ))}
         </div>
@@ -169,7 +170,7 @@ export default function AdminGuidesPage() {
             <section className="admin-guide-group" key={category.id}>
               <header className="admin-guide-group-header">
                 <div>
-                  <span aria-hidden>{category.emoji}</span>
+                  <span aria-hidden><GuideCategoryIcon name={category.emoji} size={17} /></span>
                   <h2>{category.title}</h2>
                 </div>
                 <strong><Bookmark aria-hidden size={14} /> {category.guides.length}</strong>

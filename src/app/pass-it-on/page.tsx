@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, ChevronDown, HandHeart, MapPin, Repeat2, Search, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import { Bell, ChevronDown, MapPin, SlidersHorizontal } from "lucide-react";
 import { MarketPreviewMotion } from "@/components/MarketPreviewMotion";
 
 const marketItems = [
@@ -8,7 +8,7 @@ const marketItems = [
   { city: "Leiden", condition: "묶음 판매", image: "/images/market-preview/textbooks.jpg", price: "€ 24", title: "전공 교재 세트" },
   { city: "Delft", condition: "깨끗해요", image: "/images/market-preview/rice-cooker.jpg", price: "€ 32", title: "1인용 미니 밥솥" },
   { city: "Utrecht", condition: "사용감 적어요", image: "/images/market-preview/nightstand.jpg", price: "€ 28", title: "원목 협탁" },
-  { city: "Den Haag", condition: "직접 픽업", image: "/images/market-preview/desk-lamp.jpg", price: "€ 15", title: "생활용품 꾸러미" }
+  { city: "Den Haag", condition: "직접 픽업", image: "/images/market-preview/student-essentials.jpg", price: "€ 15", title: "생활용품 꾸러미" }
 ];
 
 const marketCategories = [
@@ -29,13 +29,13 @@ export default function PassItOnPage() {
       <MarketPreviewMotion />
       <section className="coming-soon-hero market-coming-hero" aria-labelledby="pass-it-on-title" data-market-hero>
         <div className="coming-soon-copy">
-          <span className="coming-soon-kicker">COMING SOON · 곧 오픈 예정</span>
+          <span className="coming-soon-kicker">MARKETPLACE</span>
           <h1 className="coming-soon-title" id="pass-it-on-title">
-            <span>학생들을 위한 가장 가까운</span>
-            <strong>중고거래의 새로운 시작</strong>
+            <span>생활용품부터</span>
+            <strong>자전거까지</strong>
           </h1>
           <p className="coming-soon-lead">
-            불필요한 걱정 없이, 네덜란드 한인 학생끼리 믿고 거래할 수 있는 공간이 곧 찾아옵니다.
+            네덜란드 한인 학생끼리 자전거, 가구, 교재와 생활용품을 더 편하게 주고받을 수 있는 공간을 준비하고 있어요.
           </p>
           <div className="coming-soon-actions">
             <Link className="coming-soon-primary" href="/auth">
@@ -44,13 +44,6 @@ export default function PassItOnPage() {
             </Link>
           </div>
         </div>
-
-        <div className="market-feature-list" aria-label="중고거래 예정 기능">
-          <span><Search aria-hidden size={19} /> 도시별 물건 찾기</span>
-          <span><HandHeart aria-hidden size={19} /> 판매와 무료 나눔</span>
-          <span><ShieldCheck aria-hidden size={19} /> 회원 기반 안심 거래</span>
-          <span><Repeat2 aria-hidden size={19} /> 필요한 사람에게 이어주기</span>
-        </div>
       </section>
 
       <section className="market-gated-preview" aria-label="중고거래 화면 미리보기">
@@ -58,7 +51,7 @@ export default function PassItOnPage() {
           <div className="market-catalog-topbar">
             <span className="market-filter-toggle"><SlidersHorizontal size={14} /> 필터 숨기기</span>
             <div className="market-catalog-summary">
-              <span>전체 48개 상품</span>
+              <span>예시 48개 상품</span>
               <span className="market-sort-control">추천순 <ChevronDown size={14} /></span>
             </div>
           </div>

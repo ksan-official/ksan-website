@@ -15,6 +15,7 @@ import {
 } from "@/lib/guide-structure";
 import type { GuideSummary } from "@/lib/types";
 import { AmsterdamSpotMap } from "@/components/AmsterdamSpotMap";
+import { GuideCategoryIcon } from "@/components/GuideCategoryIcon";
 
 type GuidesExperienceProps = {
   guides: GuideSummary[];
@@ -24,7 +25,7 @@ type GuidesExperienceProps = {
 const spotGuideCategory: GuideCategory = {
   id: "spots",
   title: "네덜란드 스팟",
-  emoji: "📍",
+  emoji: "spots",
   description: "카페, 맛집, 공부 스팟을 지도에서 찾아봐요.",
   items: []
 };
@@ -63,6 +64,30 @@ function findPublishedGuide(item: GuideTreeItem, guides: GuideSummary[]) {
 
 function displayTags(tags: string[]) {
   return tags.map((tag) => `#${tag.replace(/^#+/, "")}`);
+}
+
+function GuidePreviewContent({
+  action = "열기",
+  guide,
+  label
+}: {
+  action?: string;
+  guide: GuideSummary;
+  label: string;
+}) {
+  return (
+    <>
+      <div className="guides-reference-copy">
+        <span>{label}</span>
+        <h3>{guide.title}</h3>
+        {guide.tags.length ? <p>{displayTags(guide.tags).join(" ")}</p> : null}
+        {guide.summary ? <small>{guide.summary}</small> : null}
+      </div>
+      <span className="guides-reference-action">
+        {action} {!guide.isDemoLocked ? <ArrowRight aria-hidden size={18} /> : null}
+      </span>
+    </>
+  );
 }
 
 export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperienceProps) {
@@ -121,13 +146,22 @@ export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperience
             {guides.length ? (
               guides.slice(0, 3).map((guide) => {
                 const tags = displayTags(guide.tags);
-                return (
-                  <Link href={`/guides/${guide.slug}`} key={guide.id}>
+                const content = (
                     <div>
                       <small>{guide.category}</small>
                       <strong>{guide.title}</strong>
                       {tags.length ? <p>{tags.join(" ")}</p> : null}
                     </div>
+                );
+
+                return guide.isDemoLocked ? (
+                  <div className="guides-popular-item is-pending" key={guide.id}>
+                    {content}
+                    <span>준비 중</span>
+                  </div>
+                ) : (
+                  <Link href={`/guides/${guide.slug}`} key={guide.id}>
+                    {content}
                     <ArrowRight aria-hidden size={18} />
                   </Link>
                 );
@@ -166,12 +200,15 @@ export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperience
           {visibleCategories.map((category) => (
             <button
               aria-selected={selectedCategory?.id === category.id}
+              data-category={category.id}
               key={category.id}
               onClick={() => setActiveCategory(category.id)}
               role="tab"
               type="button"
             >
-              <span aria-hidden>{category.emoji}</span>
+              <span aria-hidden>
+                <GuideCategoryIcon name={category.emoji} size={18} />
+              </span>
               {category.title}
             </button>
           ))}
@@ -193,36 +230,46 @@ export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperience
                 {selectedCategory.items.flatMap((item) => {
                   const publishedGuide = findPublishedGuide(item, selectedCategoryGuides);
                   if (!publishedGuide) return [];
-                  const tags = displayTags(publishedGuide.tags);
+                  const label = guidePriorityLabels[item.priority];
                   const content = (
-                    <>
-                      <div className="guides-reference-copy">
-                        <span>{guidePriorityLabels[item.priority]}</span>
-                        <h3>{item.title}</h3>
-                        {tags.length ? <p>{tags.join(" ")}</p> : null}
-                      </div>
-                      <span className="guides-reference-action">
-                        열기 <ArrowRight aria-hidden size={18} />
-                      </span>
-                    </>
+                    <GuidePreviewContent
+                      action={publishedGuide.isDemoLocked ? "준비 중" : "열기"}
+                      guide={publishedGuide}
+                      label={label}
+                    />
                   );
 
-                  return [
-                    <Link className="guides-reference-row" href={`/guides/${publishedGuide.slug}`} key={item.title}>
+                  return publishedGuide.isDemoLocked
+                    ? [
+                        <article className="guides-reference-row is-pending" key={item.title}>
+                          {content}
+                        </article>
+                      ]
+                    : [
+                        <Link className="guides-reference-row" href={`/guides/${publishedGuide.slug}`} key={item.title}>
+                          {content}
+                        </Link>
+                      ];
+                })}
+                {additionalGuides.map((guide, index) => {
+                  const content = (
+                    <GuidePreviewContent
+                      action={guide.isDemoLocked ? "준비 중" : "열기"}
+                      guide={guide}
+                      label={index === 0 ? "새 가이드" : "업데이트"}
+                    />
+                  );
+
+                  return guide.isDemoLocked ? (
+                    <article className="guides-reference-row is-pending" key={guide.id}>
+                      {content}
+                    </article>
+                  ) : (
+                    <Link className="guides-reference-row" href={`/guides/${guide.slug}`} key={guide.id}>
                       {content}
                     </Link>
-                  ];
+                  );
                 })}
-                {additionalGuides.map((guide, index) => (
-                  <Link className="guides-reference-row" href={`/guides/${guide.slug}`} key={guide.id}>
-                    <div className="guides-reference-copy">
-                      <span>{index === 0 ? "새 가이드" : "업데이트"}</span>
-                      <h3>{guide.title}</h3>
-                      {guide.tags.length ? <p>{displayTags(guide.tags).join(" ")}</p> : null}
-                    </div>
-                    <span className="guides-reference-action">열기 <ArrowRight aria-hidden size={18} /></span>
-                  </Link>
-                ))}
               </div>
             ) : null}
           </section>

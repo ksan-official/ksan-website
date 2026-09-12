@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { businessJobs, resolveBusinessDetails, type BusinessJob, type JobType } from "@/lib/business";
+import { businessJobs, businessPreviewJobs, resolveBusinessDetails, type BusinessJob, type JobType } from "@/lib/business";
 import { createServerSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 
 type BusinessPostRow = {
@@ -61,7 +61,7 @@ function toJob(row: BusinessPostRow): BusinessJob {
 
 export async function GET() {
   if (!hasSupabaseConfig()) {
-    return NextResponse.json({ jobs: businessJobs, source: "fallback" });
+    return NextResponse.json({ jobs: [...businessJobs, ...businessPreviewJobs], source: "fallback" });
   }
 
   try {
@@ -79,7 +79,7 @@ export async function GET() {
 
     const databaseJobs = ((data ?? []) as BusinessPostRow[]).map(toJob);
     return NextResponse.json({
-      jobs: databaseJobs,
+      jobs: [...databaseJobs, ...businessPreviewJobs],
       source: "supabase"
     });
   } catch (error) {
