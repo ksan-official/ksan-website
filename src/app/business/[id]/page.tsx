@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { isLocalDesignMode } from "@/lib/design-preview";
 import { notFound } from "next/navigation";
-import { ArrowLeft, BriefcaseBusiness, Building2, CalendarClock, MapPin } from "lucide-react";
+import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import styles from "./page.module.css";
 import { BusinessDetailActions } from "@/components/BusinessDetailActions";
 import { BusinessFormattedBody } from "@/components/BusinessFormattedBody";
-import { businessJobs, composeBusinessDetailText, resolveBusinessDetails, type BusinessJob, type JobType } from "@/lib/business";
+import { businessJobs, businessPreviewJobs, composeBusinessDetailText, resolveBusinessDetails, type BusinessJob, type JobType } from "@/lib/business";
 import { createServerSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -68,16 +70,9 @@ function toJob(row: BusinessPostRow): BusinessJob {
   };
 }
 
-function deadlineLabel(deadline: string | null) {
-  if (!deadline) return "상시 채용";
-  const today = new Date();
-  const end = new Date(`${deadline}T23:59:59`);
-  const days = Math.max(0, Math.ceil((end.getTime() - today.getTime()) / 86_400_000));
-  if (days === 0) return "오늘 마감";
-  return `마감 D-${days}`;
-}
-
 async function getBusinessJob(id: string) {
+  if (isLocalDesignMode) return [...businessPreviewJobs, ...businessJobs].find((job) => job.id === id && !job.isPreviewOnly) ?? null;
+
   if (hasSupabaseConfig()) {
     try {
       const supabase = createServerSupabaseClient();
@@ -94,7 +89,7 @@ async function getBusinessJob(id: string) {
     }
   }
 
-  return businessJobs.find((job) => job.id === id) ?? null;
+  return [...businessJobs, ...businessPreviewJobs].find((job) => job.id === id && !job.isPreviewOnly) ?? null;
 }
 
 export default async function BusinessDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -114,41 +109,38 @@ export default async function BusinessDetailPage({ params }: { params: Promise<{
     responsibilities: job.responsibilities
   });
   return (
-    <main className={`business-detail-page business-detail-page--${job.accent}`} id="main" lang="ko">
-      <Link className="business-detail-back" href="/business">
-        <ArrowLeft aria-hidden size={18} />
-        채용 공고 목록
+    <main className={styles.page} id="main" lang="ko">
+      <Link className={styles.back} href="/business">
+        <ArrowLeft aria-hidden size={15} /> 커리어 허브 / 채용 공고
       </Link>
 
-      <section className="business-detail-hero">
-        <div>
-          <p className="business-hub-kicker">{job.company}</p>
-          <h1 lang={language}>{job.title}</h1>
-          <p lang={language}>{job.description}</p>
-          {job.tags.length ? (
-            <div className="business-detail-tags">
-              {job.tags.map((tag) => <span key={tag}>{tag}</span>)}
-            </div>
-          ) : null}
+      <header className={styles.header}>
+        <p className={styles.company} lang={language}>{job.company}</p>
+        <h1 lang={language}>{job.title}</h1>
+        <div className={styles.meta}>
+          <span>{job.location}</span>
+          {job.type !== "공고 확인" ? <span>{job.type}</span> : null}
         </div>
-      </section>
+        {job.tags.length ? (
+          <div className={styles.tags}>{job.tags.map((tag) => <span key={tag}>#{tag.replace(/^#/, "")}</span>)}</div>
+        ) : null}
+      </header>
 
-      <section className="business-detail-content">
-        <div className="business-detail-sections">
-          <article className="business-detail-section business-detail-section--body">
-            <BusinessFormattedBody body={body} language={language} />
-          </article>
-        </div>
-        <div className="business-detail-side-rail">
-          <aside className="business-detail-facts">
-            <div><Building2 aria-hidden size={21} /><span>회사</span><strong lang={language}>{job.company}</strong></div>
-            <div><MapPin aria-hidden size={21} /><span>지역</span><strong>{job.location}</strong></div>
-            <div><BriefcaseBusiness aria-hidden size={21} /><span>고용 형태</span><strong>{job.type}</strong></div>
-            <div><CalendarClock aria-hidden size={21} /><span>마감</span><strong>{deadlineLabel(job.deadline)}</strong></div>
-          </aside>
-          <BusinessDetailActions applyTarget={job.applyTarget} jobId={job.id} />
-        </div>
-      </section>
+      <aside className={styles.sidebar} aria-label="채용 및 지원 정보">
+        <p className={styles.sidebarLabel}>채용 정보</p>
+        <h2 lang={language}>{job.company}</h2>
+        <dl className={styles.facts}>
+          <div><dt>근무지</dt><dd>{job.location}</dd></div>
+          {job.type !== "공고 확인" ? <div><dt>고용 형태</dt><dd>{job.type}</dd></div> : null}
+          {job.deadline ? <div><dt>지원 마감</dt><dd><time dateTime={job.deadline}>{job.deadline.replaceAll("-", ". ")}</time></dd></div> : null}
+        </dl>
+        <BusinessDetailActions applyTarget={job.applyTarget} jobId={job.id} />
+      </aside>
+
+      <article className={styles.body} aria-label="채용 공고 본문">
+        <BusinessFormattedBody body={body} language={language} />
+        <Link className={styles.endLink} href="/business">다른 채용 공고 둘러보기 <ArrowUpRight aria-hidden size={17} /></Link>
+      </article>
     </main>
   );
 }

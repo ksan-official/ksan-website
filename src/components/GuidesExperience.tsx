@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import styles from "./GuidesExperience.module.css";
 import {
   ArrowRight,
   Search
@@ -14,20 +16,11 @@ import {
   type GuideTreeItem
 } from "@/lib/guide-structure";
 import type { GuideSummary } from "@/lib/types";
-import { AmsterdamSpotMap } from "@/components/AmsterdamSpotMap";
 import { GuideCategoryIcon } from "@/components/GuideCategoryIcon";
 
 type GuidesExperienceProps = {
   guides: GuideSummary[];
   initialQuery?: string;
-};
-
-const spotGuideCategory: GuideCategory = {
-  id: "spots",
-  title: "네덜란드 스팟",
-  emoji: "spots",
-  description: "카페, 맛집, 공부 스팟을 지도에서 찾아봐요.",
-  items: []
 };
 
 function normalize(value: string) {
@@ -97,13 +90,16 @@ export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperience
   );
   const normalizedQuery = query.trim().toLowerCase();
 
-  const guideBrowserCategories = useMemo(() => [...guideCategories, spotGuideCategory], []);
+  const guideBrowserCategories = useMemo(() => guideCategories, []);
   const visibleCategories = useMemo(
     () =>
       normalizedQuery
-        ? guideBrowserCategories.filter((category) => categorySearchText(category).includes(normalizedQuery))
+        ? guideBrowserCategories.filter((category) => categorySearchText(category).includes(normalizedQuery) || guides.some((guide) =>
+            resolveGuideCategory(guide.categoryId ?? guide.category).id === category.id &&
+            [guide.title, guide.category, guide.summary, guide.author, ...guide.tags].join(" ").toLowerCase().includes(normalizedQuery)
+          ))
         : guideBrowserCategories,
-    [guideBrowserCategories, normalizedQuery]
+    [guideBrowserCategories, guides, normalizedQuery]
   );
 
   const selectedCategory =
@@ -128,53 +124,35 @@ export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperience
 
   return (
     <main className="guides-page guides-page--reference" id="main">
-      <section className="guides-hero guides-help-hero">
-        <div className="guides-help-search">
-          <p className="guides-kicker"><span /> KSAN Settlement Guide</p>
-          <h1>네덜란드 생활,<br />무엇이 궁금한가요?</h1>
-          <p>도착 전 준비부터 주거, 행정, 금융과 일상까지 필요한 정보를 바로 찾아보세요.</p>
+      <section className={styles.hero} aria-labelledby="settlement-title">
+        <div className={styles.copy}>
+          <p className={styles.kicker}>정착가이드</p>
+          <h1 id="settlement-title">네덜란드 생활,<br />여기서부터.</h1>
+          <p className={styles.description}>도착 전 준비부터 일상까지,<br />필요한 정보를 찾아보세요.</p>
+          <form className={styles.search} role="search" onSubmit={(event) => {
+            event.preventDefault();
+            document.getElementById("guide-browser")?.scrollIntoView({ behavior: "instant", block: "start" });
+          }}>
+            <Search aria-hidden size={20} strokeWidth={1.6} />
+            <label className="sr-only" htmlFor="settlement-search">가이드 검색</label>
+            <input id="settlement-search" onChange={(event) => setQuery(event.target.value)} placeholder="BSN, 집 구하기, 건강보험 검색" type="search" value={query} />
+            <button type="submit" aria-label="가이드 검색하기"><ArrowRight size={21} aria-hidden /></button>
+          </form>
         </div>
 
-        <aside aria-label="인기 정착 가이드" className="guides-popular-panel">
-          <header>
-            <div>
-              <span>Popular guides</span>
-              <h2>지금 많이 찾는 가이드</h2>
-            </div>
-          </header>
-          <div className="guides-popular-list">
-            {guides.length ? (
-              guides.slice(0, 3).map((guide) => {
-                const tags = displayTags(guide.tags);
-                const content = (
-                    <div>
-                      <small>{guide.category}</small>
-                      <strong>{guide.title}</strong>
-                      {tags.length ? <p>{tags.join(" ")}</p> : null}
-                    </div>
-                );
 
-                return guide.isDemoLocked ? (
-                  <div className="guides-popular-item is-pending" key={guide.id}>
-                    {content}
-                    <span>준비 중</span>
-                  </div>
-                ) : (
-                  <Link href={`/guides/${guide.slug}`} key={guide.id}>
-                    {content}
-                    <ArrowRight aria-hidden size={18} />
-                  </Link>
-                );
-              })
-            ) : (
-              <div className="guides-empty-state">
-                <strong>공개된 가이드가 없습니다.</strong>
-                <p>관리자페이지에서 공개로 저장한 글만 여기에 표시됩니다.</p>
-              </div>
-            )}
-          </div>
-        </aside>
       </section>
+
+      <Link href="/spots" className={styles.spotEntry}>
+        <div className={styles.spotIllustration}>
+          <Image src="/images/netherlands-spots-illustration.png" alt="운하와 거리, 주황색 장소 핀이 있는 지도 일러스트" fill sizes="(max-width: 640px) 100vw, 320px" />
+        </div>
+        <div className={styles.spotCopy}>
+          <h2>네덜란드 스팟</h2>
+          <p>카페부터 공부하기 좋은 곳까지,<br className={styles.mobileBreak} /> 지도에서 찾아보세요.</p>
+        </div>
+        <span className={styles.spotAction}>지도 열기 <ArrowRight size={19} aria-hidden /></span>
+      </Link>
 
       <section className="guides-browser" id="guide-browser">
         <header className="guides-browser-intro">
@@ -184,17 +162,7 @@ export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperience
           </div>
         </header>
 
-        <label className="guides-search guides-browser-search">
-          <Search aria-hidden size={20} />
-          <span className="sr-only">가이드 검색</span>
-          <input
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="BSN, 집 구하기, 건강보험처럼 검색해보세요"
-            type="search"
-            value={query}
-          />
-          {query ? <button onClick={() => setQuery("")} type="button">지우기</button> : null}
-        </label>
+        {query && <div className={styles.searchResult}><p>“{query}” 검색 결과</p><button type="button" onClick={() => setQuery("")}>검색 지우기</button></div>}
 
         <div aria-label="정착 가이드 카테고리" className="guides-topic-tabs" role="tablist">
           {visibleCategories.map((category) => (
@@ -216,10 +184,6 @@ export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperience
 
         {selectedCategory ? (
           <section className="guides-reference-category" role="tabpanel">
-            {selectedCategory.id === "spots" ? (
-              <AmsterdamSpotMap />
-            ) : null}
-            {selectedCategory.id !== "spots" ? (
               <div className="guides-reference-list">
                 {selectedCategoryGuides.length ? null : (
                   <div className="guides-empty-state guides-empty-state--list">
@@ -271,7 +235,6 @@ export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperience
                   );
                 })}
               </div>
-            ) : null}
           </section>
         ) : (
           <div className="guides-no-result">

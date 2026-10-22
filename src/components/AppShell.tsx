@@ -14,7 +14,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isAdmin = pathname?.startsWith("/admin");
-  const isAuth = pathname === "/auth";
+  const isAuth = pathname === "/auth" || pathname.startsWith("/auth/");
   const [signedIn, setSignedIn] = useState<boolean | null>(() => (hasSupabaseConfig() ? null : false));
   const adminTapCount = useRef(0);
   const adminTapTimer = useRef<number | null>(null);
@@ -45,6 +45,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (adminTapCount.current >= 3) {
       router.push("/admin");
     }
+  }
+
+  if (isAuth || pathname === "/mypage" || pathname.startsWith("/mypage/")) {
+    return (
+      <>
+        <a className="skip-link" href="#main">본문으로 바로가기</a>
+        {children}
+      </>
+    );
   }
 
   if (isAdmin) {

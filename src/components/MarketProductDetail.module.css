@@ -1,0 +1,63 @@
+.product { color: #24272a; font-family: "Pretendard", sans-serif; }
+.nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; font-size: 13px; color: #74797d; }
+.nav a { display: inline-flex; align-items: center; gap: 8px; }
+.photo { position: relative; aspect-ratio: 1.35; background: #f0efec; border-radius: 12px; overflow: hidden; display: grid; place-items: center; color: #aca9a2; }
+.photo img { display: block; height: 100%; width: 100%; object-fit: cover; }
+.seller { display: flex; gap: 12px; align-items: center; padding: 22px 0; border-bottom: 1px solid #e8e9e9; }
+.avatar { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: #efeee9; color: #7f827a; font-size: 18px; }
+.seller > div { display: grid; gap: 5px; }
+.seller strong { font-size: 14px; font-weight: 650; }
+.seller > div > span { font-size: 12px; color: #888c8f; }
+.sellerLabel { margin-left: auto; color: #9b9d9e; font-size: 12px; }
+.description { padding: 28px 0; }
+.description h1 { margin: 0; font-size: 25px; font-weight: 700; line-height: 1.4; letter-spacing: -.5px; }
+.meta { margin: 10px 0 0; color: #969a9e; font-size: 12px; }
+.price { display: flex; align-items: center; gap: 12px; margin: 18px 0 0; font-size: 24px; font-weight: 700; }
+.price span { font-size: 12px; font-weight: 500; color: #898e92; }
+.body { white-space: pre-wrap; overflow-wrap: anywhere; color: #42474b; font-size: 16px; line-height: 1.85; margin: 28px 0 24px; }
+.stats { font-size: 12px; color: #9b9fa2; margin: 0; }
+.location { padding: 22px 0; border-block: 1px solid #e8e9e9; display: flex; align-items: center; justify-content: space-between; }
+.location > div { display: flex; gap: 12px; align-items: center; }
+.location svg { color: #8c9193; }
+.location h2 { font-size: 14px; font-weight: 600; margin: 0 0 6px; }
+.location p { font-size: 13px; color: #858b8e; margin: 0; }
+.location > span { font-size: 12px; color: #8c9193; }
+.tradeBar { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; gap: 20px; background: #fff; border-top: 1px solid #e8e9e9; margin-top: 26px; padding: 16px 0; }
+.favorite { display: grid; place-items: center; padding: 4px 20px 4px 0; border: 0; border-right: 1px solid #e3e5e5; background: none; color: #8c9398; cursor: pointer; }
+.favorite[aria-pressed="true"] { color: #ee792e; }
+.tradeBar > strong { font-size: 19px; }
+.contact, .messages form button { border: 0; border-radius: 7px; background: #ed7831; color: #fff; padding: 14px 24px; font: 650 14px "Pretendard", sans-serif; cursor: pointer; }
+.contact { margin-left: auto; }
+.contact:hover, .messages form button:hover { background: #d96625; }
+.contact:disabled { background: #acafb1; cursor: default; }
+.related { margin-top: 40px; }
+.related header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+.related h2, .messages h2 { font-size: 18px; font-weight: 650; margin: 0; }
+.related header a { font-size: 12px; color: #8d9295; display: inline-flex; align-items: center; gap: 3px; }
+.related > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.related > div a { min-width: 0; }
+.thumbnail, .placeholder { display: block; position: relative; aspect-ratio: 1; width: 100%; border-radius: 8px; overflow: hidden; }
+.thumbnail img { object-fit: cover; }
+.placeholder { display: grid; place-items: center; background: #f0efec; color: #a8a9a4; }
+.related h3 { margin: 12px 0 7px; font-size: 14px; font-weight: 500; line-height: 1.5; }
+.related strong { display: block; font-size: 15px; }
+.related a > span:last-child { display: block; color: #999da0; font-size: 11px; margin-top: 7px; }
+.messages { scroll-margin-top: 150px; padding-top: 30px; }
+.message { padding: 16px 0; border-bottom: 1px solid #eeefef; }
+.message strong { font-size: 12px; }
+.message p { font-size: 14px; color: #666e73; white-space: pre-wrap; }
+.messages form { display: grid; gap: 12px; margin-top: 24px; }
+.messages label { font-size: 12px; color: #82898d; }
+.messages textarea { width: 100%; min-height: 100px; resize: vertical; border: 1px solid #dddfe0; border-radius: 7px; padding: 14px; font: 14px/1.7 "Pretendard", sans-serif; }
+.messages form button { justify-self: end; }
+.product button:focus-visible, .product a:focus-visible { outline: 2px solid #ed7831; outline-offset: 4px; }
+@media (max-width: 640px) {
+  .photo { position: relative; aspect-ratio: 1.1; border-radius: 8px; }
+  .description h1 { font-size: 22px; }
+  .body { font-size: 15px; }
+  .tradeBar { position: fixed; left: 0; right: 0; margin: 0; padding: 13px 20px calc(13px + env(safe-area-inset-bottom)); gap: 16px; }
+  .related { margin-top: 34px; margin-bottom: 30px; }
+  .related > div { gap: 12px; }
+  .related h3 { font-size: 12px; }
+  .contact { padding: 13px 22px; }
+}

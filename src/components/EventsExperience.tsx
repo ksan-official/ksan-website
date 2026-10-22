@@ -60,17 +60,21 @@ export function EventsExperience({ initialEvents = [] }: { initialEvents?: KsanE
   const pageRef = useRef<HTMLElement>(null);
   const upcomingEventList = useMemo(() => events.filter((event) => event.status === "upcoming"), [events]);
 
+  const heroEvents = useMemo(() => upcomingEventList.length
+    ? upcomingEventList
+    : [...events].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3), [events, upcomingEventList]);
+
   useEffect(() => {
-    if (isPaused || upcomingEventList.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (isPaused || heroEvents.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       return;
     }
 
     const timer = window.setInterval(() => {
-      setActiveSlide((current) => (current + 1) % upcomingEventList.length);
+      setActiveSlide((current) => (current + 1) % heroEvents.length);
     }, 5600);
 
     return () => window.clearInterval(timer);
-  }, [isPaused, upcomingEventList.length]);
+  }, [isPaused, heroEvents.length]);
 
   useEffect(() => {
     let active = true;
@@ -152,16 +156,16 @@ export function EventsExperience({ initialEvents = [] }: { initialEvents?: KsanE
   const filteredPast = filteredEvents.filter((event) => event.status === "past");
   const visibleUpcoming = showAllUpcoming ? filteredUpcoming : filteredUpcoming.slice(0, 6);
   const visiblePast = showAllPast ? filteredPast : filteredPast.slice(0, 6);
-  const safeActiveSlide = Math.min(activeSlide, Math.max(upcomingEventList.length - 1, 0));
+  const safeActiveSlide = Math.min(activeSlide, Math.max(heroEvents.length - 1, 0));
 
   function showPrevious() {
-    if (!upcomingEventList.length) return;
-    setActiveSlide((current) => (current - 1 + upcomingEventList.length) % upcomingEventList.length);
+    if (!heroEvents.length) return;
+    setActiveSlide((current) => (current - 1 + heroEvents.length) % heroEvents.length);
   }
 
   function showNext() {
-    if (!upcomingEventList.length) return;
-    setActiveSlide((current) => (current + 1) % upcomingEventList.length);
+    if (!heroEvents.length) return;
+    setActiveSlide((current) => (current + 1) % heroEvents.length);
   }
 
   function finishSwipe(clientX: number) {
@@ -178,8 +182,8 @@ export function EventsExperience({ initialEvents = [] }: { initialEvents?: KsanE
 
   return (
     <main className="events-page" id="main" ref={pageRef}>
-      <section
-        aria-label="다가오는 행사"
+      {heroEvents.length ? <section
+        aria-label={upcomingEventList.length ? "다가오는 행사" : "지난 행사"}
         aria-roledescription="carousel"
         className="events-carousel"
         onBlur={() => setIsPaused(false)}
@@ -198,7 +202,7 @@ export function EventsExperience({ initialEvents = [] }: { initialEvents?: KsanE
           className="events-carousel-track"
           style={{ transform: `translateX(-${safeActiveSlide * 100}%)` }}
         >
-          {upcomingEventList.map((event, index) => (
+          {heroEvents.map((event, index) => (
             <article
               aria-hidden={index !== safeActiveSlide}
               className="events-hero-slide"
@@ -207,7 +211,7 @@ export function EventsExperience({ initialEvents = [] }: { initialEvents?: KsanE
               style={{ backgroundImage: `url(${event.image})` }}
             >
               <div className="events-hero-content" data-events-intro={index === 0 ? "" : undefined}>
-                <p className="events-hero-kicker">다가오는 행사 · {event.keywords.join(" / ")}</p>
+                <p className="events-hero-kicker">{event.status === "upcoming" ? "다가오는 행사" : "지난 행사"} · {event.keywords.join(" / ")}</p>
                 <h1>{event.title}</h1>
                 <p className="events-hero-summary">{event.summary}</p>
                 <div className="events-hero-meta">
@@ -227,10 +231,10 @@ export function EventsExperience({ initialEvents = [] }: { initialEvents?: KsanE
           ))}
         </div>
 
-        {upcomingEventList.length > 1 ? (
+        {heroEvents.length > 1 ? (
           <div className="events-carousel-controls">
             <div className="events-carousel-dots" role="tablist" aria-label="행사 배너 선택">
-              {upcomingEventList.map((event, index) => (
+              {heroEvents.map((event, index) => (
                 <button
                   aria-label={`${event.title} 배너 보기`}
                   aria-selected={index === safeActiveSlide}
@@ -248,7 +252,7 @@ export function EventsExperience({ initialEvents = [] }: { initialEvents?: KsanE
             </div>
           </div>
         ) : null}
-      </section>
+      </section> : null}
 
       <section className="events-archive">
         <header className="events-archive-heading">

@@ -1,11 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { designProfile, designSavedGuides, isLocalDesignMode } from "@/lib/design-preview";
+import { businessJobs } from "@/lib/business";
+import { ksanEvents } from "@/lib/events";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useState } from "react";
-import { Bookmark, Briefcase, CalendarCheck, Camera, MessageCircle, Pencil, Settings, UserRound } from "lucide-react";
+import { ArrowUpRight, Bookmark, Briefcase, CalendarCheck, Camera, MapPin, Pencil } from "lucide-react";
+import { useMyPageSearch } from "@/components/MyPageWorkspace";
+import styles from "@/components/MyPageWorkspace.module.css";
+import { LocalActivityBoard } from "@/components/LocalActivityBoard";
 import { createBrowserSupabaseClient, getBrowserSupabaseSession, hasSupabaseConfig } from "@/lib/supabase";
 
 export type MyPageSection = "profile" | "business" | "events" | "guides" | "community" | "pass-it-on";
@@ -96,15 +102,6 @@ const titles: Record<MyPageSection, string> = {
   "pass-it-on": "중고거래 기록"
 };
 
-const navigation: Array<{ section: MyPageSection; label: string; Icon: typeof Briefcase }> = [
-  { section: "business", label: "채용 활동", Icon: Briefcase },
-  { section: "events", label: "신청한 이벤트", Icon: CalendarCheck },
-  { section: "guides", label: "저장한 가이드", Icon: Bookmark },
-  { section: "profile", label: "프로필", Icon: UserRound },
-  { section: "community", label: "케이숲 기록", Icon: MessageCircle },
-  { section: "pass-it-on", label: "중고거래 기록", Icon: Settings }
-];
-
 function displayName(profile: Profile | null) {
   return profile?.full_name?.trim() || "회원";
 }
@@ -162,13 +159,19 @@ async function profileRequest(formData: FormData) {
 
 export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
   const router = useRouter();
-  const configured = hasSupabaseConfig();
-  const [email, setEmail] = useState<string | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const query = useMyPageSearch().trim().toLocaleLowerCase();
+  const [careerTab, setCareerTab] = useState<"saved" | "applied">("saved");
+  const configured = !isLocalDesignMode && hasSupabaseConfig();
+  const [email, setEmail] = useState<string | null>(isLocalDesignMode ? "member@example.com" : null);
+  const [profile, setProfile] = useState<Profile | null>(isLocalDesignMode ? designProfile : null);
   const [userId, setUserId] = useState<string | null>(null);
-  const [savedGuides, setSavedGuides] = useState<SavedGuide[]>([]);
-  const [savedBusinessItems, setSavedBusinessItems] = useState<SavedBusinessItem[]>([]);
-  const [applications, setApplications] = useState<ApplicationItem[]>([]);
+  const [savedGuides, setSavedGuides] = useState<SavedGuide[]>(isLocalDesignMode ? designSavedGuides : []);
+  const [savedBusinessItems, setSavedBusinessItems] = useState<SavedBusinessItem[]>(isLocalDesignMode ? businessJobs.slice(0, 2).map((job) => ({
+    detailHref: `/business/${job.id}`, jobId: job.id, title: job.title, company: job.company, savedAt: "2026-10-18T12:00:00Z"
+  })) : []);
+  const [applications, setApplications] = useState<ApplicationItem[]>(isLocalDesignMode ? [{
+    detailHref: `/events/${ksanEvents[0].id}`, id: "design-event", applicationType: "event_registration", targetId: ksanEvents[0].id, targetTitle: ksanEvents[0].title, targetMeta: ksanEvents[0].location, submittedAt: "2026-10-18T12:00:00Z", syncStatus: "신청 완료"
+  }] : []);
   const [photoStatus, setPhotoStatus] = useState("");
   const [profileStatus, setProfileStatus] = useState("");
   const [editingProfile, setEditingProfile] = useState(false);
@@ -177,7 +180,7 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
   const [authState, setAuthState] = useState<"checking" | "signed-in" | "signed-out">(
     configured ? "checking" : "signed-out"
   );
-  const [status, setStatus] = useState(configured ? "내역을 불러오는 중입니다." : "계정 기능이 아직 준비 중입니다.");
+  const [status, setStatus] = useState(isLocalDesignMode ? "" : configured ? "내역을 불러오는 중입니다." : "계정 기능이 아직 준비 중입니다.");
 
   useEffect(() => {
     if (!configured) return;
@@ -367,7 +370,12 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
 
   async function handleProfilePhotoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    if (!file || !configured || !userId) return;
+    if (!file) return;
+    if (isLocalDesignMode) {
+      setPhotoStatus("사진이 선택되었습니다.");
+      return;
+    }
+    if (!configured || !userId) return;
 
     if (!file.type.startsWith("image/")) {
       setPhotoStatus("이미지 파일만 업로드할 수 있어요.");
@@ -405,7 +413,7 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
 
   async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!configured || !userId) return;
+    if (!isLocalDesignMode && (!configured || !userId)) return;
 
     const formData = new FormData(event.currentTarget);
     const admissionYear = String(formData.get("admissionYear") ?? "").trim();
@@ -416,6 +424,12 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
       school: String(formData.get("school") ?? "").trim() || null
     };
 
+    if (isLocalDesignMode) {
+      setProfile((current) => ({ avatar_url: current?.avatar_url ?? null, ...nextProfile }));
+      setEditingProfile(false);
+      setProfileStatus("");
+      return;
+    }
     setSavingProfile(true);
     setProfileStatus("프로필을 저장하는 중입니다.");
 
@@ -442,38 +456,24 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
 
   const businessApplications = applications.filter((item) => item.applicationType === "business_application");
   const eventApplications = applications.filter((item) => item.applicationType === "event_registration");
-  const accountDetail = email ?? (status === "로그인이 필요합니다." ? "계정 확인 필요" : "계정 정보 확인 중");
+  const matchesSearch = (...values: (string | null)[]) => values.join(" ").toLocaleLowerCase().includes(query);
+  const visibleJobs = savedBusinessItems.filter((item) => matchesSearch(item.title, item.company));
+  const visibleApplications = businessApplications.filter((item) => matchesSearch(item.targetTitle, item.targetMeta));
+  const visibleEvents = eventApplications.filter((item) => matchesSearch(item.targetTitle, item.targetMeta));
+  const visibleGuides = savedGuides.filter((item) => matchesSearch(item.title, item.category));
 
   return (
-    <main className="page mypage-page" id="main">
-      <section className="mypage-profile-hero">
-        <ProfileAvatar profile={profile} />
-        <div>
-          <p className="eyebrow">My page</p>
-          <h1>안녕하세요, {displayName(profile)}님</h1>
-          <p>{profile?.school ?? "University of Amsterdam"} · {profile?.major ?? "회원 활동"} · {accountDetail}</p>
-        </div>
-      </section>
-
-      <section className="mypage-dashboard">
-        <aside className="mypage-menu" aria-label="마이페이지 메뉴">
-          {navigation.map(({ section: itemSection, label, Icon }) => (
-            <Link className={section === itemSection ? "is-active" : ""} href={`/mypage/${itemSection}`} key={itemSection}>
-              <Icon aria-hidden size={18} />
-              <span>{label}</span>
-              <small>{itemSection === "business" ? savedBusinessItems.length + businessApplications.length : itemSection === "events" ? eventApplications.length : itemSection === "guides" ? savedGuides.length : ""}</small>
-            </Link>
-          ))}
-        </aside>
-
-        <section className="mypage-main-panel">
+    <main className={styles.content} id="main">
+      <h1 className={styles.heading}>{section === "business" ? "채용 활동" : titles[section]}</h1>
+      <section className={styles.panel} aria-label={titles[section]}>
           {status ? <p className="status">{status}</p> : null}
           {section === "profile" ? (
             <div className="mypage-detail-block">
-              <div className="mypage-panel-heading">
-                <div><span>Profile</span><h2>프로필</h2></div>
-                <p>이름, 학교, 전공 정보를 한눈에 확인하고 필요할 때만 수정합니다.</p>
-              </div>
+
+              {isLocalDesignMode ? <div className="mypage-profile-actions">
+                <span className="badge pending">미인증</span>
+                <Link className="mypage-edit-button" href="/auth/verify">신분 인증하기</Link>
+              </div> : null}
               {!editingProfile ? (
                 <div className="mypage-profile-card">
                   <div className="mypage-profile-card-main">
@@ -489,7 +489,7 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
                     수정
                   </button>
                   <div className="mypage-profile-grid is-compact">
-                    <p><span>이름</span>{displayName(profile)}</p>
+                    <p><span>{isLocalDesignMode ? "닉네임" : "이름"}</span>{displayName(profile)}</p>
                     <p><span>학교</span>{profile?.school ?? "등록 전"}</p>
                     <p><span>전공</span>{profile?.major ?? "등록 전"}</p>
                     <p><span>입학연도</span>{profile?.admission_year ?? "등록 전"}</p>
@@ -512,7 +512,7 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
                   {photoStatus ? <p className="mypage-photo-status">{photoStatus}</p> : null}
                   <form className="mypage-profile-form" onSubmit={handleProfileSubmit}>
                     <label>
-                      <span>이름</span>
+                      <span>{isLocalDesignMode ? "닉네임" : "이름"}</span>
                       <input defaultValue={profile?.full_name ?? ""} name="fullName" placeholder="예: 김민지" />
                     </label>
                     <label>
@@ -542,52 +542,69 @@ export function MyPageActivityPanel({ section }: { section: MyPageSection }) {
             </div>
           ) : null}
           {section === "business" ? (
-            <div className="mypage-detail-block">
-              <div className="mypage-panel-heading"><div><span>Career</span><h2>채용 활동</h2></div><p>{savedBusinessItems.length + businessApplications.length}개의 저장/지원 기록</p></div>
-              <div className="mypage-feature-list">
-                {businessApplications.map((item) => (
-                  <Link className="mypage-feature-row" href={item.detailHref ?? "/business"} key={item.id} rel="noreferrer" target="_blank">
-                    <span className="mypage-feature-icon"><Briefcase aria-hidden size={21} /></span>
-                    <div><strong>지원한 공고</strong><p>{item.targetTitle}{item.targetMeta ? ` · ${item.targetMeta}` : ""} · {new Date(item.submittedAt).toLocaleDateString("ko-KR")}</p></div>
-                    <span className="badge live">지원</span>
-                  </Link>
-                ))}
-                {savedBusinessItems.map((item) => (
-                  <Link className="mypage-feature-row" href={item.detailHref} key={`${item.jobId}-${item.savedAt}`} rel="noreferrer" target="_blank">
-                    <span className="mypage-feature-icon"><Bookmark aria-hidden size={21} /></span>
-                    <div><strong>저장한 공고</strong><p>{item.title}{item.company ? ` · ${item.company}` : ""} · {new Date(item.savedAt).toLocaleDateString("ko-KR")}</p></div>
-                    <span className="badge live">찜</span>
-                  </Link>
-                ))}
-                {!businessApplications.length && !savedBusinessItems.length ? <p className="muted">아직 저장하거나 지원한 공고가 없습니다.</p> : null}
+            <div>
+              <div className={styles.tabs} role="tablist" aria-label="채용 활동 구분" onKeyDown={(event) => {
+                if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+                event.preventDefault();
+                const nextTab = event.key === "Home" ? "saved" : event.key === "End" ? "applied" : careerTab === "saved" ? "applied" : "saved";
+                setCareerTab(nextTab);
+                event.currentTarget.querySelector<HTMLButtonElement>(`#career-${nextTab}-tab`)?.focus();
+              }}>
+                <button id="career-saved-tab" type="button" role="tab" tabIndex={careerTab === "saved" ? 0 : -1} aria-selected={careerTab === "saved"} aria-controls="career-items" onClick={() => setCareerTab("saved")}>저장한 공고 <span>{savedBusinessItems.length}</span></button>
+                <button id="career-applied-tab" type="button" role="tab" tabIndex={careerTab === "applied" ? 0 : -1} aria-selected={careerTab === "applied"} aria-controls="career-items" onClick={() => setCareerTab("applied")}>지원 내역 <span>{businessApplications.length}</span></button>
+              </div>
+              <div className={styles.cards} id="career-items" role="tabpanel" aria-labelledby={`career-${careerTab}-tab`}>
+                {careerTab === "saved" ? visibleJobs.map((item) => {
+                  const job = businessJobs.find((job) => job.id === item.jobId);
+                  return <Link className={styles.jobCard} href={item.detailHref} key={item.jobId}>
+                    <div className={styles.companyTile}>
+                      <strong aria-hidden>{(item.company ?? "KSAN").split(" ").map((word) => word[0]).slice(0, 2).join("")}</strong>
+                    </div>
+                    <div className={styles.jobBody}>
+                      <div className={styles.cardTop}><span className={styles.companyName}>{item.company}</span><Bookmark size={17} className={styles.savedMark} aria-label="저장한 공고" /></div>
+                      <h2>{item.title}</h2>
+                      <div className={styles.jobMeta}><span><MapPin size={14} aria-hidden />{job?.location ?? "지역은 공고에서 확인"}</span>{job?.type && <span>{job.type}</span>}<span className={styles.viewJob}>공고 보기 <ArrowUpRight size={17} aria-hidden /></span></div>
+                    </div>
+                  </Link>;
+                }) : visibleApplications.map((item) => <Link className={styles.applicationCard} href={item.detailHref ?? "/business"} key={item.id}><span className={styles.applicationIcon}><Briefcase size={24} aria-hidden /></span><div><span className={styles.applicationLabel}>지원 완료 · {new Date(item.submittedAt).toLocaleDateString("ko-KR")}</span><h2>{item.targetTitle}</h2><p>{item.targetMeta}</p></div><span className={styles.viewJob}>공고 보기 <ArrowUpRight size={17} aria-hidden /></span></Link>)}
+                {(careerTab === "saved" ? !visibleJobs.length : !visibleApplications.length) && <div className={styles.empty}><Bookmark size={28} strokeWidth={1.3} aria-hidden /><h2>{query ? "검색 결과가 없어요" : careerTab === "saved" ? "저장한 공고가 없어요" : "아직 지원 내역이 없어요"}</h2><p>{query ? "다른 검색어로 찾아보세요." : "관심 있는 채용 공고를 찾아보세요."}</p>{!query && <Link href="/business">채용 공고 둘러보기 <ArrowUpRight size={15} aria-hidden /></Link>}</div>}
               </div>
             </div>
           ) : null}
           {section === "events" ? (
-            <div className="mypage-detail-block">
-              <div className="mypage-panel-heading"><div><span>Events</span><h2>신청한 이벤트</h2></div><p>{eventApplications.length}개</p></div>
-              <div className="mypage-feature-list">
-                {eventApplications.length ? eventApplications.map((item) => <Link className="mypage-feature-row" href={item.detailHref ?? `/events/${item.targetId}`} key={item.id}><span className="mypage-feature-icon"><CalendarCheck aria-hidden size={21} /></span><div><strong>{item.targetTitle}</strong><p>{item.targetMeta ? `${item.targetMeta} · ` : ""}{new Date(item.submittedAt).toLocaleDateString("ko-KR")} · {item.syncStatus}</p></div></Link>) : <p className="muted">아직 신청한 이벤트가 없습니다.</p>}
-              </div>
+            <div className={styles.cards}>
+              {visibleEvents.length ? visibleEvents.map((item) => {
+                const event = ksanEvents.find((event) => event.id === item.targetId);
+                const location = event?.city ?? item.targetMeta?.split(/[\n(]/)[0]?.replace(/^\d+부:\s*/, "").trim();
+                return <Link className={styles.eventCard} href={item.detailHref ?? `/events/${item.targetId}`} key={item.id}>
+                  <span className={styles.eventPhoto} style={event?.image ? { backgroundImage: `url("${event.image}")` } : undefined} aria-hidden>{!event?.image && <CalendarCheck size={24} strokeWidth={1.3} />}</span>
+                  <div className={styles.eventInfo}>
+                    <strong>{item.targetTitle}</strong>
+                    <p>{event ? event.dateLabel : `신청일 ${new Date(item.submittedAt).toLocaleDateString("ko-KR")}`}{location ? ` · ${location}` : ""}</p>
+                  </div>
+                  <span className={styles.eventStatus}>신청 완료</span>
+                  <ArrowUpRight size={18} className={styles.eventArrow} aria-hidden />
+                </Link>;
+              }) : <p className="muted">신청한 행사가 없어요.</p>}
             </div>
           ) : null}
           {section === "guides" ? (
             <div className="mypage-detail-block">
               <div className="mypage-panel-heading"><div><span>Guides</span><h2>저장한 가이드</h2></div><p>{savedGuides.length}개</p></div>
               <div className="mypage-feature-list">
-                {savedGuides.length ? savedGuides.map((guide) => (
+                {visibleGuides.length ? visibleGuides.map((guide) => (
                   <Link className="mypage-feature-row" href={`/guides/${guide.slug}`} key={`${guide.slug}-${guide.savedAt}`}>
                     <span className="mypage-feature-icon"><Bookmark aria-hidden size={21} /></span>
                     <div><strong>{guide.title}</strong><p>{guide.category} · 저장일 {new Date(guide.savedAt).toLocaleDateString("ko-KR")}</p></div>
                   </Link>
-                )) : <p className="muted">아직 저장한 가이드가 없습니다.</p>}
+                )) : <p className="muted">표시할 가이드가 없습니다.</p>}
               </div>
             </div>
           ) : null}
-          {section === "community" ? <div className="mypage-detail-block"><div className="mypage-panel-heading"><div><span>케이숲</span><h2>케이숲 기록</h2></div></div><p className="muted">케이숲 글/댓글 기능이 열리면 이곳에 작성 기록이 표시됩니다.</p></div> : null}
-          {section === "pass-it-on" ? <div className="mypage-detail-block"><div className="mypage-panel-heading"><div><span>중고거래</span><h2>중고거래 기록</h2></div></div><p className="muted">중고거래/나눔 기능이 열리면 이곳에 저장 및 작성 기록이 표시됩니다.</p></div> : null}
+          {section === "community" || section === "pass-it-on" ? (
+            isLocalDesignMode ? <LocalActivityBoard key={section} kind={section === "community" ? "community" : "market"} history /> : <p className="muted">아직 활동 내역이 없습니다.</p>
+          ) : null}
         </section>
-      </section>
     </main>
   );
 }

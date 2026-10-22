@@ -78,7 +78,7 @@ export function BusinessDetailActions({ applyTarget, jobId }: BusinessDetailActi
 
   return (
     <div className="business-detail-primary-actions">
-      <a href={applyTarget} rel={externalApply ? "noreferrer" : undefined} target={externalApply ? "_blank" : undefined}>
+      <a aria-disabled={applyTarget === "#" ? true : undefined} href={applyTarget === "#" ? undefined : applyTarget} rel={externalApply ? "noreferrer" : undefined} target={applyTarget !== "#" && externalApply ? "_blank" : undefined}>
         <span>지원하기</span>
         <ArrowUpRight aria-hidden size={18} />
       </a>

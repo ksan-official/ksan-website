@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowUpRight, CalendarDays, Clock3, MapPin, Ticket, Users } from "lucide-react";
 import { ArchiveEventDetail } from "@/components/ArchiveEventDetail";
 import { EventDetailGallery } from "@/components/EventDetailGallery";
+import { isLocalDesignMode } from "@/lib/design-preview";
 import { getKsanEvent, isDefaultKsanGreeting, isDeletedEventRow, ksanEvents, parseEventMediaDescription, toKsanEventFromRow, type EventTableRow, type KsanEvent } from "@/lib/events";
 import { createServerSupabaseClient, createServiceSupabaseClient, getSupabaseServerSecretKey, hasSupabaseConfig } from "@/lib/supabase";
 
@@ -32,6 +33,7 @@ function defaultSourceId(row: EventTableRow) {
 
 async function getRegistrationTarget(title: string, fallback?: string) {
   const fallbackTarget = validExternalUrl(fallback);
+  if (isLocalDesignMode) return fallbackTarget;
   if (!hasSupabaseConfig()) return fallbackTarget;
 
   try {
@@ -54,6 +56,10 @@ async function getRegistrationTarget(title: string, fallback?: string) {
 }
 
 async function getEvent(id: string): Promise<KsanEvent | null> {
+  if (isLocalDesignMode) {
+    const localEvent = getKsanEvent(id);
+    if (localEvent) return localEvent;
+  }
   if (hasSupabaseConfig()) {
     try {
       const supabase = getSupabaseServerSecretKey() ? createServiceSupabaseClient() : createServerSupabaseClient();

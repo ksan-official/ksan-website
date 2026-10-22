@@ -100,7 +100,7 @@ function JobCard({
           {cardBody}
         </div>
       ) : (
-        <a aria-label={`${job.company} ${job.title} 공고 자세히 보기`} className="business-job-main-link" href={`/business/${job.id}`} rel="noreferrer" target="_blank">
+        <a aria-label={`${job.company} ${job.title} 공고 자세히 보기`} className="business-job-main-link" href={`/business/${job.id}`} rel="noreferrer" target={job.id.startsWith("preview-") ? undefined : "_blank"}>
           {cardBody}
         </a>
       )}

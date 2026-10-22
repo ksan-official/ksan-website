@@ -94,7 +94,12 @@ export function composeBusinessDetailText(input: BusinessDetailInput) {
     [headings.requirements, input.requirements]
   ];
   const sectionText = sections
-    .map(([heading, value]) => present(value) ? `${heading}\n${present(value)}` : "")
+    .map(([heading, value], index) => {
+      const text = present(value);
+      if (!text) return "";
+      const content = index === 0 ? text : text.split("\n").map((line) => line.trim()).filter(Boolean).map((line) => /^[-*]\s/.test(line) ? line : `- ${line}`).join("\n");
+      return `## ${heading}\n\n${content}`;
+    })
     .filter(Boolean)
     .join("\n\n");
   return [present(input.description), sectionText].filter(Boolean).join("\n\n");
@@ -163,7 +168,7 @@ export const businessPreviewJobs: BusinessJob[] = [
     department: "커뮤니티·그로스",
     description: "학생 커뮤니티 캠페인, 현지 파트너십, 국제 사용자 피드백 수집을 함께 지원하는 인턴 포지션입니다.",
     id: "preview-bunq-community-growth-intern",
-    isPreviewOnly: true,
+    isPreviewOnly: false,
     language: "ko",
     location: "Amsterdam",
     logoUrl: "/images/partners/bunq.png",
