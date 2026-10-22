@@ -1,5 +1,7 @@
-// Local design review uses fictional records and never creates an authenticated session.
-export const isLocalDesignMode = process.env.NODE_ENV === "development";
+// This prototype shows the same design-review screens locally and in deployed builds.
+// Set NEXT_PUBLIC_KSAN_DESIGN_MODE=false for the connected service flows.
+// Review mode only uses fictional/browser-local records; it never grants a real session.
+export const isLocalDesignMode = process.env.NEXT_PUBLIC_KSAN_DESIGN_MODE !== "false";
 
 export const designProfile = {
   avatar_url: null,
