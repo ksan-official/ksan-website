@@ -14,6 +14,12 @@ export function HomeMotion() {
       return;
     }
 
+    const headerHeight = () => Math.ceil(document.querySelector<HTMLElement>(".site-header")?.getBoundingClientRect().height ?? 80);
+    const measureChapters = () => page.style.setProperty("--home-header-height", `${headerHeight()}px`);
+    page.classList.add("has-chapter-motion");
+    measureChapters();
+    ScrollTrigger.addEventListener("refreshInit", measureChapters);
+
     const context = gsap.context(() => {
       const intro = gsap.timeline({ defaults: { ease: "power3.out" } });
 
@@ -25,8 +31,9 @@ export function HomeMotion() {
           y: 30
         });
 
-      gsap.fromTo(
-        "[data-scrub-copy]",
+      const scrubCopy = page.querySelector("[data-scrub-copy]");
+      if (scrubCopy) gsap.fromTo(
+        scrubCopy,
         { opacity: 0.42 },
         {
           ease: "none",
@@ -35,10 +42,59 @@ export function HomeMotion() {
             end: "bottom 38%",
             scrub: 0.6,
             start: "top 74%",
-            trigger: "[data-scrub-copy]"
+            trigger: scrubCopy
           }
         }
       );
+
+      const services = page.querySelector<HTMLElement>("[data-services-section]");
+      const viewport = page.querySelector<HTMLElement>("[data-services-viewport]");
+      const track = page.querySelector<HTMLElement>("[data-services-track]");
+      const progress = page.querySelector<HTMLElement>("[data-services-progress]");
+
+      if (services && viewport && track && progress) {
+        const media = gsap.matchMedia();
+        media.add("(min-height: 700px)", () => {
+          const header = document.querySelector<HTMLElement>(".site-header");
+          const headerHeight = () => Math.ceil(header?.getBoundingClientRect().height ?? 80);
+          const distance = () => Math.max(0, track.scrollWidth - viewport.clientWidth);
+          const measure = () => services.style.setProperty("--services-header-height", `${headerHeight()}px`);
+          measure();
+          services.classList.add("is-scroll-driven");
+          const timeline = gsap.timeline({
+            scrollTrigger: {
+              trigger: services,
+              start: () => `top ${headerHeight()}`,
+              end: () => `+=${distance() + 180}`,
+              pin: true,
+              scrub: 0.65,
+              anticipatePin: 1,
+              id: "home-services-scroll",
+              refreshPriority: 90,
+              invalidateOnRefresh: true,
+              onRefreshInit: measure
+            }
+          });
+          timeline.to(track, { x: () => -distance(), ease: "none", duration: 1 }, 0);
+          timeline.fromTo(progress, { scaleX: 0 }, { scaleX: 1, ease: "none", duration: 1 }, 0);
+
+          const revealFocusedCard = (event: FocusEvent) => {
+            const card = event.target instanceof Element ? event.target.closest<HTMLElement>(".home-section-block") : null;
+            const trigger = timeline.scrollTrigger;
+            if (!card || !trigger || distance() === 0) return;
+            const bounds = card.getBoundingClientRect();
+            if (bounds.left >= 0 && bounds.right <= viewport.clientWidth) return;
+            const target = Math.min(distance(), Math.max(0, card.offsetLeft - 24));
+            trigger.scroll(trigger.start + (target / distance()) * (trigger.end - trigger.start));
+          };
+          track.addEventListener("focusin", revealFocusedCard);
+          return () => {
+            track.removeEventListener("focusin", revealFocusedCard);
+            services.classList.remove("is-scroll-driven");
+            services.style.removeProperty("--services-header-height");
+          };
+        });
+      }
 
       gsap.utils.toArray<HTMLElement>("[data-motion-section]").forEach((section) => {
         const title = section.querySelector("h2");
@@ -87,9 +143,88 @@ export function HomeMotion() {
         );
 
       }
+
+      const chapterMedia = gsap.matchMedia();
+      chapterMedia.add("(min-width: 901px) and (min-height: 700px)", () => {
+        const sections = Array.from(page.querySelectorAll<HTMLElement>(":scope > section"));
+        sections.forEach((section, index) => {
+          if (section === services || section.classList.contains("home-contact-section")) return;
+          const availableHeight = window.innerHeight - headerHeight();
+          if (section.offsetHeight > availableHeight + 8) return;
+          ScrollTrigger.create({
+            trigger: section,
+            start: () => `top ${headerHeight()}`,
+            end: () => `+=${Math.round(window.innerHeight * 0.22)}`,
+            pin: true,
+            anticipatePin: 1,
+            invalidateOnRefresh: true,
+            refreshPriority: 100 - index * 10,
+            id: `home-chapter-${index}`
+          });
+        });
+      });
+
+      const chapterSections = Array.from(page.querySelectorAll<HTMLElement>("section"))
+        .filter((section) => section.parentElement === page || section.parentElement?.classList.contains("pin-spacer"));
+      const footer = document.querySelector<HTMLElement>(".site-footer");
+      if (footer) chapterSections.push(footer);
+      const chapterMarkers = chapterSections.map((section) => ScrollTrigger.create({
+        trigger: section,
+        start: () => `top ${headerHeight()}`,
+        end: () => `bottom bottom`,
+        refreshPriority: -10
+      }));
+
+      ScrollTrigger.create({
+        start: 0,
+        end: "max",
+        refreshPriority: -20,
+        snap: {
+          delay: 0.18,
+          duration: { min: 0.4, max: 0.75 },
+          ease: "power2.inOut",
+          inertia: false,
+          snapTo: (value, trigger) => {
+            if (!trigger) return value;
+            const maximum = trigger.end - trigger.start;
+            if (!maximum) return value;
+            const scroll = trigger.scroll();
+            const servicesTrigger = ScrollTrigger.getById("home-services-scroll");
+            const stops = [0, maximum];
+            chapterMarkers.forEach((marker, index) => {
+              const section = chapterSections[index];
+              const chapterPin = ScrollTrigger.getAll().find((item) => item.pin === section);
+              stops.push(chapterPin?.start ?? marker.start);
+              if (chapterPin) stops.push(chapterPin.end);
+            });
+            if (servicesTrigger && track) {
+              const cards = Array.from(track.querySelectorAll<HTMLElement>(".home-section-block"));
+              const distance = Math.max(0, track.scrollWidth - (viewport?.clientWidth ?? 0));
+              cards.forEach((card) => {
+                const fraction = distance ? Math.min(1, Math.max(0, card.offsetLeft - cards[0].offsetLeft) / distance) : 0;
+                stops.push(servicesTrigger.start + fraction * (servicesTrigger.end - servicesTrigger.start));
+              });
+            }
+            const readingLongSection = chapterMarkers.some((marker, index) => {
+              const section = chapterSections[index];
+              return section !== services && section.offsetHeight > window.innerHeight - headerHeight() + 8
+                && scroll > marker.start + 80 && scroll < marker.end - 80;
+            });
+            if (readingLongSection) return value;
+            const normalizedStops = [...new Set(stops.map((stop) => gsap.utils.clamp(0, 1, stop / maximum)))].sort((left, right) => left - right);
+            return ScrollTrigger.snapDirectional(normalizedStops)(value, trigger.direction);
+          }
+        }
+      });
+      ScrollTrigger.refresh();
     }, page);
 
-    return () => context.revert();
+    return () => {
+      context.revert();
+      ScrollTrigger.removeEventListener("refreshInit", measureChapters);
+      page.classList.remove("has-chapter-motion");
+      page.style.removeProperty("--home-header-height");
+    };
   }, []);
 
   return null;

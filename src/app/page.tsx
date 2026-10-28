@@ -3,17 +3,13 @@ import Image from "next/image";
 import {
   ArrowDown,
   ArrowRight,
-  BookOpen,
-  BriefcaseBusiness,
-  CalendarDays,
   Facebook,
   Instagram,
-  Linkedin,
-  MapPinned,
-  MessageCircle,
-  Repeat2
+  Linkedin
 } from "lucide-react";
 import { HomeMotion } from "@/components/HomeMotion";
+import { HomeEventGallery } from "@/components/HomeEventGallery";
+import { HomeSectionIcon } from "@/components/HomeSectionIcon";
 import type { SponsorEntry } from "@/components/SponsorShowcase";
 import { createServerSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 
@@ -21,37 +17,37 @@ export const dynamic = "force-dynamic";
 
 const homeSections = [
   {
-    Icon: BookOpen,
+    icon: "guides" as const,
     href: "/guides",
     description: "도착 준비부터 행정, 집, 보험까지 필요한 정보를 모았습니다.",
     title: "정착가이드"
   },
   {
-    Icon: BriefcaseBusiness,
+    icon: "career" as const,
     href: "/business",
     description: "채용, 인턴십, 기업 소식과 네트워킹 기회를 확인하세요.",
     title: "커리어 허브"
   },
   {
-    Icon: CalendarDays,
+    icon: "events" as const,
     href: "/events",
     description: "KSAN 행사와 네덜란드 한인 학생 모임을 한곳에서 봅니다.",
     title: "행사"
   },
   {
-    Icon: Repeat2,
+    icon: "market" as const,
     href: "/pass-it-on",
     description: "필요 없어진 물건을 나누고 필요한 물건을 이어받는 공간입니다.",
     title: "중고거래"
   },
   {
-    Icon: MessageCircle,
+    icon: "community" as const,
     href: "/community",
     description: "질문, 고민, 정보 공유가 자연스럽게 오가는 KSAN 커뮤니티입니다.",
     title: "케이숲"
   },
   {
-    Icon: MapPinned,
+    icon: "map" as const,
     href: "/guides#netherlands-spots",
     description: "공부하기 좋은 곳, 카페, 맛집을 지도에서 찾아보세요.",
     title: "네덜란드 스팟 지도"
@@ -59,9 +55,9 @@ const homeSections = [
 ];
 
 const eventSnapshots = [
-  { alt: "KSAN 행사 단체 사진", src: "/images/home-events/ksan-event-1.png" },
-  { alt: "KSAN 스포츠 행사 단체 사진", src: "/images/home-events/ksan-event-2.png" },
-  { alt: "KSAN 모임 단체 사진", src: "/images/home-events/ksan-event-3.png" }
+  { alt: "2026 신입생 네트워킹 단체 사진", src: "/images/home-events/ksan-event-1.png", title: "2026 신입생 네트워킹" },
+  { alt: "제6회 KSAN 체육대회 단체 사진", src: "/images/home-events/ksan-event-2.png", title: "제6회 KSAN 체육대회" },
+  { alt: "2025 신입생 네트워킹 단체 사진", src: "/images/home-events/ksan-event-3.png", title: "2025 신입생 네트워킹" }
 ];
 
 const socialLinks = [
@@ -219,26 +215,31 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="home-services-section" data-motion-section id="home-sections">
+      <section className="home-services-section" data-services-section id="home-sections" aria-labelledby="home-services-title">
         <div className="home-services-heading">
-          <h2>유학 생활에 필요한 연결을 한곳에.</h2>
-          <p>도착 준비부터 일상, 커리어와 커뮤니티까지 필요한 순간에 바로 찾아보세요.</p>
+          <h2 id="home-services-title">우리의 네덜란드 생활,<br />여기서 연결돼요.</h2>
+          <p>처음의 설렘부터 매일의 발견까지, KSAN과 함께.</p>
         </div>
-        <div className="home-block-grid">
-          {homeSections.map(({ Icon, description, href, title }) => (
+        <div className="home-services-viewport" data-services-viewport>
+        <div className="home-block-grid" data-services-track>
+          {homeSections.map(({ icon, description, href, title }) => (
             <Link className="home-section-block" data-motion-card href={href} key={title}>
               <span aria-hidden="true" className="home-section-icon">
-                <Icon size={28} strokeWidth={1.9} />
+                <HomeSectionIcon kind={icon} />
               </span>
               <span className="home-section-text">
                 <strong>{title}</strong>
                 <span>{description}</span>
               </span>
-              <span className="home-section-cta">
-                바로가기 <ArrowRight aria-hidden size={17} strokeWidth={2} />
+              <span aria-hidden="true" className="home-section-cta">
+                <ArrowRight size={18} strokeWidth={1.8} />
               </span>
             </Link>
           ))}
+        </div>
+        </div>
+        <div className="home-services-navigation">
+          <div aria-hidden="true" className="home-services-progress"><span data-services-progress /></div>
         </div>
       </section>
 
@@ -266,22 +267,10 @@ export default async function HomePage() {
 
       <section className="home-event-section" data-motion-section>
         <div className="home-event-copy">
-          <p className="eyebrow">KSAN Events</p>
           <h2>행사와 모임으로 이어지는 학생 커뮤니티</h2>
           <p>KSAN은 네트워킹, 교류 행사, 학생 모임을 통해 낯선 도시에서도 서로 만날 수 있는 자리를 만듭니다.</p>
         </div>
-        <div className="home-event-gallery" aria-label="KSAN 행사 사진">
-          {eventSnapshots.map((snapshot) => (
-            <Image
-              alt={snapshot.alt}
-              className="home-event-photo"
-              height={622}
-              key={snapshot.src}
-              src={snapshot.src}
-              width={1074}
-            />
-          ))}
-        </div>
+        <HomeEventGallery snapshots={eventSnapshots} />
       </section>
 
       <section className="home-partner-section" data-motion-section>
@@ -304,12 +293,10 @@ export default async function HomePage() {
             ))}
           </div>
         </div>
-      </section>
-
-      <section className="home-contact-section" data-motion-section>
+        <div className="home-partner-contact">
         <div className="home-contact-copy">
-          <p className="eyebrow">Contact KSAN</p>
-          <h2>궁금한 점이 있거나 함께하고 싶다면</h2>
+          <h3>KSAN과 함께하고 싶다면</h3>
+          <p>협업 제안부터 궁금한 점까지, 편하게 이야기해주세요.</p>
         </div>
         <div className="home-contact-actions" data-motion-card>
           <Link className="home-contact-button" href="/about#contact">
@@ -322,6 +309,7 @@ export default async function HomePage() {
               </a>
             ))}
           </div>
+        </div>
         </div>
       </section>
     </main>
