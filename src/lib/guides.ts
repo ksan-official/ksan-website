@@ -158,7 +158,7 @@ const demoGuideDetail: GuideDetail = {
     {
       id: "demo-intro",
       type: "paragraph",
-      text: "처음 네덜란드에 도착하면 해야 할 일이 한 번에 몰려와서 정신없을 수 있어요. 이 체크리스트는 도착 전 준비부터 첫 3개월까지 꼭 필요한 순서를 빠르게 훑어볼 수 있도록 만든 발표용 예시 가이드입니다."
+      text: "도착 전 준비부터 첫 3개월까지, 필요한 일을 하나씩 확인해보세요. 모든 일을 한 번에 끝내지 않아도 괜찮아요."
     },
     {
       id: "demo-quick-summary",

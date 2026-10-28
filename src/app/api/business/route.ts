@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isLocalDesignMode } from "@/lib/design-preview";
 import { businessJobs, businessPreviewJobs, resolveBusinessDetails, type BusinessJob, type JobType } from "@/lib/business";
 import { createServerSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 
@@ -60,6 +61,10 @@ function toJob(row: BusinessPostRow): BusinessJob {
 }
 
 export async function GET() {
+  if (isLocalDesignMode) {
+    return NextResponse.json({ jobs: businessPreviewJobs, source: "fallback" });
+  }
+
   if (!hasSupabaseConfig()) {
     return NextResponse.json({ jobs: [...businessJobs, ...businessPreviewJobs], source: "fallback" });
   }

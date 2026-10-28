@@ -1,8 +1,11 @@
+import { LocalActivityBoard } from "@/components/LocalActivityBoard";
+import { isLocalDesignMode } from "@/lib/design-preview";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 export default function CommunityPage() {
+  if (isLocalDesignMode) return <main id="main" style={{ maxWidth: 1120, margin: "0 auto", padding: "64px 24px 100px" }}><LocalActivityBoard kind="community" /></main>;
   return (
     <main className="page coming-soon-page coming-soon-page--forest">
       <section className="coming-soon-hero" aria-labelledby="community-title">

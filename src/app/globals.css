@@ -5755,8 +5755,9 @@ body::before {
 }
 
 .home-page {
-  max-width: 1240px;
-  overflow: visible;
+  max-width: none;
+  overflow: clip;
+  padding-inline: 0;
   padding-bottom: 140px;
   padding-top: 0;
 }
@@ -5772,6 +5773,11 @@ body:has(.home-page),
 
 .shell:has(.home-page) .site-footer {
   background-color: #ffffff;
+}
+
+.home-page > section:not(.hero-panel) {
+  width: min(1200px, calc(100% - 40px));
+  margin-inline: auto;
 }
 
 .hero-panel {
@@ -5808,8 +5814,7 @@ body:has(.home-page),
 
 .home-hero-photo {
   background:
-    linear-gradient(90deg, rgba(var(--brand-white-rgb), 0.92) 0%, rgba(var(--brand-white-rgb), 0.72) 38%, rgba(var(--brand-white-rgb), 0.18) 68%, rgba(var(--brand-white-rgb), 0.08) 100%),
-    linear-gradient(180deg, rgba(var(--brand-white-rgb), 0.12), rgba(var(--brand-white-rgb), 0.34)),
+    linear-gradient(90deg, rgba(12, 21, 28, 0.66), rgba(12, 21, 28, 0.18) 75%),
     url("/images/home-hero-canal.png");
   background-position: center;
   background-size: cover;
@@ -5819,17 +5824,14 @@ body:has(.home-page),
 }
 
 .home-hero-photo::before {
-  background: linear-gradient(0deg, rgba(var(--brand-white-rgb), 0.82) 0%, rgba(var(--brand-white-rgb), 0) 36%);
+  background: linear-gradient(0deg, rgba(12, 21, 28, 0.3), transparent 45%);
   content: "";
   inset: 0;
   position: absolute;
 }
 
 .home-hero-photo::after {
-  border: 1px solid color-mix(in srgb, var(--brand-frosted-pearl) 24%, transparent);
-  content: "";
-  inset: clamp(18px, 3vw, 34px);
-  position: absolute;
+  display: none;
 }
 
 .hero-art {
@@ -5866,7 +5868,7 @@ body:has(.home-page),
 }
 
 .home-hero-copy {
-  color: var(--brand-slate-obsidian);
+  color: #fff;
   font-size: clamp(16px, 1.5vw, 22px);
   font-weight: 400;
   line-height: 1.55;
@@ -18822,14 +18824,27 @@ a.guides-reference-row:hover {
 }
 
 .home-page .hero-panel {
-  min-height: clamp(520px, 66svh, 680px);
-  padding: clamp(34px, 5vw, 64px) 0;
+  align-items: center;
+  border-radius: 0;
+  min-height: 100dvh;
+  padding: clamp(64px, 8vw, 120px) 0;
 }
 
 .home-page .hero-panel .page-title {
+  color: #fff;
   font-size: clamp(64px, 9.4vw, 132px);
   line-height: 1.04;
   max-width: 8.8ch;
+}
+
+@media (max-width: 760px) {
+  .home-page .hero-panel .page-title {
+    font-size: clamp(42px, 11vw, 72px);
+  }
+
+  .home-page .hero-panel {
+    padding: 64px 24px;
+  }
 }
 
 .home-page .section,
