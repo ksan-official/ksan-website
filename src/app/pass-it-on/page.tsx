@@ -3,6 +3,7 @@ import { isLocalDesignMode } from "@/lib/design-preview";
 import Link from "next/link";
 import { Bell, ChevronDown, MapPin, SlidersHorizontal } from "lucide-react";
 import { MarketPreviewMotion } from "@/components/MarketPreviewMotion";
+import styles from "./MarketplacePage.module.css";
 
 const marketItems = [
   { city: "Amsterdam", condition: "상태 좋아요", image: "/images/market-preview/bicycle.jpg", price: "€ 85", title: "학생용 자전거" },
@@ -26,9 +27,9 @@ const marketCategories = [
 ];
 
 export default function PassItOnPage() {
-  if (isLocalDesignMode) return <main id="main" style={{ maxWidth: 1120, margin: "0 auto", padding: "64px 24px 100px" }}><LocalActivityBoard kind="market" /></main>;
+  if (isLocalDesignMode) return <main id="main" className={styles.boardPage}><LocalActivityBoard kind="market" /></main>;
   return (
-    <main className="page coming-soon-page coming-soon-page--market" data-market-page>
+    <main id="main" className={`page coming-soon-page coming-soon-page--market ${styles.previewPage}`} data-market-page>
       <MarketPreviewMotion />
       <section className="coming-soon-hero market-coming-hero" aria-labelledby="pass-it-on-title" data-market-hero>
         <div className="coming-soon-copy">

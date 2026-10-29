@@ -264,21 +264,7 @@ export function EventsExperience({ initialEvents = [] }: { initialEvents?: KsanE
           <p>참여하고 싶은 행사를 찾아보고, 지난 행사의 즐거웠던 모습도 함께 둘러보세요!</p>
         </header>
 
-        <div className="events-filter-bar">
-          <div className="events-search-field">
-            <label className="sr-only" htmlFor="events-search">행사 검색</label>
-            <div>
-              <Search aria-hidden size={22} />
-              <input
-                id="events-search"
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="행사명, 도시 또는 키워드로 검색해보세요"
-                type="search"
-                value={query}
-              />
-              {query ? <button onClick={() => setQuery("")} type="button">지우기</button> : null}
-            </div>
-          </div>
+        <form className="events-filter-bar" role="search" aria-label="행사 검색" onSubmit={(event) => { event.preventDefault(); setQuery(query.trim()); }}>
           <div className="events-filter-options">
             <label className="events-filter-option">
               <span>키워드</span>
@@ -288,14 +274,28 @@ export function EventsExperience({ initialEvents = [] }: { initialEvents?: KsanE
               </select>
             </label>
           </div>
-        </div>
+          <div className="events-search-field">
+            <label className="sr-only" htmlFor="events-search">행사 검색</label>
+            <div>
+              <Search aria-hidden size={18} />
+              <input
+                id="events-search"
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="행사명, 도시 또는 키워드 검색"
+                type="search"
+                value={query}
+              />
+              {query ? <button className={styles.clearSearch} onClick={() => setQuery("")} type="button">지우기</button> : null}
+              <button className={styles.submitSearch} type="submit" aria-label="행사 검색"><ArrowRight aria-hidden size={18} /></button>
+            </div>
+          </div>
+        </form>
 
-        <div className="events-result-line">
-          <strong>{filteredEvents.length}개의 행사</strong>
-          {(query || keyword !== "all") ? (
+        {(query || keyword !== "all") ? (
+          <div className={styles.filterReset}>
             <button onClick={() => { setQuery(""); setKeyword("all"); }} type="button">필터 초기화</button>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
 
         {filteredUpcoming.length > 0 ? (
           <section className="events-post-section events-upcoming-section">

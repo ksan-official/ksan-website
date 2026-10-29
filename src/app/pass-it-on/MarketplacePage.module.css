@@ -1,0 +1,25 @@
+.boardPage { max-width: 1120px; margin: 0 auto; padding: 64px 24px 100px; }
+
+/* Connected-service preview: visual tokens only, no layout changes. */
+.previewPage { color: var(--text); font-family: var(--font-body); }
+.previewPage :global(.coming-soon-kicker) { color: var(--brand-orange-strong); font-size: 12px; font-weight: 500; letter-spacing: .08em; line-height: 1.5; }
+.previewPage :global(.coming-soon-title) { font-family: var(--font-display); font-size: clamp(44px, 5.8vw, 78px); font-weight: 700; letter-spacing: -.045em; line-height: 1.12; }
+.previewPage :global(.coming-soon-title strong) { color: var(--brand-dutch-orange); font-weight: 700; }
+.previewPage :global(.coming-soon-lead) { color: var(--brand-gray-600); font-size: 16px; font-weight: 400; letter-spacing: -.015em; line-height: 1.75; }
+.previewPage :global(.coming-soon-primary) { background: var(--brand-dutch-orange); border-color: var(--brand-dutch-orange); border-radius: 999px; box-shadow: none; color: var(--on-accent); font-size: 15px; font-weight: 500; }
+.previewPage :global(.coming-soon-primary:hover) { background: var(--brand-orange-hover); border-color: var(--brand-orange-hover); }
+.previewPage :global(.market-preview-ui) { background: var(--brand-gray-50); border-color: var(--brand-gray-200); border-radius: 28px; box-shadow: none; }
+.previewPage :global(.market-product-card) { border-color: var(--brand-gray-200); border-radius: 24px; box-shadow: none; }
+.previewPage :global(.market-product-city) { color: var(--muted); font-size: 12px; font-weight: 400; line-height: 1.5; }
+.previewPage :global(.market-product-info h3) { color: var(--text); font-family: var(--font-body); font-size: 20px; font-weight: 600; letter-spacing: -.035em; line-height: 1.3; }
+.previewPage :global(.market-product-info p) { color: var(--muted); font-size: 14px; font-weight: 400; line-height: 1.75; }
+.previewPage :global(.market-product-info strong) { color: var(--text); font-size: 22px; font-weight: 600; line-height: 1.3; }
+.previewPage :global(.market-filter-categories span) { border-radius: 999px; color: var(--muted); font-size: 14px; font-weight: 400; }
+.previewPage :global(.market-filter-categories span.active) { background: var(--brand-soft-peach); color: var(--brand-orange-strong); font-weight: 500; }
+.previewPage a:focus-visible { outline: 3px solid var(--brand-dutch-orange); outline-offset: 4px; }
+@media (max-width: 640px) {
+  .previewPage :global(.coming-soon-title) { font-size: clamp(36px, 8.5vw, 52px); }
+  .previewPage :global(.coming-soon-lead) { font-size: 15px; }
+  .previewPage :global(.coming-soon-primary) { font-size: 14px; }
+  .previewPage :global(.market-preview-ui) { border-radius: 24px; }
+}

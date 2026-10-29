@@ -1,8 +1,9 @@
-import { BriefcaseBusiness, CalendarDays, MapPinned, UsersRound } from "lucide-react";
+import { HomeSectionIcon } from "@/components/HomeSectionIcon";
 import { AboutContactFab } from "@/components/AboutContactFab";
 import { AboutContactForm } from "@/components/AboutContactForm";
 import { AboutMotion } from "@/components/AboutMotion";
 import { createServerSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
+import styles from "./AboutPage.module.css";
 
 export const dynamic = "force-dynamic";
 
@@ -18,26 +19,26 @@ type AboutEntry = {
 
 const workItems = [
   {
-    icon: MapPinned,
+    icon: "guides",
     title: "정착 정보 제공",
     text: "주거, 행정, 학교 생활처럼 처음 네덜란드에 왔을 때 필요한 정보를 학생의 언어로 정리합니다."
   },
   {
-    icon: CalendarDays,
+    icon: "events",
     title: "행사와 교류 기획",
     text: "도시와 학교가 달라도 자연스럽게 만날 수 있는 네트워킹, 문화, 커뮤니티 프로그램을 만듭니다."
   },
   {
-    icon: BriefcaseBusiness,
+    icon: "career",
     title: "커리어 기회 연결",
     text: "기업, 기관, 선배 네트워크와 협력해 학생들이 진로를 구체화할 수 있는 접점을 마련합니다."
   },
   {
-    icon: UsersRound,
+    icon: "community",
     title: "학생 커뮤니티 운영",
     text: "서로의 경험이 다음 학생에게 도움이 되도록 온라인과 오프라인 커뮤니티를 꾸준히 관리합니다."
   }
-];
+] as const;
 
 const teamGroups = [
   { key: "president", title: "회장단" },
@@ -87,7 +88,7 @@ export default async function AboutPage() {
   const teamMembers = await getTeamMembers();
 
   return (
-    <main className="page about-page about-intro-page" data-about-page id="main">
+    <main className={`page about-page about-intro-page ${styles.page}`} data-about-page id="main">
       <AboutMotion />
 
       <section className="about-hero about-intro-hero" data-about-hero>
@@ -125,18 +126,15 @@ export default async function AboutPage() {
           <p>학생들이 실제로 필요로 하는 정보, 사람, 기회를 연결합니다.</p>
         </div>
         <div className="about-work-grid" data-activity-grid>
-          {workItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <article className="about-work-card" data-activity-card key={item.title}>
-                <span>
-                  <Icon aria-hidden size={22} />
-                </span>
-                <h3>{item.title}</h3>
-                <p>{item.text}</p>
-              </article>
-            );
-          })}
+          {workItems.map((item) => (
+            <article className="about-work-card" data-activity-card key={item.title}>
+              <span>
+                <HomeSectionIcon kind={item.icon} />
+              </span>
+              <h3>{item.title}</h3>
+              <p>{item.text}</p>
+            </article>
+          ))}
         </div>
       </section>
 

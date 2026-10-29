@@ -288,3 +288,58 @@
   .communityLayout .primary { font-size: 14px; }
   .communityLayout .dialog { border-radius: 24px; }
 }
+
+/* Marketplace listing only; do not restyle detail or account activity pages. */
+.marketLayout { color: var(--text); font-family: var(--font-body); font-size: 16px; font-weight: 400; line-height: 1.75; }
+.marketLayout .heading h1 { font-family: var(--font-body); font-size: 36px; font-weight: 700; letter-spacing: -.035em; line-height: 1.2; }
+.marketLayout .heading p { color: var(--brand-gray-600); font-size: 16px; font-weight: 400; letter-spacing: -.015em; line-height: 1.75; }
+.marketLayout .heading a { color: var(--brand-gray-600); font-size: 14px; font-weight: 500; }
+.marketLayout .search { box-sizing: border-box; background: var(--brand-gray-50); border: 1px solid var(--brand-gray-200); border-radius: 999px; color: var(--brand-gray-600); padding: 11px 16px; }
+.marketLayout .search:focus-within { border-color: var(--brand-dutch-orange); box-shadow: 0 0 0 3px var(--brand-soft-peach); }
+.marketLayout .search svg { flex-shrink: 0; }
+.marketLayout .search input { color: var(--text); font-family: var(--font-body); font-size: 14px; font-weight: 400; line-height: 1.5; }
+.marketLayout .search input::placeholder { color: var(--brand-gray-600); }
+.marketLayout .primary { background: var(--brand-dutch-orange); border-radius: 999px; color: var(--on-accent); padding: 11px 18px; font-family: var(--font-body); font-size: 15px; font-weight: 500; line-height: 1.5; transition: background 180ms ease; }
+.marketLayout .primary:hover { background: var(--brand-orange-hover); }
+.marketLayout .categories { gap: 8px; padding-bottom: 16px; border-color: var(--brand-gray-200); }
+.marketLayout .categories button { padding: 8px 14px; border: 1px solid transparent; border-radius: 999px; color: var(--brand-gray-600); font-family: var(--font-body); font-size: 14px; font-weight: 400; line-height: 1.5; transition: background 180ms ease, color 180ms ease; }
+.marketLayout .categories button:hover { background: var(--brand-gray-50); }
+.marketLayout .categories button[aria-pressed="true"] { background: var(--brand-soft-peach); border-color: transparent; color: var(--brand-orange-strong); font-weight: 500; }
+.marketLayout .productImage { background-color: var(--brand-gray-50); border-radius: 24px; color: var(--brand-gray-400); transition: filter 220ms ease; }
+.marketLayout .productOpen:hover .productImage { filter: brightness(.97); }
+.marketLayout .productCity { color: var(--brand-gray-600); font-size: 12px; font-weight: 400; line-height: 1.5; }
+.marketLayout .productOpen > strong { color: var(--text); font-size: 20px; font-weight: 600; letter-spacing: -.035em; line-height: 1.3; }
+.marketLayout .productOpen:hover > strong { color: var(--brand-orange-strong); }
+.marketLayout .price { color: var(--text); font-size: 22px; font-weight: 600; letter-spacing: -.025em; line-height: 1.3; }
+.marketLayout .save { width: 36px; height: 36px; background: var(--brand-frosted-pearl); color: var(--brand-gray-600); }
+.marketLayout .save[aria-pressed="true"] { background: var(--brand-soft-peach); color: var(--brand-orange-strong); }
+.marketLayout .empty { background: var(--brand-gray-50); border-radius: 24px; color: var(--brand-gray-600); font-size: 15px; line-height: 1.75; }
+.marketLayout .empty a { color: var(--brand-orange-strong); font-size: 14px; font-weight: 500; }
+.marketLayout .dialog { background: var(--brand-frosted-pearl); border-color: var(--brand-gray-200); border-radius: 28px; color: var(--text); font-family: var(--font-body); }
+.marketLayout .createForm h2 { font-family: var(--font-body); font-size: 28px; font-weight: 600; letter-spacing: -.035em; line-height: 1.3; }
+.marketLayout .createForm label { font-size: 14px; font-weight: 500; }
+.marketLayout .createForm input,
+.marketLayout .createForm textarea,
+.marketLayout .createForm select { background: var(--brand-gray-50); border-color: var(--brand-gray-200); border-radius: 16px; color: var(--text); font-family: var(--font-body); font-size: 15px; font-weight: 400; line-height: 1.75; }
+.marketLayout .postMeta,
+.marketLayout .createForm label small { color: var(--brand-gray-600); font-size: 12px; font-weight: 400; }
+.marketLayout .error { color: var(--brand-orange-strong); }
+.marketLayout button:focus-visible,
+.marketLayout a:focus-visible,
+.marketLayout .createForm input:focus-visible,
+.marketLayout .createForm textarea:focus-visible,
+.marketLayout .createForm select:focus-visible { outline: 3px solid var(--brand-dutch-orange); outline-offset: 4px; }
+@media (max-width: 760px) {
+  .marketLayout .heading h1 { font-size: 28px; }
+  .marketLayout .heading p { font-size: 15px; }
+  .marketLayout .productOpen > strong { font-size: 18px; }
+  .marketLayout .price { font-size: 20px; }
+  .marketLayout .primary { font-size: 14px; }
+  .marketLayout .categories button { font-size: 13px; padding: 7px 12px; }
+  .marketLayout .dialog { border-radius: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marketLayout .productImage,
+  .marketLayout .primary,
+  .marketLayout .categories button { transition: none; }
+}

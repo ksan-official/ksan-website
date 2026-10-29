@@ -114,7 +114,7 @@ export function LocalActivityBoard({ kind, history = false, recordId, viewMessag
       ) : <div className={styles.empty}><h1>{isMarket ? "상품" : "게시글"}을 찾을 수 없어요.</h1><p>삭제되었거나 이 브라우저에 저장되지 않은 글입니다.</p></div>}
     </div>;
   }
-  return <div className={`${styles.board} ${communityLayout ? styles.communityLayout : ""}`}>
+  return <div className={`${styles.board} ${communityLayout ? styles.communityLayout : isMarket && !history ? styles.marketLayout : ""}`}>
     {communityLayout && <aside className={styles.communitySidebar}>
       <Link className={styles.forestName} href="/community">케이숲</Link>
       <p>게시판</p>
