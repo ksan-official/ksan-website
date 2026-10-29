@@ -3,10 +3,43 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useEffect } from "react";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 export function HomeMotion() {
+  useEffect(() => {
+    const page = document.querySelector<HTMLElement>("[data-home-page]");
+    const shell = page?.closest<HTMLElement>(".shell");
+    const hero = page?.querySelector<HTMLElement>(".hero-panel");
+    const header = shell?.querySelector<HTMLElement>(".site-header");
+    if (!shell || !hero || !header) return;
+
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const height = Math.ceil(header.getBoundingClientRect().height);
+      shell.style.setProperty("--home-overlay-header-height", `${height}px`);
+      shell.classList.toggle("home-hero-passed", hero.getBoundingClientRect().bottom <= height + 1);
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    const observer = new ResizeObserver(schedule);
+    observer.observe(header);
+    update();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      cancelAnimationFrame(frame);
+      shell.classList.remove("home-hero-passed");
+      shell.style.removeProperty("--home-overlay-header-height");
+    };
+  }, []);
+
   useGSAP(() => {
     const page = document.querySelector<HTMLElement>("[data-home-page]");
 
@@ -123,13 +156,13 @@ export function HomeMotion() {
         }
       });
 
-      const mapSection = page.querySelector<HTMLElement>("[data-map-section]");
-      const mapStage = page.querySelector<HTMLElement>("[data-map-stage]");
+      const networkSection = page.querySelector<HTMLElement>(".home-network-section");
+      const networkPhoto = page.querySelector<HTMLElement>("[data-network-photo]");
 
-      if (mapSection && mapStage) {
+      if (networkSection && networkPhoto) {
         gsap.fromTo(
-          mapStage,
-          { scale: 0.94 },
+          networkPhoto,
+          { scale: 1.06 },
           {
             ease: "none",
             scale: 1,
@@ -137,7 +170,7 @@ export function HomeMotion() {
               end: "center 52%",
               scrub: 0.7,
               start: "top 92%",
-              trigger: mapSection
+              trigger: networkSection
             }
           }
         );
@@ -149,11 +182,12 @@ export function HomeMotion() {
         const sections = Array.from(page.querySelectorAll<HTMLElement>(":scope > section"));
         sections.forEach((section, index) => {
           if (section === services || section.classList.contains("home-contact-section")) return;
-          const availableHeight = window.innerHeight - headerHeight();
+          const isHero = section.classList.contains("hero-panel");
+          const availableHeight = window.innerHeight - (isHero ? 0 : headerHeight());
           if (section.offsetHeight > availableHeight + 8) return;
           ScrollTrigger.create({
             trigger: section,
-            start: () => `top ${headerHeight()}`,
+            start: () => `top ${isHero ? 0 : headerHeight()}`,
             end: () => `+=${Math.round(window.innerHeight * 0.22)}`,
             pin: true,
             anticipatePin: 1,
@@ -170,7 +204,7 @@ export function HomeMotion() {
       if (footer) chapterSections.push(footer);
       const chapterMarkers = chapterSections.map((section) => ScrollTrigger.create({
         trigger: section,
-        start: () => `top ${headerHeight()}`,
+        start: () => `top ${section.classList.contains("hero-panel") ? 0 : headerHeight()}`,
         end: () => `bottom bottom`,
         refreshPriority: -10
       }));

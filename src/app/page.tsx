@@ -155,10 +155,6 @@ async function getLandingSponsors() {
   return (data ?? []) as Pick<SponsorEntry, "id" | "image_url" | "sponsor_kind" | "subtitle" | "title">[];
 }
 
-function initials(name: string) {
-  return name.trim().slice(0, 2).toUpperCase() || "KS";
-}
-
 function withLandingLogoOverride<T extends Pick<SponsorEntry, "image_url" | "title">>(item: T) {
   const normalizedTitle = item.title.toLowerCase();
   const override = landingSponsorLogoOverrides.find(({ keyword }) => normalizedTitle.includes(keyword));
@@ -191,7 +187,6 @@ export default async function HomePage() {
         { id: "sponsor-placeholder-2", title: "협력사", subtitle: "Partner", image_url: null, sponsor_kind: "sponsor" },
         ...institutionalPartners
       ];
-  const marqueeItems = [...visibleNetworkItems, ...visibleNetworkItems];
 
   return (
     <main className="page home-page" data-home-page id="main">
@@ -200,7 +195,8 @@ export default async function HomePage() {
         <div className="home-hero-photo" aria-hidden />
         <div data-hero-copy>
           <h1 className="page-title max-w-6xl">
-            네덜란드 생활의 모든 <span>연결.</span>
+            네덜란드 생활의<br />
+            모든&nbsp;<span>연결.</span>
           </h1>
           <p className="home-hero-copy">
             비즈니스 네트워킹부터 중고 나눔, 고민 상담까지.
@@ -243,24 +239,25 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="home-network-section" data-motion-section>
-        <div className="home-network-copy">
-          <p className="eyebrow">KSAN 소개</p>
-          <h2>네덜란드 전역을 잇는 한인 학생회</h2>
-          <p>
-            도시와 학교를 넘어 네덜란드 곳곳의 학생들이 서로 닿을 수 있는 기반을 만듭니다.
-          </p>
-        </div>
-        <div className="home-network-map" data-map-stage aria-label="네덜란드 전역 KSAN 네트워크">
-          <div className="home-map-inner">
-            <Image
-              alt=""
-              aria-hidden
-              className="home-map-netherlands"
-              height={1716}
-              src="/images/netherlands-network-map.png"
-              width={1454}
-            />
+      <section className="home-network-section" data-motion-section aria-labelledby="home-network-title">
+        <div className="home-network-banner">
+          <Image
+            alt="KSAN 체육대회에서 함께 공을 전달하는 학생들"
+            className="home-network-photo"
+            data-network-photo
+            fill
+            sizes="(max-width: 1240px) 100vw, 1200px"
+            src="/images/home-network-students.jpg"
+          />
+          <div className="home-network-shade" aria-hidden="true" />
+          <div className="home-network-copy">
+            <h2 id="home-network-title">네덜란드 전역을 잇는<br />한인 학생회</h2>
+            <p>
+              도시와 학교를 넘어 네덜란드 곳곳의 학생들이 서로 닿을 수 있는 기반을 만듭니다.
+            </p>
+            <Link className="home-network-link" href="/about">
+              KSAN 알아보기 <ArrowRight aria-hidden="true" size={18} strokeWidth={1.7} />
+            </Link>
           </div>
         </div>
       </section>
@@ -273,44 +270,34 @@ export default async function HomePage() {
         <HomeEventGallery snapshots={eventSnapshots} />
       </section>
 
-      <section className="home-partner-section" data-motion-section>
+      <section className="home-partner-section home-partner-reference" data-motion-section aria-labelledby="home-partner-title">
         <div className="home-partner-copy">
           <p className="eyebrow">KSAN Partners</p>
-          <h2>함께 만드는 학생 커뮤니티</h2>
-          <p>KSAN은 다양한 협력 네트워크와 함께합니다.</p>
-        </div>
-        <div className="home-partner-marquee" aria-label="KSAN 협력 네트워크">
-          <div className="home-partner-track">
-            {marqueeItems.map((item, index) => (
-              <div
-                aria-label={item.title}
-                className="home-partner-logo"
-                key={`${item.id}-${index}`}
-                style={item.image_url ? { backgroundImage: `url(${item.image_url})` } : undefined}
-              >
-                {item.image_url ? null : initials(item.title)}
-              </div>
-            ))}
+          <h2 id="home-partner-title">함께 만드는<br />학생 커뮤니티</h2>
+          <p>다양한 기업과 기관이 KSAN과 함께<br />네덜란드 한인 학생들의 연결을 넓혀갑니다.</p>
+          <div className="home-partner-inquiry">
+            <p>협업과 후원에 관심이 있으신가요?</p>
+            <Link className="home-contact-button" href="/about#contact">
+              협업 문의하기 <ArrowRight aria-hidden size={18} />
+            </Link>
+            <div className="home-social-links" aria-label="KSAN SNS">
+              {socialLinks.map(({ href, Icon, label }) => (
+                <a aria-label={label} href={href} key={label} rel="noreferrer" target="_blank">
+                  <Icon aria-hidden size={17} strokeWidth={1.7} />
+                </a>
+              ))}
+            </div>
           </div>
         </div>
-        <div className="home-partner-contact">
-        <div className="home-contact-copy">
-          <h3>KSAN과 함께하고 싶다면</h3>
-          <p>협업 제안부터 궁금한 점까지, 편하게 이야기해주세요.</p>
-        </div>
-        <div className="home-contact-actions" data-motion-card>
-          <Link className="home-contact-button" href="/about#contact">
-            문의하기 <ArrowRight aria-hidden size={18} />
-          </Link>
-          <div className="home-social-links" aria-label="KSAN SNS">
-            {socialLinks.map(({ href, Icon, label }) => (
-              <a aria-label={label} href={href} key={label} rel="noreferrer" target="_blank">
-                <Icon aria-hidden size={18} strokeWidth={1.9} />
-              </a>
-            ))}
-          </div>
-        </div>
-        </div>
+        <ul className="home-partner-grid" aria-label="KSAN과 함께하는 기업 및 기관">
+          {visibleNetworkItems.map((item) => (
+            <li className="home-partner-grid-logo" key={item.id}>
+              {item.image_url ? (
+                <Image alt={item.title} height={88} src={item.image_url} width={200} />
+              ) : <span>{item.title}</span>}
+            </li>
+          ))}
+        </ul>
       </section>
     </main>
   );
