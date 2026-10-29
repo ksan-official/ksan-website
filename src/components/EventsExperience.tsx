@@ -16,6 +16,7 @@ import {
   Search
 } from "lucide-react";
 import { getEventStatusLabel, type KsanEvent } from "@/lib/events";
+import styles from "./EventsExperience.module.css";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
@@ -181,7 +182,7 @@ export function EventsExperience({ initialEvents = [] }: { initialEvents?: KsanE
   }
 
   return (
-    <main className="events-page" id="main" ref={pageRef}>
+    <main className={`events-page ${styles.page}`} id="main" ref={pageRef}>
       {heroEvents.length ? <section
         aria-label={upcomingEventList.length ? "다가오는 행사" : "지난 행사"}
         aria-roledescription="carousel"

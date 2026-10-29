@@ -1,3 +1,8 @@
+.page {
+  font-family: var(--font-body);
+  color: var(--brand-slate-obsidian);
+}
+
 .hero {
   position: relative;
   width: calc(100% - 44px);
@@ -40,7 +45,12 @@
 .search button:hover { background: #ba5420; }
 .spotEntry { width: calc(100% - 44px); max-width: 1120px; margin: 0 auto 50px; display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; align-items: center; gap: 34px; background: #f3f1e9; border-radius: 8px; overflow: hidden; color: #282c28; text-decoration: none; padding-right: 34px; }
 .spotIllustration { position: relative; height: 112px; overflow: hidden; }
-.spotIllustration img { object-fit: contain; padding: 12px; }
+.spotIllustration img {
+  object-fit: contain;
+  padding: 12px;
+  filter: brightness(1.08);
+  mix-blend-mode: multiply;
+}
 .spotCopy h2 { margin: 0 0 10px; font-family: var(--font-display); font-size: 27px; line-height: 1.2; letter-spacing: -0.04em; }
 .spotCopy p { margin: 0; font-size: 14px; line-height: 1.7; color: #6d7168; word-break: keep-all; }
 .spotAction { display: inline-flex; align-items: center; gap: 12px; color: #9b481f; font-size: 14px; font-weight: 650; white-space: nowrap; }
@@ -68,4 +78,81 @@
   .copy h1 { font-size: clamp(44px, 9vw, 56px); }
   .description { font-size: 15px; margin: 18px 0 24px; }
   .search input { font-size: 14px; }
+}
+
+/* Match the approved homepage type and surfaces without changing layout. */
+.page .kicker {
+  color: var(--brand-orange-strong);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+}
+.page .copy h1 {
+  font-family: var(--font-display);
+  font-size: clamp(48px, 5.8vw, 78px);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1.12;
+}
+.page .description,
+.page .spotCopy p {
+  color: var(--brand-gray-600);
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1.75;
+}
+.page .search {
+  background: var(--brand-gray-50);
+  border-color: var(--brand-gray-200);
+  border-radius: 999px;
+}
+.page .search:focus-within { border-color: var(--brand-dutch-orange); outline-color: var(--brand-soft-peach); }
+.page .search input { color: var(--text); font-size: 15px; }
+.page .search button { background: var(--brand-dutch-orange); border-radius: 50%; color: var(--on-accent); }
+.page .search button:hover { background: var(--brand-orange-hover); }
+.page .spotEntry { background: var(--brand-ice-blue); border-radius: 28px; color: var(--text); }
+.page .spotCopy h2 {
+  font-family: var(--font-body);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.3;
+}
+.page .spotAction { color: var(--brand-orange-strong); font-size: 15px; font-weight: 500; }
+.page :global(.guides-browser-intro h2) {
+  font-family: var(--font-body);
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.2;
+}
+.page :global(.guides-browser-intro > div > p) { color: var(--brand-orange-strong); font-size: 12px; font-weight: 500; }
+.page :global(.guides-topic-tabs) { border-color: var(--brand-gray-200); border-radius: 24px; box-shadow: none; }
+.page :global(.guides-topic-tabs button) { background: var(--brand-gray-50); border-color: transparent; border-radius: 18px; font-size: 14px; font-weight: 500; }
+.page :global(.guides-topic-tabs button > span) { background: transparent; border: 0; border-radius: 0; }
+.page :global(.guides-topic-tabs button > span svg) { height: 31px; width: 31px; }
+.page :global(.guides-topic-tabs button[aria-selected="true"]) { background: var(--brand-soft-peach); border-color: var(--brand-dutch-orange); box-shadow: none; color: var(--text); font-weight: 600; }
+.page :global(.guides-topic-tabs button[aria-selected="true"] > span) { background: transparent; border-color: transparent; }
+.page :global(.guides-reference-row) { border-color: var(--brand-gray-200); border-radius: 24px; box-shadow: none; }
+.page :global(.guides-reference-row:first-child) { border-color: var(--brand-gray-200); }
+.page :global(a.guides-reference-row:hover) { border-color: var(--brand-orange-200); box-shadow: none; }
+.page :global(.guides-reference-copy > span) { color: var(--brand-orange-strong); font-size: 12px; font-weight: 500; letter-spacing: 0; }
+.page :global(.guides-reference-copy h3) { font-family: var(--font-body); font-size: 24px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.3; }
+.page :global(.guides-reference-copy p),
+.page :global(.guides-reference-copy small) { color: var(--brand-gray-600); font-size: 14px; font-weight: 400; line-height: 1.75; }
+.page :global(.guides-reference-action) { background: var(--brand-soft-peach); color: var(--brand-orange-strong); font-size: 14px; font-weight: 500; }
+.page .searchResult p { font-size: 16px; font-weight: 400; }
+.page .searchResult button { color: var(--brand-orange-strong); font-size: 14px; }
+.page a:focus-visible, .page button:focus-visible { outline: 3px solid var(--brand-dutch-orange); outline-offset: 4px; }
+@media (max-width: 900px) {
+  .page :global(.guides-browser-intro h2) { font-size: 32px; }
+}
+@media (max-width: 640px) {
+  .page .copy h1 { font-size: clamp(44px, 9vw, 56px); }
+  .page .description, .page .spotCopy p { font-size: 15px; }
+  .page .spotCopy h2, .page :global(.guides-reference-copy h3) { font-size: 22px; }
+  .page :global(.guides-browser-intro h2) { font-size: 28px; }
+  .page .search input, .page .spotAction { font-size: 14px; }
 }

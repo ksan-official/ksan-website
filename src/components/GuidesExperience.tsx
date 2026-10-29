@@ -16,7 +16,7 @@ import {
   type GuideTreeItem
 } from "@/lib/guide-structure";
 import type { GuideSummary } from "@/lib/types";
-import { GuideCategoryIcon } from "@/components/GuideCategoryIcon";
+import { SettlementCategoryArt } from "@/components/SettlementCategoryArt";
 
 type GuidesExperienceProps = {
   guides: GuideSummary[];
@@ -123,7 +123,7 @@ export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperience
   const additionalGuides = selectedCategoryGuides.filter((guide) => !matchedGuideIds.has(guide.id));
 
   return (
-    <main className="guides-page guides-page--reference" id="main">
+    <main className={`guides-page guides-page--reference ${styles.page}`} id="main">
       <section className={styles.hero} aria-labelledby="settlement-title">
         <div className={styles.copy}>
           <p className={styles.kicker}>정착가이드</p>
@@ -175,7 +175,7 @@ export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperience
               type="button"
             >
               <span aria-hidden>
-                <GuideCategoryIcon name={category.emoji} size={18} />
+                <SettlementCategoryArt category={category.id} />
               </span>
               {category.title}
             </button>

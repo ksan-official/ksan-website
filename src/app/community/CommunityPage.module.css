@@ -1,0 +1,81 @@
+/* Keep the board and connected-service preview in their original layouts. */
+.boardPage {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 64px 24px 100px;
+}
+
+.previewPage {
+  color: var(--text);
+  font-family: var(--font-body);
+}
+
+.previewPage :global(.coming-soon-kicker),
+.previewPage :global(.community-preview-small-label) {
+  color: var(--brand-orange-strong);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+}
+
+.previewPage :global(.coming-soon-title) {
+  font-family: var(--font-display);
+  font-size: clamp(48px, 5.8vw, 78px);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1.12;
+}
+
+.previewPage :global(.coming-soon-title span) {
+  color: var(--brand-mint-strong);
+}
+
+.previewPage :global(.coming-soon-lead) {
+  color: var(--brand-gray-600);
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1.75;
+}
+
+.previewPage :global(.coming-soon-primary) {
+  background: var(--brand-dutch-orange);
+  border-color: var(--brand-dutch-orange);
+  border-radius: 999px;
+  box-shadow: none;
+  color: var(--on-accent);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.previewPage :global(.coming-soon-primary:hover) {
+  background: var(--brand-orange-hover);
+  border-color: var(--brand-orange-hover);
+}
+
+.previewPage :global(.community-preview-images) {
+  background: var(--brand-gray-50);
+  border-color: var(--brand-gray-200);
+  border-radius: 28px;
+  box-shadow: none;
+}
+
+.previewPage :global(.community-preview-image) {
+  border-color: var(--brand-gray-200);
+  border-radius: 24px;
+  box-shadow: none;
+}
+
+.previewPage a:focus-visible {
+  outline: 3px solid var(--brand-dutch-orange);
+  outline-offset: 4px;
+}
+
+@media (max-width: 640px) {
+  .previewPage :global(.coming-soon-title) { font-size: clamp(40px, 9vw, 56px); }
+  .previewPage :global(.coming-soon-lead) { font-size: 15px; }
+  .previewPage :global(.coming-soon-primary) { font-size: 14px; }
+  .previewPage :global(.community-preview-images) { border-radius: 24px; }
+}

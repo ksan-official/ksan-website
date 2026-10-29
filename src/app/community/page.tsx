@@ -3,11 +3,12 @@ import { isLocalDesignMode } from "@/lib/design-preview";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import styles from "./CommunityPage.module.css";
 
 export default function CommunityPage() {
-  if (isLocalDesignMode) return <main id="main" style={{ maxWidth: 1120, margin: "0 auto", padding: "64px 24px 100px" }}><LocalActivityBoard kind="community" /></main>;
+  if (isLocalDesignMode) return <main id="main" className={styles.boardPage}><LocalActivityBoard kind="community" /></main>;
   return (
-    <main className="page coming-soon-page coming-soon-page--forest">
+    <main id="main" className={`page coming-soon-page coming-soon-page--forest ${styles.previewPage}`}>
       <section className="coming-soon-hero" aria-labelledby="community-title">
         <div className="coming-soon-copy">
           <span className="coming-soon-kicker">KSAN COMMUNITY</span>

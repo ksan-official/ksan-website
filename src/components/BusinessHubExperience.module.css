@@ -1,0 +1,182 @@
+/* Career landing only: the approved homepage visual system, existing layout. */
+.page {
+  color: var(--brand-slate-obsidian);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.75;
+}
+.page :global(.business-hub-hero h1) {
+  font-family: var(--font-display);
+  font-size: clamp(44px, 5.8vw, 78px);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1.12;
+  max-width: 14em;
+}
+.page :global(.business-hub-kicker),
+.page :global(.business-guideline-card > p),
+.page :global(.business-partnership-card > p) {
+  color: var(--brand-orange-strong);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+}
+.page :global(.business-hero-copy p) {
+  color: var(--brand-gray-600);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1.75;
+}
+.page :global(.business-filter-panel label > span) { color: var(--muted); font-size: 12px; font-weight: 500; line-height: 1.5; }
+.page :global(.business-filter-panel input),
+.page :global(.business-filter-panel select),
+.page :global(.business-select-field > strong) { font-family: var(--font-body); font-size: 15px; font-weight: 500; letter-spacing: -0.015em; line-height: 1.5; }
+.page :global(.business-filter-panel input::placeholder) { color: var(--brand-gray-600); font-weight: 400; }
+.page :global(.business-filter-panel label) { border-color: var(--brand-gray-200); }
+.page :global(.business-job-card) { background: #fff; border-color: var(--brand-gray-200); border-radius: 24px; box-shadow: none; }
+.page :global(.business-job-card:hover) { background: var(--brand-gray-50); border-color: var(--brand-orange-200); box-shadow: none; transform: translateY(-2px); }
+.page :global(.business-company-mark) { border-radius: 16px; box-shadow: none; }
+.page :global(.business-job-heading > p) { color: var(--brand-gray-600); font-size: 14px; font-weight: 500; letter-spacing: -0.015em; line-height: 1.5; }
+.page :global(.business-job-heading h3) { color: var(--text); font-family: var(--font-body); font-size: 24px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.3; }
+.page :global(.business-job-type) { font-size: 12px; font-weight: 500; letter-spacing: 0; line-height: 1.5; }
+.page :global(.business-job-tags > span) { color: var(--brand-gray-600); font-size: 14px; font-weight: 400; line-height: 1.6; }
+.page :global(.business-deadline) { color: var(--brand-gray-600); font-size: 13px; font-weight: 400; }
+.page :global(.business-job-open) { background: var(--brand-slate-obsidian); border-radius: 999px; color: #fff; font-size: 14px; font-weight: 500; letter-spacing: -0.015em; line-height: 1.4; }
+.page :global(.business-job-main-link:hover .business-job-open) { background: var(--brand-dutch-orange); color: var(--on-accent); }
+.page :global(.business-save-button) { background: var(--brand-gray-50); border-color: transparent; box-shadow: none; }
+.page :global(.business-save-button[aria-pressed="true"]) { background: var(--brand-soft-peach); color: var(--brand-orange-strong); }
+.page :global(.business-guideline-card),
+.page :global(.business-partnership-card) { border: 0; border-radius: 28px; box-shadow: none; }
+.page :global(.business-guideline-card) { background: var(--brand-soft-peach); }
+.page :global(.business-partnership-card) { background: var(--brand-ice-blue); }
+.page :global(.business-guideline-card h2),
+.page :global(.business-partnership-card h2) { color: var(--text); font-family: var(--font-body); font-size: 24px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.3; }
+.page :global(.business-guideline-card > span),
+.page :global(.business-partnership-card > span),
+.page :global(.business-partnership-card li) { color: var(--brand-gray-600); font-size: 14px; font-weight: 400; letter-spacing: -0.015em; line-height: 1.75; }
+.page :global(.business-guideline-card a),
+.page :global(.business-partnership-card a) { color: var(--brand-orange-strong); font-size: 15px; font-weight: 500; letter-spacing: -0.015em; line-height: 1.4; }
+.page :global(.business-guideline-card) .partnerIcon,
+.page :global(.business-partnership-card) .partnerIcon { display: block; height: 48px; margin: 0 0 18px; width: 48px; }
+.partnerIcon svg { height: 100%; width: 100%; }
+.page :global(.business-jobs-expander button) { background: var(--brand-gray-50); border-color: var(--brand-gray-200); border-radius: 999px; box-shadow: none; }
+.page :global(.business-jobs-expander button > span) { font-size: 15px; font-weight: 500; line-height: 1.4; }
+.page :global(.business-jobs-expander button > small) { color: var(--muted); font-size: 13px; font-weight: 400; }
+.page :global(.business-empty-state) { background: var(--brand-gray-50); border-color: transparent; border-radius: 24px; }
+.page :global(.business-empty-state strong) { font-size: 22px; font-weight: 600; line-height: 1.3; }
+.page :global(.business-empty-state p),
+.page :global(.business-save-notice) { color: var(--muted); font-size: 15px; font-weight: 400; line-height: 1.75; }
+.page a:focus-visible, .page button:focus-visible { outline: 3px solid var(--brand-dutch-orange); outline-offset: 4px; }
+@media (max-width: 640px) {
+  .page :global(.business-hub-hero h1) { font-size: clamp(36px, 8.5vw, 52px); }
+  .page :global(.business-hero-copy p) { font-size: 15px; }
+  .page :global(.business-job-heading h3),
+  .page :global(.business-guideline-card h2),
+  .page :global(.business-partnership-card h2) { font-size: 22px; }
+}
+
+/* Compact toolbar: filters left, guide-inspired pill search right. */
+.page.page .filterPanel,
+.page.page .filterPanel:focus-within {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--brand-gray-200);
+  border-radius: 0;
+  padding-bottom: 18px;
+  box-shadow: none;
+  overflow: visible;
+  transform: none;
+}
+.searchBar {
+  display: flex;
+  align-items: center;
+  flex: 1 1 360px;
+  gap: 10px;
+  min-width: 0;
+  padding: 5px 5px 5px 16px;
+  background: var(--brand-gray-50);
+  border: 1px solid var(--brand-gray-200);
+  border-radius: 999px;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+.searchBar:focus-within {
+  border-color: var(--brand-dutch-orange);
+  box-shadow: 0 0 0 3px var(--brand-soft-peach);
+}
+.searchBar > svg { flex-shrink: 0; color: var(--brand-gray-600); }
+.page.page .searchBar input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  padding: 4px 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.searchBar button {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  background: var(--brand-dutch-orange);
+  border: 0;
+  border-radius: 50%;
+  color: var(--on-accent);
+  cursor: pointer;
+  transition: background 180ms ease;
+}
+.searchBar button:hover { background: var(--brand-orange-hover); }
+.filterOptions { display: flex; flex-shrink: 0; gap: 10px; }
+.page .filterOptions :global(.business-select-field) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 32px 8px 14px;
+  background: var(--brand-gray-50);
+  border: 1px solid var(--brand-gray-200);
+  border-radius: 999px;
+}
+.page .filterOptions :global(.business-select-field > svg) { color: var(--brand-gray-600); width: 16px; height: 16px; flex-shrink: 0; }
+.page .filterOptions :global(.business-select-field > span) { font-size: 12px; white-space: nowrap; }
+.page .filterOptions :global(.business-select-field:hover) { background: var(--brand-gray-50); }
+.page .filterOptions :global(.business-select-field:focus-within) {
+  border-color: var(--brand-dutch-orange);
+  box-shadow: 0 0 0 3px var(--brand-soft-peach);
+}
+.page .filterOptions :global(.business-select-field > strong) { padding-right: 0; font-size: 14px; font-weight: 500; line-height: 1.5; max-width: 150px; }
+.page .filterOptions :global(.business-select-field)::after {
+  content: "";
+  position: absolute;
+  right: 16px;
+  top: calc(50% - 4px);
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--brand-gray-600);
+  border-bottom: 1.5px solid var(--brand-gray-600);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+@media (max-width: 900px) {
+  .page.page .filterPanel { flex-wrap: wrap; gap: 12px; }
+  .searchBar { flex: 1 1 280px; }
+}
+@media (max-width: 640px) {
+  .searchBar { flex-basis: 100%; }
+  .filterOptions { width: 100%; min-width: 0; gap: 8px; }
+  .page .filterOptions :global(.business-select-field) { flex: 1; min-width: 0; gap: 6px; padding-left: 12px; }
+  .page .filterOptions :global(.business-select-field > span) { font-size: 11px; }
+  .page .filterOptions :global(.business-select-field > strong) { font-size: 13px; }
+}

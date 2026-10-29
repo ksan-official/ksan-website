@@ -10,10 +10,11 @@ import {
   CalendarClock,
   ChevronDown,
   MapPin,
-  Search,
-  SlidersHorizontal
+  Search
 } from "lucide-react";
 import { BusinessMotion } from "@/components/BusinessMotion";
+import { HomeSectionIcon } from "@/components/HomeSectionIcon";
+import styles from "./BusinessHubExperience.module.css";
 import { type BusinessJob, type JobType } from "@/lib/business";
 import { createBrowserSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
 
@@ -217,7 +218,7 @@ export function BusinessHubExperience() {
   }
 
   return (
-    <main className="business-hub-page" data-business-page id="main">
+    <main className={`business-hub-page ${styles.page}`} data-business-page id="main">
       <BusinessMotion />
 
       <section className="business-hub-hero" data-business-hero>
@@ -231,12 +232,8 @@ export function BusinessHubExperience() {
       </section>
 
       <section className="business-board-layout" id="open-roles">
-        <div className="business-filter-panel" data-business-filter>
-          <label className="business-search-field">
-            <Search aria-hidden size={19} />
-            <span>직무 또는 회사 검색</span>
-            <input aria-label="직무 또는 회사 검색" onChange={(event) => { setQuery(event.target.value); setExpanded(false); }} placeholder="예: Talent Acquisition, Picnic" type="search" value={query} />
-          </label>
+        <form className={`business-filter-panel ${styles.filterPanel}`} data-business-filter role="search" aria-label="채용 공고 검색" onSubmit={(event) => { event.preventDefault(); setQuery(query.trim()); setExpanded(false); }}>
+          <div className={styles.filterOptions}>
           <label className="business-select-field">
             <BriefcaseBusiness aria-hidden size={18} />
             <span>고용 형태</span>
@@ -253,8 +250,14 @@ export function BusinessHubExperience() {
               {locations.map((item) => <option key={item}>{item}</option>)}
             </select>
           </label>
-          <div className="business-filter-summary"><SlidersHorizontal aria-hidden size={17} /><strong>{filteredJobs.length}</strong><span>개의 공고</span></div>
-        </div>
+          </div>
+          <div className={styles.searchBar}>
+            <Search aria-hidden size={18} />
+            <label className="sr-only" htmlFor="career-search">직무 또는 회사 검색</label>
+            <input id="career-search" onChange={(event) => { setQuery(event.target.value); setExpanded(false); }} placeholder="직무, 회사명 또는 키워드 검색" type="search" value={query} />
+            <button type="submit" aria-label="공고 검색"><ArrowRight aria-hidden size={18} /></button>
+          </div>
+        </form>
 
         <div className="business-board-columns">
           <section className="business-roles">
@@ -291,6 +294,7 @@ export function BusinessHubExperience() {
 
           <aside className="business-board-sidebar" aria-label="기업 파트너 안내" data-business-sidebar>
             <section className="business-guideline-card">
+              <span className={styles.partnerIcon} aria-hidden="true"><HomeSectionIcon kind="career" /></span>
               <p>Post an opportunity</p>
               <h2>채용·커리어 행사 등록</h2>
               <span>귀사의 채용 기회와 커리어 행사를 KSAN의 한인 학생·청년 커뮤니티와 공유해주세요.</span>
@@ -298,6 +302,7 @@ export function BusinessHubExperience() {
             </section>
 
             <section className="business-partnership-card">
+              <span className={styles.partnerIcon} aria-hidden="true"><HomeSectionIcon kind="community" /></span>
               <p>For companies</p>
               <h2>기업 파트너십</h2>
               <span>네덜란드의 우수한 한인 인재와 연결하세요. 채용부터 브랜드 협업까지 KSAN이 함께합니다.</span>
