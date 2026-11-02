@@ -8,15 +8,12 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
   ArrowRight,
-  CalendarDays,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  MapPin,
   Search
 } from "lucide-react";
 import { getEventStatusLabel, type KsanEvent } from "@/lib/events";
 import styles from "./EventsExperience.module.css";
+import { FeatureHero } from "@/components/FeatureHero";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
@@ -50,33 +47,12 @@ function getLocationSearchAliases(city: string, location: string) {
 }
 
 export function EventsExperience({ initialEvents = [] }: { initialEvents?: KsanEvent[] }) {
-  const [activeSlide, setActiveSlide] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
   const [query, setQuery] = useState("");
   const [keyword, setKeyword] = useState("all");
   const [events, setEvents] = useState<KsanEvent[]>(initialEvents);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const [showAllPast, setShowAllPast] = useState(false);
-  const pointerStart = useRef<number | null>(null);
   const pageRef = useRef<HTMLElement>(null);
-  const upcomingEventList = useMemo(() => events.filter((event) => event.status === "upcoming"), [events]);
-
-  const heroEvents = useMemo(() => upcomingEventList.length
-    ? upcomingEventList
-    : [...events].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3), [events, upcomingEventList]);
-
-  useEffect(() => {
-    if (isPaused || heroEvents.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      setActiveSlide((current) => (current + 1) % heroEvents.length);
-    }, 5600);
-
-    return () => window.clearInterval(timer);
-  }, [isPaused, heroEvents.length]);
-
   useEffect(() => {
     let active = true;
 
@@ -103,14 +79,6 @@ export function EventsExperience({ initialEvents = [] }: { initialEvents?: KsanE
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         return;
       }
-
-      gsap.from("[data-events-intro] > *", {
-        autoAlpha: 0,
-        duration: 0.85,
-        ease: "power3.out",
-        stagger: 0.1,
-        y: 28
-      });
 
       gsap.utils.toArray<HTMLElement>("[data-event-grid]").forEach((grid) => {
         gsap.from(grid.querySelectorAll("[data-event-post]"), {
@@ -157,113 +125,14 @@ export function EventsExperience({ initialEvents = [] }: { initialEvents?: KsanE
   const filteredPast = filteredEvents.filter((event) => event.status === "past");
   const visibleUpcoming = showAllUpcoming ? filteredUpcoming : filteredUpcoming.slice(0, 6);
   const visiblePast = showAllPast ? filteredPast : filteredPast.slice(0, 6);
-  const safeActiveSlide = Math.min(activeSlide, Math.max(heroEvents.length - 1, 0));
-
-  function showPrevious() {
-    if (!heroEvents.length) return;
-    setActiveSlide((current) => (current - 1 + heroEvents.length) % heroEvents.length);
-  }
-
-  function showNext() {
-    if (!heroEvents.length) return;
-    setActiveSlide((current) => (current + 1) % heroEvents.length);
-  }
-
-  function finishSwipe(clientX: number) {
-    if (pointerStart.current === null) {
-      return;
-    }
-
-    const distance = clientX - pointerStart.current;
-    if (Math.abs(distance) > 55) {
-      distance > 0 ? showPrevious() : showNext();
-    }
-    pointerStart.current = null;
-  }
 
   return (
     <main className={`events-page ${styles.page}`} id="main" ref={pageRef}>
-      {heroEvents.length ? <section
-        aria-label={upcomingEventList.length ? "다가오는 행사" : "지난 행사"}
-        aria-roledescription="carousel"
-        className="events-carousel"
-        onBlur={() => setIsPaused(false)}
-        onFocus={() => setIsPaused(true)}
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-        onPointerCancel={() => {
-          pointerStart.current = null;
-        }}
-        onPointerDown={(event) => {
-          pointerStart.current = event.clientX;
-        }}
-        onPointerUp={(event) => finishSwipe(event.clientX)}
-      >
-        <div
-          className="events-carousel-track"
-          style={{ transform: `translateX(-${safeActiveSlide * 100}%)` }}
-        >
-          {heroEvents.map((event, index) => (
-            <article
-              aria-hidden={index !== safeActiveSlide}
-              className="events-hero-slide"
-              data-protected-event-image
-              key={event.id}
-              style={{ backgroundImage: `url(${event.image})` }}
-            >
-              <div className="events-hero-content" data-events-intro={index === 0 ? "" : undefined}>
-                <p className="events-hero-kicker">{event.status === "upcoming" ? "다가오는 행사" : "지난 행사"} · {event.keywords.join(" / ")}</p>
-                <h1>{event.title}</h1>
-                <p className="events-hero-summary">{event.summary}</p>
-                <div className="events-hero-meta">
-                  <span><CalendarDays aria-hidden size={18} />{event.dateLabel} · {event.time}</span>
-                  <span><MapPin aria-hidden size={18} />{event.city}</span>
-                </div>
-                <div className="events-hero-actions">
-                  <Link className="events-hero-link" href={`/events/${event.id}`} tabIndex={index === safeActiveSlide ? 0 : -1}>
-                    행사 자세히 보기 <ArrowRight aria-hidden size={19} />
-                  </Link>
-                  <a className="events-archive-jump" href="#event-archive" tabIndex={index === safeActiveSlide ? 0 : -1}>
-                    지난 행사 아카이브
-                  </a>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+      <FeatureHero kind="events" eyebrow="행사" titleId="events-title" motion="events"
+        title={<>다가오는 행사들을<br />확인해 보세요!</>}
+        description="참여하고 싶은 행사를 찾아보고, 지난 행사의 즐거웠던 모습도 함께 둘러보세요!" />
 
-        {heroEvents.length > 1 ? (
-          <div className="events-carousel-controls">
-            <div className="events-carousel-dots" role="tablist" aria-label="행사 배너 선택">
-              {heroEvents.map((event, index) => (
-                <button
-                  aria-label={`${event.title} 배너 보기`}
-                  aria-selected={index === safeActiveSlide}
-                  className={index === safeActiveSlide ? "is-active" : ""}
-                  key={event.id}
-                  onClick={() => setActiveSlide(index)}
-                  role="tab"
-                  type="button"
-                />
-              ))}
-            </div>
-            <div className="events-carousel-arrows">
-              <button aria-label="이전 행사" onClick={showPrevious} type="button"><ChevronLeft aria-hidden /></button>
-              <button aria-label="다음 행사" onClick={showNext} type="button"><ChevronRight aria-hidden /></button>
-            </div>
-          </div>
-        ) : null}
-      </section> : null}
-
-      <section className="events-archive">
-        <header className="events-archive-heading">
-          <div>
-            <p className="eyebrow">Upcoming Events</p>
-            <h2>다가오는 행사들을<br />확인해 보세요!</h2>
-          </div>
-          <p>참여하고 싶은 행사를 찾아보고, 지난 행사의 즐거웠던 모습도 함께 둘러보세요!</p>
-        </header>
-
+      <section className="events-archive" aria-label="행사 목록">
         <form className="events-filter-bar" role="search" aria-label="행사 검색" onSubmit={(event) => { event.preventDefault(); setQuery(query.trim()); }}>
           <div className="events-filter-options">
             <label className="events-filter-option">

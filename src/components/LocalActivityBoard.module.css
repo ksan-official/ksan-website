@@ -343,3 +343,7 @@
   .marketLayout .primary,
   .marketLayout .categories button { transition: none; }
 }
+
+/* The shared feature hero owns h1; keep listing headings below it semantic. */
+.board .heading h2 { margin: 0 0 12px; color: var(--text); font-family: var(--font-body); font-size: 30px; font-weight: 600; line-height: 1.2; letter-spacing: -.035em; }
+@media (max-width: 760px) { .board .heading h2 { font-size: 26px; } }

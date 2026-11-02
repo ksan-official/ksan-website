@@ -1,4 +1,5 @@
 import { LocalActivityBoard } from "@/components/LocalActivityBoard";
+import { FeatureHero } from "@/components/FeatureHero";
 import { isLocalDesignMode } from "@/lib/design-preview";
 import Link from "next/link";
 import { Bell, ChevronDown, MapPin, SlidersHorizontal } from "lucide-react";
@@ -27,28 +28,18 @@ const marketCategories = [
 ];
 
 export default function PassItOnPage() {
-  if (isLocalDesignMode) return <main id="main" className={styles.boardPage}><LocalActivityBoard kind="market" /></main>;
+  if (isLocalDesignMode) return <main id="main" className={styles.boardPage}>
+    <FeatureHero kind="market" eyebrow="중고거래" titleId="pass-it-on-title"
+      title={<>생활용품부터<br />자전거까지</>} description="필요한 물건을 찾고, 쓰던 물건을 나눠요." />
+    <div className={styles.boardContent}><LocalActivityBoard kind="market" hasPageHero /></div>
+  </main>;
   return (
     <main id="main" className={`page coming-soon-page coming-soon-page--market ${styles.previewPage}`} data-market-page>
       <MarketPreviewMotion />
-      <section className="coming-soon-hero market-coming-hero" aria-labelledby="pass-it-on-title" data-market-hero>
-        <div className="coming-soon-copy">
-          <span className="coming-soon-kicker">MARKETPLACE</span>
-          <h1 className="coming-soon-title" id="pass-it-on-title">
-            <span>생활용품부터</span>
-            <strong>자전거까지</strong>
-          </h1>
-          <p className="coming-soon-lead">
-            네덜란드 한인 학생끼리 자전거, 가구, 교재와 생활용품을 더 편하게 주고받을 수 있는 공간을 준비하고 있어요.
-          </p>
-          <div className="coming-soon-actions">
-            <Link className="coming-soon-primary" href="/auth">
-              <Bell aria-hidden size={17} />
-              오픈 알림 받기
-            </Link>
-          </div>
-        </div>
-      </section>
+      <FeatureHero kind="market" eyebrow="중고거래" titleId="pass-it-on-title" motion="market"
+        title={<>생활용품부터<br />자전거까지</>} description="네덜란드 한인 학생끼리 자전거, 가구, 교재와 생활용품을 더 편하게 주고받을 수 있는 공간을 준비하고 있어요.">
+        <Link className="coming-soon-primary" href="/auth"><Bell aria-hidden size={17} />오픈 알림 받기</Link>
+      </FeatureHero>
 
       <section className="market-gated-preview" aria-label="중고거래 화면 미리보기">
         <div className="market-preview-ui" aria-hidden="true">

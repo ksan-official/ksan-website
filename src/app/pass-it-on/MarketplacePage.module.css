@@ -23,3 +23,8 @@
   .previewPage :global(.coming-soon-primary) { font-size: 14px; }
   .previewPage :global(.market-preview-ui) { border-radius: 24px; }
 }
+
+/* The public hero is shared; retain the board's existing usable width. */
+.boardPage.boardPage { max-width: none; padding: 0 0 100px; }
+.boardContent { max-width: 1120px; width: calc(100% - 44px); margin: 0 auto; }
+@media (max-width: 900px) { .boardContent { width: calc(100% - 32px); } }

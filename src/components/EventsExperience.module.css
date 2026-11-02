@@ -1,4 +1,4 @@
-/* Event landing only: preserve the carousel, filters, grid and motion. */
+/* Event landing: fixed text hero, existing filters, grid and motion. */
 .page.page {
   color: var(--brand-slate-obsidian);
   font-family: var(--font-body);
@@ -298,3 +298,8 @@
   .page :global(.events-hero-link),
   .page :global(.events-expand-row button) { font-size: 14px; }
 }
+
+/* Align the archive with the shared feature hero. */
+.page.page :global(.events-archive) { margin-inline: auto; max-width: 1120px; padding: 0 0 clamp(88px, 10vw, 160px); width: calc(100% - 44px); }
+.page.page :global(.events-filter-bar) { margin-top: 0; }
+@media (max-width: 900px) { .page.page :global(.events-archive) { width: calc(100% - 32px); } }

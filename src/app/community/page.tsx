@@ -1,4 +1,5 @@
 import { LocalActivityBoard } from "@/components/LocalActivityBoard";
+import { FeatureHero } from "@/components/FeatureHero";
 import { isLocalDesignMode } from "@/lib/design-preview";
 import Image from "next/image";
 import Link from "next/link";
@@ -6,26 +7,17 @@ import { ArrowRight } from "lucide-react";
 import styles from "./CommunityPage.module.css";
 
 export default function CommunityPage() {
-  if (isLocalDesignMode) return <main id="main" className={styles.boardPage}><LocalActivityBoard kind="community" /></main>;
+  if (isLocalDesignMode) return <main id="main" className={styles.boardPage}>
+    <FeatureHero kind="community" eyebrow="케이숲" titleId="community-title"
+      title={<>편하게 묻고,<br />함께 나누는 이야기.</>} description="네덜란드 생활의 궁금한 것부터 소소한 일상까지." />
+    <div className={styles.boardContent}><LocalActivityBoard kind="community" hasPageHero /></div>
+  </main>;
   return (
     <main id="main" className={`page coming-soon-page coming-soon-page--forest ${styles.previewPage}`}>
-      <section className="coming-soon-hero" aria-labelledby="community-title">
-        <div className="coming-soon-copy">
-          <span className="coming-soon-kicker">KSAN COMMUNITY</span>
-          <h1 className="coming-soon-title" id="community-title">
-            케이<span>숲</span>
-          </h1>
-          <p className="coming-soon-lead">
-            학교, 도시, 전공이 달라도 편하게 묻고 나눌 수 있는 KSAN만의 커뮤니티를 만들고 있어요.
-          </p>
-          <div className="coming-soon-actions">
-            <Link className="coming-soon-primary coming-soon-primary--forest" href="/auth">
-              오픈 알림 받기
-              <ArrowRight aria-hidden size={18} />
-            </Link>
-          </div>
-        </div>
-      </section>
+      <FeatureHero kind="community" eyebrow="케이숲" titleId="community-title"
+        title={<>편하게 묻고,<br />함께 나누는 이야기.</>} description="학교, 도시, 전공이 달라도 편하게 묻고 나눌 수 있는 KSAN만의 커뮤니티를 만들고 있어요.">
+        <Link className="coming-soon-primary" href="/auth">오픈 알림 받기<ArrowRight aria-hidden size={18} /></Link>
+      </FeatureHero>
       <section className="community-preview-section" aria-label="케이숲 화면 목업">
         <span className="community-preview-small-label">Preview</span>
         <div className="community-preview-images" aria-label="케이숲 화면 목업">

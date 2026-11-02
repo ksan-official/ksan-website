@@ -12,14 +12,6 @@ export function BusinessMotion() {
     if (!page || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const context = gsap.context(() => {
-      gsap.from("[data-business-hero] > *", {
-        autoAlpha: 0,
-        duration: 0.9,
-        ease: "power3.out",
-        stagger: 0.1,
-        y: 28
-      });
-
       gsap.utils.toArray<HTMLElement>("[data-job-card]").forEach((card, index) => {
         gsap.from(card, {
           autoAlpha: 0,

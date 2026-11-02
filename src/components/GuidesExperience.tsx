@@ -17,6 +17,7 @@ import {
 } from "@/lib/guide-structure";
 import type { GuideSummary } from "@/lib/types";
 import { SettlementCategoryArt } from "@/components/SettlementCategoryArt";
+import { FeatureHero } from "@/components/FeatureHero";
 
 type GuidesExperienceProps = {
   guides: GuideSummary[];
@@ -124,24 +125,19 @@ export function GuidesExperience({ guides, initialQuery = "" }: GuidesExperience
 
   return (
     <main className={`guides-page guides-page--reference ${styles.page}`} id="main">
-      <section className={styles.hero} aria-labelledby="settlement-title">
-        <div className={styles.copy}>
-          <p className={styles.kicker}>정착가이드</p>
-          <h1 id="settlement-title">네덜란드 생활,<br />여기서부터.</h1>
-          <p className={styles.description}>도착 전 준비부터 일상까지,<br />필요한 정보를 찾아보세요.</p>
-          <form className={styles.search} role="search" onSubmit={(event) => {
-            event.preventDefault();
-            document.getElementById("guide-browser")?.scrollIntoView({ behavior: "instant", block: "start" });
-          }}>
-            <Search aria-hidden size={20} strokeWidth={1.6} />
-            <label className="sr-only" htmlFor="settlement-search">가이드 검색</label>
-            <input id="settlement-search" onChange={(event) => setQuery(event.target.value)} placeholder="BSN, 집 구하기, 건강보험 검색" type="search" value={query} />
-            <button type="submit" aria-label="가이드 검색하기"><ArrowRight size={21} aria-hidden /></button>
-          </form>
-        </div>
-
-
-      </section>
+      <FeatureHero kind="guides" eyebrow="정착가이드" titleId="settlement-title"
+        title={<>네덜란드 생활,<br />여기서부터.</>}
+        description={<>도착 전 준비부터 일상까지,<br />필요한 정보를 찾아보세요.</>}>
+        <form className={styles.search} role="search" onSubmit={(event) => {
+          event.preventDefault();
+          document.getElementById("guide-browser")?.scrollIntoView({ behavior: "instant", block: "start" });
+        }}>
+          <Search aria-hidden size={20} strokeWidth={1.6} />
+          <label className="sr-only" htmlFor="settlement-search">가이드 검색</label>
+          <input id="settlement-search" onChange={(event) => setQuery(event.target.value)} placeholder="BSN, 집 구하기, 건강보험 검색" type="search" value={query} />
+          <button type="submit" aria-label="가이드 검색하기"><ArrowRight size={21} aria-hidden /></button>
+        </form>
+      </FeatureHero>
 
       <Link href="/spots" className={styles.spotEntry}>
         <div className={styles.spotIllustration}>

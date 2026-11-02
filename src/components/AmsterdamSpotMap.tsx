@@ -195,7 +195,7 @@ function fitSpots(map: MapLibreMap, spots: MapSpot[]) {
   });
 }
 
-export function AmsterdamSpotMap() {
+export function AmsterdamSpotMap({ hideIntro = false }: { hideIntro?: boolean }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -446,12 +446,12 @@ export function AmsterdamSpotMap() {
 
   return (
     <section className="section amsterdam-map-section" data-map-section data-motion-section id="netherlands-spots">
-      <div className="map-intro">
+      {!hideIntro && <div className="map-intro">
         <div>
           <p className="map-kicker">KSAN Netherlands Picks</p>
           <h2>학생의 하루가 더 즐거워지는<br />네덜란드 스팟</h2>
         </div>
-      </div>
+      </div>}
 
       <div className="map-filter-group is-primary">
         <div className="map-city-bar" aria-label="도시 필터">

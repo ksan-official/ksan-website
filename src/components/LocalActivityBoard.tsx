@@ -27,7 +27,7 @@ function ActivityDialog({ children, title, onClose }: { children: React.ReactNod
   </dialog>;
 }
 
-export function LocalActivityBoard({ kind, history = false, recordId, viewMessages = false }: { kind: ActivityKind; history?: boolean; recordId?: string; viewMessages?: boolean }) {
+export function LocalActivityBoard({ kind, history = false, recordId, viewMessages = false, hasPageHero = false }: { kind: ActivityKind; history?: boolean; recordId?: string; viewMessages?: boolean; hasPageHero?: boolean }) {
   const router = useRouter();
   const { records, add, change } = useLocalActivities();
   const workspaceQuery = useMyPageSearch();
@@ -121,7 +121,7 @@ export function LocalActivityBoard({ kind, history = false, recordId, viewMessag
       <nav aria-label="케이숲 카테고리">{categories.community.map((item) => <button type="button" key={item} aria-pressed={category === item} onClick={() => setCategory(item)}>{item === "전체" ? "전체 글" : item}</button>)}</nav>
       <Link className={styles.myCommunity} href="/mypage/community">내 활동 <ArrowUpRight size={14} aria-hidden /></Link>
     </aside>}
-    {!history && <div className={styles.heading}><div><h1>{isMarket ? "중고거래" : category === "전체" ? "전체 글" : `${category} 게시판`}</h1><p>{isMarket ? "필요한 물건을 찾고, 쓰던 물건을 나눠요." : "네덜란드 생활의 궁금한 것부터 소소한 일상까지."}</p></div><Link href={isMarket ? "/mypage/pass-it-on" : "/mypage/community"}>내 활동 <ArrowUpRight size={16} aria-hidden /></Link></div>}
+    {!history && <div className={styles.heading}><div>{hasPageHero ? <h2>{isMarket ? "전체 상품" : category === "전체" ? "전체 글" : `${category} 게시판`}</h2> : <><h1>{isMarket ? "중고거래" : category === "전체" ? "전체 글" : `${category} 게시판`}</h1><p>{isMarket ? "필요한 물건을 찾고, 쓰던 물건을 나눠요." : "네덜란드 생활의 궁금한 것부터 소소한 일상까지."}</p></>}</div><Link href={isMarket ? "/mypage/pass-it-on" : "/mypage/community"}>내 활동 <ArrowUpRight size={16} aria-hidden /></Link></div>}
     <div className={styles.toolbar}>
       {history ? <nav className={styles.tabs} aria-label="활동 구분">{historyTabs.map((item) => <button type="button" key={item.id} aria-pressed={tab === item.id} onClick={() => setTab(item.id)}>{item.label}</button>)}</nav> : <label className={styles.search}><Search size={17} aria-hidden /><input aria-label={isMarket ? "상품 검색" : "게시글 검색"} placeholder={isMarket ? "어떤 물건을 찾으세요?" : "게시글 검색"} value={query} onChange={(event) => setQuery(event.target.value)} /></label>}
       <div className={styles.toolbarActions}>{history && <Link href={isMarket ? "/pass-it-on" : "/community"}>{isMarket ? "전체 상품" : "전체 게시글"}<ArrowUpRight size={14} aria-hidden /></Link>}<button type="button" className={styles.primary} onClick={() => { setError(""); setCreating(true); }}><Plus size={16} aria-hidden />{isMarket ? "판매하기" : "글쓰기"}</button></div>

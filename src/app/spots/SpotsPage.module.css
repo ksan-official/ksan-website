@@ -1,0 +1,8 @@
+.page { padding: 28px 0 80px; }
+.back { display: flex; align-items: center; gap: 8px; max-width: 1120px; width: calc(100% - 44px); margin: 0 auto; color: var(--brand-gray-600); font-size: 14px; text-decoration: none; }
+.mapContent { max-width: 1120px; width: calc(100% - 44px); margin: 0 auto; }
+.mapContent :global(.amsterdam-map-section) { padding: 0; }
+@media (max-width: 900px) { .back, .mapContent { width: calc(100% - 32px); } }
+
+/* Keep the swipeable category row inside the viewport. */
+.mapContent :global(.map-category-bar) { box-sizing: border-box; max-width: 100%; }

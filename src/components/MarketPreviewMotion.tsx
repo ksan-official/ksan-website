@@ -13,14 +13,6 @@ export function MarketPreviewMotion() {
     if (!page || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const context = gsap.context(() => {
-      gsap.from("[data-market-hero] > *", {
-        autoAlpha: 0,
-        duration: 0.85,
-        ease: "power3.out",
-        stagger: 0.12,
-        y: 28
-      });
-
       gsap.fromTo("[data-market-card]", {
         autoAlpha: 0,
         clipPath: "inset(0 0 100% 0)"
