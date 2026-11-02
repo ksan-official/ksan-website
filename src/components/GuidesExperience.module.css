@@ -28,7 +28,9 @@
 }
 .description { margin: 22px 0 28px; color: #6a6a6a; font-size: 16px; line-height: 1.7; }
 .search {
-  max-width: 480px;
+  width: 100%;
+  margin: 0;
+  max-width: 420px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -156,3 +158,22 @@
   .page :global(.guides-browser-intro h2) { font-size: 28px; }
   .page .search input, .page .spotAction { font-size: 14px; }
 }
+
+/* Search and categories share the guide browser's full content width. */
+.page .browserIntro {
+  display: block;
+  margin-bottom: 24px;
+}
+.page .search {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  height: 48px;
+  margin: 0 0 24px;
+  padding: 5px 5px 5px 16px;
+  gap: 10px;
+}
+.page .search > svg { flex-shrink: 0; width: 18px; height: 18px; }
+.page .search input { font-size: 14px; }
+.page .search button { width: 36px; height: 36px; }
+.page .search button svg { width: 18px; height: 18px; }

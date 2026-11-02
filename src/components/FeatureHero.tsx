@@ -26,18 +26,7 @@ export function FeatureHero({ kind, eyebrow, title, titleId, description, childr
         {children && <div className={styles.actions}>{children}</div>}
       </div>
       <div className={styles.art} data-feature-hero-art={kind} aria-hidden="true">
-        <span className={styles.halo} />
-        <span className={styles.blob} />
-        <span className={styles.shadow} />
-        <span className={styles.icon}><HomeSectionIcon kind={kind} /></span>
-        <svg className={styles.sparkle} viewBox="0 0 32 32" fill="none" focusable="false">
-          <path d="M16 2c1.2 9 5 12.8 14 14-9 1.2-12.8 5-14 14C14.8 21 11 17.2 2 16 11 14.8 14.8 11 16 2Z" fill="currentColor" />
-        </svg>
-        <svg className={styles.smallSparkle} viewBox="0 0 24 24" fill="none" focusable="false">
-          <path d="M12 3v18M3 12h18" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-        </svg>
-        <span className={styles.dot} />
-        <span className={styles.ring} />
+        <HomeSectionIcon kind={kind} />
       </div>
     </section>
   );
