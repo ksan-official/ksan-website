@@ -1,8 +1,11 @@
+import Image from "next/image";
+import { ArrowDown, ArrowRight, Check } from "lucide-react";
 import { HomeSectionIcon } from "@/components/HomeSectionIcon";
 import { AboutContactFab } from "@/components/AboutContactFab";
 import { AboutContactForm } from "@/components/AboutContactForm";
 import { AboutMotion } from "@/components/AboutMotion";
 import { createServerSupabaseClient, hasSupabaseConfig } from "@/lib/supabase";
+import { AboutTeamTabs } from "./AboutTeamTabs";
 import styles from "./AboutPage.module.css";
 
 export const dynamic = "force-dynamic";
@@ -41,11 +44,36 @@ const workItems = [
 ] as const;
 
 const teamGroups = [
-  { key: "president", title: "회장단" },
-  { key: "planning", title: "기획총괄팀" },
-  { key: "marketing", title: "마케팅팀" },
-  { key: "finance", title: "재무행정팀" }
+  { key: "president", title: "회장단", summary: "학생회의 방향을 정하고 팀과 협력 기관을 연결합니다." },
+  { key: "planning", title: "기획총괄", summary: "학생들이 만나고 교류할 수 있는 행사와 프로그램을 준비합니다." },
+  { key: "marketing", title: "마케팅", summary: "학생회 소식과 참여 기회를 알기 쉽게 전합니다." },
+  { key: "finance", title: "재무행정", summary: "예산과 행정을 관리해 학생회 활동을 뒷받침합니다." }
+] as const;
+
+type TeamKey = (typeof teamGroups)[number]["key"];
+
+// Each framing applies only to the 4:5 card; the supplied photos stay intact.
+const teamPortraits: ReadonlyArray<{
+  slug: string;
+  name: string;
+  team: TeamKey;
+  role?: string;
+  position: string;
+  size?: string;
+}> = [
+  { slug: "kang-hyunsoo", name: "강현수", team: "marketing", position: "50.5% 80%", size: "233% auto" },
+  { slug: "jung-chaeyeon", name: "정채연", team: "president", role: "회장", position: "54% top" },
+  { slug: "choi-ikjun", name: "최익준", team: "president", role: "부회장", position: "76% 72%", size: "132% auto" },
+  { slug: "jeon-minjae", name: "전민재", team: "planning", position: "57% top", size: "188% auto" },
+  { slug: "kim-ahyun", name: "김아현", team: "marketing", position: "center top" },
+  { slug: "ji-yunseong", name: "지윤성", team: "finance", role: "팀장", position: "67% 88%", size: "233% auto" },
+  { slug: "son-yebin", name: "손예빈", team: "planning", role: "팀장", position: "50% 86%", size: "166% auto" },
+  { slug: "kang-ri", name: "강리", team: "marketing", position: "48% 74%", size: "376% auto" },
+  { slug: "kim-gyurim", name: "김규림", team: "marketing", position: "71% 74%", size: "204% auto" },
+  { slug: "lee-minseo", name: "이민서", team: "president", role: "부회장", position: "center top" }
 ];
+
+const purposeHighlights = ["처음 정착에 필요한 정보", "학교와 도시를 넘는 교류", "선배와 만나는 진로 탐색", "기업·기관과의 협력"];
 
 async function getTeamMembers() {
   if (!hasSupabaseConfig()) return [];
@@ -84,32 +112,98 @@ function initials(name: string) {
   return name.trim().slice(0, 1) || "K";
 }
 
+function leadershipRank(role?: string | null) {
+  const title = role?.replace(/\s/g, "");
+  if (title === "회장") return 3;
+  if (title === "부회장") return 2;
+  if (/^(?:(?:기획총괄|마케팅|재무행정)팀?)?팀장$/.test(title ?? "")) return 2;
+  if (/^(?:(?:기획총괄|마케팅|재무행정)팀?)?부팀장$/.test(title ?? "")) return 1;
+  return 0;
+}
+
 export default async function AboutPage() {
   const teamMembers = await getTeamMembers();
+  const nameKey = (name: string) => name.normalize("NFC").replace(/\s/g, "");
+  const existingByName = new Map(teamMembers.map((member) => [nameKey(member.title), member]));
+  const portraitNames = new Set(teamPortraits.map((portrait) => nameKey(portrait.name)));
+  const profiles = [
+    ...teamPortraits.map((portrait) => {
+      const existing = existingByName.get(nameKey(portrait.name));
+      return {
+        id: portrait.slug,
+        name: portrait.name,
+        team: portrait.team,
+        role: portrait.role,
+        generation: existing ? generationLabel(existing) : null,
+        body: existing?.body,
+        photo: `/images/about-team/${portrait.slug}.webp`,
+        position: portrait.position,
+        size: portrait.size
+      };
+    }),
+    ...teamMembers.filter((member) => !portraitNames.has(nameKey(member.title))).map((member) => ({
+      id: member.id,
+      name: member.title,
+      team: groupKey(member),
+      role: undefined,
+      generation: generationLabel(member),
+      body: member.body,
+      photo: member.image_url,
+      position: undefined,
+      size: undefined
+    }))
+  ];
 
   return (
     <main className={`page about-page about-intro-page ${styles.page}`} data-about-page id="main">
       <AboutMotion />
 
-      <section className="about-hero about-intro-hero" data-about-hero>
-        <div className="about-hero-copy" data-about-hero-copy>
-          <h1 className="about-title">KSAN 소개</h1>
+      <section className={styles.hero} aria-labelledby="about-title" data-about-hero>
+        <div className={styles.heroCopy} data-about-hero-copy>
+          <p className={styles.eyebrow}>네덜란드 한국학생회</p>
+          <h1 className="about-title" id="about-title">KSAN 소개</h1>
           <p className="about-intro-line">
-            <strong>네덜란드 한인 유학생을 연결하는 학생 커뮤니티, KSAN</strong>
+            네덜란드 한인 유학생을 연결하는 학생 커뮤니티입니다. 처음 정착하는 날부터 진로를 고민하는 순간까지, 먼저 겪어본 사람의 경험을 나누고 함께할 사람을 만나는 자리를 만듭니다.
           </p>
+          <div className={styles.heroActions}>
+            <a href="#about-work">활동 보기 <ArrowDown aria-hidden size={16} /></a>
+            <a href="#contact">협업 문의 <ArrowRight aria-hidden size={16} /></a>
+          </div>
+          <ul className={styles.stats} aria-label="숫자로 보는 KSAN과 네덜란드 유학">
+            <li>
+              <strong>970<small>명</small></strong>
+              <span>네덜란드 내 한국 국적 유학생</span>
+            </li>
+            <li>
+              <strong>15<small>년</small></strong>
+              <span>KSAN 활동 기간</span>
+            </li>
+            <li>
+              <strong>6<small>회</small></strong>
+              <span>KSAN 체육대회</span>
+            </li>
+          </ul>
+        </div>
+        <div className={`${styles.photo} ${styles.heroPhoto}`} data-about-visual>
+          <Image
+            alt="KSAN 체육대회에서 함께 공을 전달하는 학생들"
+            fill
+            preload
+            sizes="(max-width: 720px) calc(100vw - 80px), (max-width: 1440px) 46vw, 670px"
+            src="/images/home-network-students.jpg"
+          />
         </div>
       </section>
 
-      <section className="about-purpose" data-about-section>
-        <div className="about-purpose-heading">
-          <h2>설립목적</h2>
-        </div>
+      <section className={`about-purpose ${styles.purpose}`} aria-labelledby="about-purpose-title" data-about-section>
         <div className="about-purpose-text">
+          <div>
+            <span className={styles.eyebrow}>설립목적</span>
+            <h2 id="about-purpose-title">낯선 곳에서도 혼자가 아니도록</h2>
+          </div>
           <p>
             KSAN(Korean Student Association Netherlands)은 네덜란드에 거주하는 한국인 유학생과 청년들을
-            연결하는 커뮤니티입니다.
-          </p>
-          <p>
+            연결하는 커뮤니티입니다.{" "}
             학업, 생활, 진로에 필요한 정보와 다양한 교류의 기회를 제공하며, 서로가 안정적으로 정착하고
             성장할 수 있는 환경을 만들어가고 있습니다.
           </p>
@@ -117,13 +211,24 @@ export default async function AboutPage() {
             또한 기업, 기관과의 협력을 통해 학생과 사회를 연결하는 가교 역할을 하며, 한국과 네덜란드를
             잇는 건강한 한인 네트워크를 만들어가고 있습니다.
           </p>
+          <ul className={styles.purposeHighlights}>
+            {purposeHighlights.map((item) => <li key={item}><Check aria-hidden size={16} />{item}</li>)}
+          </ul>
+        </div>
+        <div className={`${styles.photo} ${styles.purposePhoto}`}>
+          <Image
+            alt="2026 KSAN 신입생 네트워킹에 모인 학생들"
+            fill
+            sizes="(max-width: 720px) calc(100vw - 32px), (max-width: 1200px) 46vw, 550px"
+            src="/images/home-events/ksan-event-1.png"
+          />
         </div>
       </section>
 
-      <section className="about-work" data-about-section>
-        <div className="about-section-heading compact">
+      <section className={`about-work ${styles.work}`} data-about-section id="about-work">
+        <div className={`about-section-heading compact ${styles.workHeading}`}>
           <h2>KSAN이 하는 일</h2>
-          <p>학생들이 실제로 필요로 하는 정보, 사람, 기회를 연결합니다.</p>
+          <p>집을 구할 때 필요한 정보부터 새 친구를 만나는 행사, 졸업 후의 진로까지. 학생들이 실제로 필요로 하는 정보, 사람, 기회를 연결합니다.</p>
         </div>
         <div className="about-work-grid" data-activity-grid>
           {workItems.map((item) => (
@@ -141,44 +246,46 @@ export default async function AboutPage() {
       <section className="about-team" data-about-section>
         <div className="about-section-heading compact">
           <h2>운영진 소개</h2>
+          <p>행사를 준비하고, 소식을 전하고, 운영을 뒷받침하는 팀이 함께 KSAN을 만들어갑니다.</p>
         </div>
-        {teamMembers.length ? (
-          <div className="about-people-sections">
-            {teamGroups.map((group) => {
-              const members = teamMembers.filter((member) => groupKey(member) === group.key);
-              if (!members.length) return null;
-
-              return (
-                <section className="about-people-group" key={group.key}>
-                  <h3>{group.title}</h3>
+        <AboutTeamTabs panels={teamGroups.map((group) => {
+          const members = profiles
+            .filter((profile) => profile.team === group.key)
+            .sort((a, b) => leadershipRank(b.role ?? b.body) - leadershipRank(a.role ?? a.body));
+          return {
+            id: group.key,
+            label: group.title,
+            content: (
+              <>
+                <p className={styles.teamSummary}>{group.summary}</p>
+                {members.length ? (
                   <div className="about-people-grid">
-                    {members.map((member) => {
-                      const generation = generationLabel(member);
-
-                      return (
-                        <article className="about-person-card" data-story-card key={member.id}>
+                    {members.map((member) => (
+                        <article className="about-person-card" key={member.id}>
                           <div
                             className="about-person-photo"
-                            style={member.image_url ? { backgroundImage: `url(${member.image_url})` } : undefined}
+                            aria-hidden="true"
+                            style={member.photo ? {
+                              backgroundImage: `url("${member.photo}")`,
+                              backgroundPosition: member.position,
+                              backgroundSize: member.size,
+                              backgroundRepeat: "no-repeat"
+                            } : undefined}
                           >
-                            {member.image_url ? null : initials(member.title)}
+                            {member.photo ? null : initials(member.name)}
                           </div>
-                          <strong>{member.title}</strong>
-                          {generation ? <span>{generation}</span> : null}
+                          <strong>{member.name}</strong>
+                          {member.role ? <span>{member.role}</span> : null}
+                          {member.generation ? <span>{member.generation}</span> : null}
                           {member.body ? <small>{member.body}</small> : null}
                         </article>
-                      );
-                    })}
+                    ))}
                   </div>
-                </section>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="about-people-empty">
-            <strong>운영진 정보를 준비 중입니다.</strong>
-          </div>
-        )}
+                ) : null}
+              </>
+            )
+          };
+        })} />
       </section>
 
       <section className="about-contact" data-about-section id="contact">
